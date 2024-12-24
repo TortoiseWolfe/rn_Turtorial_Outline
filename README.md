@@ -1,7 +1,3 @@
-Below is a **concise** tutorial to set up a minimal **Expo + TypeScript + Expo Router + NativeWind** project **without** using `cat`/`EOF`. We’ll **only** use commands to **create files**, and then we’ll provide the **contents** you can **paste** manually.
-
----
-
 ## 1. Create a New Expo + TypeScript Project
 
 ```bash

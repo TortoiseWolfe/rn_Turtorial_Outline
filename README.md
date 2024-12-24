@@ -8,8 +8,6 @@ npx create-expo-app MyWebTailwindApp --template blanktypescript
 cd MyWebTailwindApp
 ```
 
-**Result**: A blank TypeScript Expo project with some default files (including `App.tsx`).
-
 ---
 
 ## 2. Remove `App.tsx` and Use a Minimal `index.ts` for Expo Router
@@ -19,7 +17,7 @@ rm App.tsx
 touch index.ts
 ```
 
-**File**: **`index.ts`**
+______ **`index.ts`**
 
 ```ts
 import 'expo-router/entry';
@@ -54,7 +52,7 @@ No file changes here—just installing dependencies.
    touch app/index.tsx
    ```
 
-**File**: `app/_layout.tsx`
+______ `app/_layout.tsx`
 
 ```tsx
 import { Stack } from 'expo-router';
@@ -71,7 +69,7 @@ export default function RootLayout() {
 }
 ```
 
-**File**: `app/index.tsx`
+______ `app/index.tsx`
 
 ```tsx
 import React from 'react';
@@ -123,7 +121,7 @@ npx tailwindcss init
    # not creating the file, just open it in your editor
    ```
 
-   **File**: `tailwind.config.js`
+   ______ `tailwind.config.js`
 
    ```js
    /** @type {import('tailwindcss').Config} */
@@ -145,7 +143,7 @@ npx tailwindcss init
    touch babel.config.js
    ```
 
-   **File**: `babel.config.js`
+   ______ `babel.config.js`
 
    ```js
    module.exports = function (api) {
@@ -167,7 +165,7 @@ Update the **`app/index.tsx`** file to see Tailwind classes in action:
 # We already have app/index.tsx, so just open it and replace its contents
 ```
 
-**File**: `app/index.tsx`
+______ `app/index.tsx`
 
 ```tsx
 import React from 'react';

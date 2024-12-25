@@ -1,24 +1,79 @@
 ## 1. Set Up Project and Install Dependencies
 
 ```bash
-npx create-expo-app MyHiddenRoutesApp --template blank
+npx create-expo-app MyHiddenRoutesApp
 ```
+
 ```bash
 cd MyHiddenRoutesApp
 ```
+
+```bash
+npm run reset-project
+```
+
 ```bash
 npx expo install nativewind tailwindcss react-native-reanimated react-native-safe-area-context
 ```
+
 ```bash
 npx tailwindcss init
 ```
+
+```bash
+touch babel.config.js metro.config.js global.css
+```
+
 ---
 
-## 2. Configure Tailwind CSS
+## 2. Automate Configuration File Creation
+
+### Configure `babel.config.js`
+
+Populate `babel.config.js` with:
+
+```js
+module.exports = function (api) {
+  api.cache(true);
+  return {
+    presets: ["babel-preset-expo"],
+    plugins: [
+      ["nativewind/babel"]
+    ],
+  };
+};
+```
+
+### Configure `metro.config.js`
+
+Populate `metro.config.js` with:
+
+```js
+const { getDefaultConfig } = require("expo/metro-config");
+const { withNativeWind } = require("nativewind/metro");
+
+const config = getDefaultConfig(__dirname);
+
+module.exports = withNativeWind(config);
+```
+
+### Configure `global.css`
+
+Populate `global.css` with:
+
+```css
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+```
+
+---
+
+## 3. Configure Tailwind CSS
 
 ### **`tailwind.config.js`**
 
-Open the `tailwind.config.js` file and replace its contents with:
+Replace the contents of `tailwind.config.js` with:
 
 ```js
 /** @type {import('tailwindcss').Config} */
@@ -36,64 +91,7 @@ module.exports = {
 
 ---
 
-## 3. Configure Babel
-
-### **`babel.config.js`**
-
-Update the Babel configuration to include the NativeWind plugin:
-
-```js
-module.exports = function (api) {
-  api.cache(true);
-  return {
-    presets: ["babel-preset-expo"],
-    plugins: ["nativewind/babel"],
-  };
-};
-```
-
----
-
-## 4. Configure Metro Bundler
-
-### **`metro.config.js`**
-
-Create or update the `metro.config.js` file to integrate NativeWind:
-
-```js
-const { getDefaultConfig } = require("expo/metro-config");
-const { withNativeWind } = require("nativewind/metro");
-
-const config = getDefaultConfig(__dirname);
-
-module.exports = withNativeWind(config, {
-  input: "./global.css",
-});
-```
-
----
-
-## 5. Create a Global CSS File
-
-### **`global.css`**
-
-Create a `global.css` file and add the Tailwind directives:
-
-```css
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-```
-
-Import this file in your entry file (`index.js` or `index.ts`):
-
-```js
-import "./global.css";
-```
-
----
-
-## 6. File Contents
+## 4. File Contents
 
 ### **`app/_layout.tsx`**
 
@@ -121,6 +119,7 @@ import { View, Text } from 'react-native';
 
 const StyledView = styled(View);
 const StyledText = styled(Text);
+import "../global.css";
 
 export default function HomeScreen() {
   return (
@@ -135,7 +134,7 @@ export default function HomeScreen() {
 
 ---
 
-## 7. Start the Project
+## 5. Start the Project
 
 ### Add Web Bundler Configuration
 
@@ -164,11 +163,12 @@ npx expo start --web
 
 # Summary
 
-1. **Create** a new Expo project and install dependencies.
-2. **Configure** `tailwind.config.js`, `babel.config.js`, and `metro.config.js`.
-3. **Create** a `global.css` file for Tailwind directives.
-4. **Edit** the provided file contents to test NativeWind functionality.
-5. **Run** the project on web to verify the setup.
+1. **Create** a new Expo project and reset it.
+2. **Automate** creation of configuration files using `touch` commands.
+3. **Configure** `tailwind.config.js`, `babel.config.js`, and `metro.config.js`.
+4. **Create** and import `global.css` for Tailwind directives.
+5. **Edit** the provided file contents to test NativeWind functionality.
+6. **Run** the project on web to verify the setup.
 
 Enjoy coding!
 

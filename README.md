@@ -1,8 +1,14 @@
-Below is a **complete** tutorial to set up a minimal **Expo + TypeScript + Expo Router + NativeWind** project, updated to minimize manual file creation by leveraging `npx expo customize` and using `touch` only when necessary.
+## 1. Start Fresh and Set Up Project
 
----
+### Step 0: Delete Existing Project Directory
 
-## 1. Set Up Project and Install Dependencies
+If you need to start over, delete the existing project directory:
+
+```bash
+rm MyHiddenRoutesApp
+```
+
+## 2. Set Up Project and Install Dependencies
 
 ### Step 1: Create a New Expo Project
 
@@ -40,7 +46,7 @@ npx expo customize metro.config.js babel.config.js
 For files not covered, create them manually:
 
 ```bash
-touch global.css
+touch global.css nativewind.d.ts
 ```
 
 ---
@@ -113,6 +119,16 @@ Import `global.css` in your entry file (`index.ts`):
 
 ```ts
 import "./global.css";
+```
+
+### Step 5: Configure TypeScript for NativeWind
+
+To support TypeScript, add the following `nativewind.d.ts` file in the root of your project:
+
+```ts
+declare module "nativewind" {
+  export function styled<T>(component: T): T;
+}
 ```
 
 ---
@@ -193,14 +209,42 @@ npx expo start --web
 
 ---
 
+## 5. Debugging Common Errors
+
+### Error: `_nativewind.styled is not a function`
+
+If you encounter this error, follow these steps:
+
+1. **Ensure Dependencies Are Installed**:
+   ```bash
+   npm install nativewind tailwindcss
+   ```
+
+2. **Verify `babel.config.js`**:
+   Ensure it matches the configuration provided in Step 3 of "Configure the Project".
+
+3. **Restart Metro Bundler**:
+   Clear the cache and restart:
+   ```bash
+   npm start --reset-cache
+   ```
+
+4. **Recheck All Configuration Files**:
+   - `metro.config.js`
+   - `tailwind.config.js`
+   - `babel.config.js`
+
+---
+
 # Summary
 
 1. **Create** a new Expo project and reset it.
 2. **Install** dependencies for NativeWind, TailwindCSS, and Expo Router.
 3. **Generate** configuration files using `npx expo customize`.
-4. **Configure** `tailwind.config.js`, `babel.config.js`, and `global.css`.
+4. **Configure** `tailwind.config.js`, `babel.config.js`, `global.css`, and TypeScript types.
 5. **Edit** the provided file contents to verify NativeWind and Tailwind integration.
-6. **Run** the project on web to confirm the setup works.
+6. **Debug** common issues if errors occur.
+7. **Run** the project on web to confirm the setup works.
 
 Enjoy coding!
 

@@ -1,49 +1,27 @@
-Below is a **concise** tutorial to set up a minimal **Expo + TypeScript + Expo Router + NativeWind** project. We’ll use commands to create files and show the contents you can paste manually.
+Below is a **complete** tutorial to set up a minimal **Expo + TypeScript + Expo Router + NativeWind** project, updated to reflect the commands from your workflow and resolve common issues.
 
 ---
 
 ## 1. Set Up Project and Install Dependencies
 
 ```bash
-npx create-expo-app MyHiddenRoutesApp --template blanktypescript
-```
-
-```bash
-cd MyHiddenRoutesApp
-```
-
-```bash
+npx create-expo-app MyHiddenRoutesApp --template
+npm run reset-project
 npx expo install expo-router react-native-screens react-native-safe-area-context nativewind tailwindcss react-native-reanimated
-```
-
-```bash
 npx tailwindcss init
 ```
 
 ---
 
-## 2. Remove Default Files and Create the Required Structure
+## 2. Verify and Adjust the Project Structure
 
-```bash
-rm App.tsx
-mkdir app
-touch index.ts
-touch app/_layout.tsx
-touch app/index.tsx
-touch babel.config.js
-```
+The reset command (`npm run reset-project`) creates the following structure:
 
-### **`babel.config.js`**
+- A new `/app/` directory created.
+- Default files such as `app/_layout.tsx` and `app/index.tsx` generated.
 
-```js
-module.exports = function (api) {
-  api.cache(true);
-  return {
-    presets: ["babel-preset-expo"],
-    plugins: ["nativewind/babel"],
-  };
-};
-```
+These files should already exist, but you can edit them as follows:
+
 ---
 
 ## 3. Configure Tailwind
@@ -66,15 +44,67 @@ module.exports = {
   plugins: [],
 };
 ```
+
+### **`babel.config.js`**
+
+The default `babel.config.js` should already exist. Update it with:
+
+```bash
+touch babel.config.js
+```
+
+Add the following to `babel.config.js`:
+
+```js
+module.exports = function (api) {
+  api.cache(true);
+  return {
+    presets: ["babel-preset-expo"],
+    plugins: ["nativewind/babel"],
+  };
+};
+```
+
 ---
 
-## 4. File Contents
+## 4. Debugging and Testing NativeWind
 
-### **`index.ts`**
+### 4.1 Test NativeWind Integration
 
-```ts
-import 'expo-router/entry';
+Update **`app/index.tsx`** to verify NativeWind is working:
+
+```tsx
+import React from 'react';
+import { styled } from 'nativewind';
+import { View, Text } from 'react-native';
+
+const StyledView = styled(View);
+const StyledText = styled(Text);
+
+export default function HomeScreen() {
+  return (
+    <StyledView className="flex-1 items-center justify-center bg-blue-100">
+      <StyledText className="text-4xl text-red-500 font-bold">
+        NativeWind Test!
+      </StyledText>
+    </StyledView>
+  );
+}
 ```
+
+### 4.2 Common Issues
+
+- **Error**: `(0, _nativewind.styled) is not a function`
+  - Ensure NativeWind is installed correctly: `npm install nativewind@latest`.
+  - Verify Babel configuration includes `"nativewind/babel"`.
+
+- **Error**: Styles not applied
+  - Check `tailwind.config.js` paths include `"./app/**/*.{ts,tsx}"` and `"./index.{ts,tsx}"`.
+  - Restart the Metro bundler: `npm start --reset-cache`.
+
+---
+
+## 5. File Contents
 
 ### **`app/_layout.tsx`**
 
@@ -116,7 +146,7 @@ export default function HomeScreen() {
 
 ---
 
-## 5. Start the Project
+## 6. Start the Project
 
 ```bash
 npx expo start --web
@@ -129,10 +159,10 @@ npx expo start --web
 
 # Summary
 
-1. **Create** a new Expo project and install dependencies.
-2. **Remove** `App.tsx` and set up the `app/` folder with `index.ts` and layout files.
+1. **Create** a new Expo project and reset it.
+2. **Verify** that the `/app/` folder and default files (`_layout.tsx`, `index.tsx`) are created by the template.
 3. **Configure** `tailwind.config.js` and `babel.config.js` for NativeWind.
-4. **Paste** the provided file contents.
+4. **Test** NativeWind with a sample screen and debug any issues.
 5. **Run** the project on web to verify the setup.
 
 Enjoy coding!

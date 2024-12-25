@@ -1,24 +1,40 @@
+Below is a **complete** tutorial to set up a minimal **Expo + TypeScript + Expo Router + NativeWind** project, updated to match your actual commands, including resetting the project.
+
+---
+
 ## 1. Set Up Project and Install Dependencies
+
+### Step 1: Create a New Expo Project
 
 ```bash
 npx create-expo-app MyHiddenRoutesApp
 ```
 
+### Step 2: Navigate into the Project Directory
+
 ```bash
 cd MyHiddenRoutesApp
 ```
+
+### Step 3: Reset the Project
 
 ```bash
 npm run reset-project
 ```
 
+### Step 4: Install Required Dependencies
+
 ```bash
 npx expo install nativewind tailwindcss react-native-reanimated react-native-safe-area-context
 ```
 
+### Step 5: Initialize Tailwind CSS
+
 ```bash
 npx tailwindcss init
 ```
+
+### Step 6: Create Necessary Configuration Files
 
 ```bash
 touch babel.config.js metro.config.js global.css
@@ -97,7 +113,6 @@ module.exports = {
 
 ```tsx
 import { Stack } from 'expo-router';
-import React from 'react';
 
 export default function RootLayout() {
   return (

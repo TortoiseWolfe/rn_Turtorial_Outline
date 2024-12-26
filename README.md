@@ -36,6 +36,9 @@ npx tailwindcss init
 touch global.css babel.config.js metro.config.js nativewind-env.d.ts
 ```
 
+- Run `history` to review the commands used.
+- Use `code .` to open the project in your editor.
+
 ## Step 2: Add Tailwind CSS Directives
 
 Edit `global.css`:
@@ -119,7 +122,22 @@ export default function Index() {
 }
 ```
 
-## Step 7: Additional Notes
+## Step 7: (auth) & (onboarding)
 
-- Run `history` to review the commands used.
-- Use `code .` to open the project in your editor.
+```bash
+# Create the "(auth)" folder with its own layout and routes
+mkdir -p "app/(auth)" && \
+touch "app/(auth)/_layout.tsx" \
+      "app/(auth)/login.tsx" \
+      "app/(auth)/sign-up.tsx" \
+      "app/(auth)/verification.tsx" \
+      "app/(auth)/forgot-password.tsx" && \
+
+# Create the "(onboarding)" folder with its own layout and routes
+mkdir -p "app/(onboarding)" && \
+touch "app/(onboarding)/_layout.tsx" \
+      "app/(onboarding)/splash.tsx" \
+      "app/(onboarding)/welcome.tsx" \
+      "app/(onboarding)/onboarding-setup.tsx"
+
+```

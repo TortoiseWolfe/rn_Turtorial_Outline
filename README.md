@@ -33,7 +33,7 @@ npx tailwindcss init
 
 ```bash
 
-touch global.css babel.config.js metro.config.js nativewind-env.d.ts
+touch global.css babel.config.js metro.config.js nativewind-env.d.ts +not-found.tsx
 ```
 
 - Run `history` to review the commands used.
@@ -179,6 +179,44 @@ export default function Index() {
 }
 
 
+```
+
+
+Edit `+not-found.tsx`:
+
+```javascript
+import { Link, Stack } from 'expo-router';
+import { StyleSheet } from 'react-native';
+
+import { ThemedText } from '@/components/ThemedText';
+import { ThemedView } from '@/components/ThemedView';
+
+export default function NotFoundScreen() {
+  return (
+    <>
+      <Stack.Screen options={{ title: 'Oops!' }} />
+      <ThemedView style={styles.container}>
+        <ThemedText type="title">This screen doesn't exist.</ThemedText>
+        <Link href="/" style={styles.link}>
+          <ThemedText type="link">Go to home screen!</ThemedText>
+        </Link>
+      </ThemedView>
+    </>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  link: {
+    marginTop: 15,
+    paddingVertical: 15,
+  },
+});
 ```
 
 ## Step 7: (auth) & (onboarding)

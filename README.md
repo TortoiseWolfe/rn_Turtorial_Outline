@@ -139,6 +139,55 @@ module.exports = {
 };
 ```
 
+Edit `_layout.tsx`:
+
+```javascript
+import { Stack } from "expo-router";
+// Import your global CSS file
+import "../global.css";
+export default function RootLayout() {
+  return <Stack />;
+}
+```
+
+Edit `+not-found.tsx`:
+
+```javascript
+import { Link, Stack } from 'expo-router';
+import { StyleSheet } from 'react-native';
+
+import { ThemedText } from '@/components/ThemedText';
+import { ThemedView } from '@/components/ThemedView';
+
+export default function NotFoundScreen() {
+  return (
+    <>
+      <Stack.Screen options={{ title: 'Oops!' }} />
+      <ThemedView style={styles.container}>
+        <ThemedText type="title">This screen doesn't exist.</ThemedText>
+        <Link href="/" style={styles.link}>
+          <ThemedText type="link">Go to home screen!</ThemedText>
+        </Link>
+      </ThemedView>
+    </>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  link: {
+    marginTop: 15,
+    paddingVertical: 15,
+  },
+});
+```
+
+
 ## Step 6: Create a React Native Component
 
 Edit `index.tsx`:
@@ -177,46 +226,6 @@ export default function Index() {
     </SafeAreaView>
   );
 }
-
-
-```
-
-
-Edit `+not-found.tsx`:
-
-```javascript
-import { Link, Stack } from 'expo-router';
-import { StyleSheet } from 'react-native';
-
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-
-export default function NotFoundScreen() {
-  return (
-    <>
-      <Stack.Screen options={{ title: 'Oops!' }} />
-      <ThemedView style={styles.container}>
-        <ThemedText type="title">This screen doesn't exist.</ThemedText>
-        <Link href="/" style={styles.link}>
-          <ThemedText type="link">Go to home screen!</ThemedText>
-        </Link>
-      </ThemedView>
-    </>
-  );
-}
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  link: {
-    marginTop: 15,
-    paddingVertical: 15,
-  },
-});
 ```
 
 ## Step 7: (auth) & (onboarding)

@@ -7,7 +7,7 @@ rm -rf MyHiddenRoutesApp
 ```
 
 ```bash
-npx create-expo-app MyHiddenRoute -t
+npx create-expo-app MyHiddenRoutesApp -t
 ```
 
 ```bash

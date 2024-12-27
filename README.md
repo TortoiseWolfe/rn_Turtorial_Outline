@@ -1,6 +1,433 @@
 # Setting Up Tailwind CSS with Nativewind in Expo
 
 ## Step 1: Initialize the Project and Install Dependencies
+
+```bash
+rm -rf MyHiddenRoutesApp
+```
+
+```bash
+npx create-expo-app MyHiddenRoutesApp -t
+```
+
+```bash
+cd MyHiddenRoutesApp
+```
+
+```bash
+npm run reset-project
+```
+
+```bash
+npx expo start
+```
+
+```bash
+npm install nativewind tailwindcss react-native-reanimated react-native-safe-area-context
+```
+
+```bash
+npx tailwindcss init
+```
+
+```bash
+touch global.css babel.config.js metro.config.js nativewind-env.d.ts +not-found.tsx
+```
+
+- Run `history` to review the commands used.
+- Use `code .` to open the project in your editor.
+
+## Step 2: Add Tailwind CSS Directives
+
+Edit `global.css`:
+
+```css
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom SteamPunk Theme */
+@layer components {
+  /* Background & Container */
+  .bg-steampunk {
+    @apply bg-neutral-900;
+  }
+
+  .container-steampunk {
+    @apply flex-1 p-6 justify-center;
+  }
+
+  /* Text */
+  .text-steampunk-title {
+    @apply text-3xl text-amber-400 font-bold mb-6;
+  }
+
+  .text-steampunk-label {
+    @apply text-amber-200 mb-2;
+  }
+
+  .text-steampunk-body {
+    @apply text-amber-200;
+  }
+
+  /* Inputs */
+  .input-steampunk {
+    @apply w-full bg-neutral-800 text-amber-100 p-3 rounded-md;
+  }
+
+  /* Buttons */
+  .btn-steampunk {
+    @apply bg-amber-700 rounded-md p-3;
+  }
+
+  .btn-text-steampunk {
+    @apply text-center text-amber-50 font-semibold;
+  }
+
+  /* Links */
+  .link-steampunk {
+    @apply text-amber-400 underline hover:text-amber-300;
+  }
+}
+
+.viewBox {
+  width: 400px;
+  height: 400px;
+  background-color: blue;
+}
+```
+
+## Step 3: Configure Babel
+
+Edit `babel.config.js`:
+
+```javascript
+module.exports = function (api) {
+    api.cache(true);
+    return {
+      presets: [
+        ["babel-preset-expo", { jsxImportSource: "nativewind" }],
+        "nativewind/babel",
+      ],
+    };
+};
+```
+
+## Step 4: Configure Metro Bundler
+
+Edit `metro.config.js`:
+
+```javascript
+const { getDefaultConfig } = require("expo/metro-config");
+const { withNativeWind } = require("nativewind/metro");
+
+const config = getDefaultConfig(__dirname);
+
+module.exports = withNativeWind(config, { input: "./global.css" });
+```
+
+## Step 5: Initialize Tailwind Config
+
+Edit `tailwind.config.js`:
+
+```javascript
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+    content: ["./app/**/*.{js,jsx,ts,tsx}"],
+    presets: [require("nativewind/preset")],
+    theme: {
+      extend: {},
+    },
+    plugins: [],
+};
+```
+
+Edit `nativewind-env.d.ts`:
+
+```javascript
+/// <reference types="nativewind/types" />
+```
+
+Edit `_layout.tsx`:
+
+```javascript
+import { Stack } from "expo-router";
+// Import your global CSS file
+import "../global.css";
+export default function RootLayout() {
+  return <Stack />;
+}
+```
+
+Edit `+not-found.tsx`:
+
+```javascript
+import { Link, Stack } from 'expo-router';
+import { StyleSheet } from 'react-native';
+
+import { ThemedText } from '@/components/ThemedText';
+import { ThemedView } from '@/components/ThemedView';
+
+export default function NotFoundScreen() {
+  return (
+    <>
+      <Stack.Screen options={{ title: 'Oops!' }} />
+      <ThemedView style={styles.container}>
+        <ThemedText type="title">This screen doesn't exist.</ThemedText>
+        <Link href="/" style={styles.link}>
+          <ThemedText type="link">Go to home screen!</ThemedText>
+        </Link>
+      </ThemedView>
+    </>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  link: {
+    marginTop: 15,
+    paddingVertical: 15,
+  },
+});
+```
+
+## Step 6: Create a React Native Component
+
+Edit `index.tsx`:
+
+```javascript
+import { Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Link } from "expo-router"; // Ensure expo-router is installed
+
+export default function Index() {
+  return (
+    <SafeAreaView className="container-steampunk bg-steampunk">
+      <View>
+        <Text className="text-steampunk-title">SteamPunk App</Text>
+        <Text className="text-steampunk-body">
+          Welcome to your steampunk-themed application powered by Nativewind and Tailwind CSS.
+        </Text>
+      </View>
+
+      {/* Navigation Links */}
+      <View className="mt-8">
+        <Link href="/(auth)/login" className="link-steampunk mb-4 block">
+          Login
+        </Link>
+        <Link href="/(auth)/sign-up" className="link-steampunk mb-4 block">
+          Sign Up
+        </Link>
+        <Link href="/(auth)/verification" className="link-steampunk mb-4 block">
+          Verification
+        </Link>
+        <Link href="/(auth)/forgot-password" className="link-steampunk mb-4 block">
+          Forgot Password
+        </Link>
+        <Link href="/(onboarding)/splash" className="link-steampunk mb-4 block">
+          Splash Screen
+        </Link>
+        <Link href="/(onboarding)/welcome" className="link-steampunk mb-4 block">
+          Welcome
+        </Link>
+        <Link href="/(onboarding)/onboarding-setup" className="link-steampunk mb-4 block">
+          Onboarding Setup
+        </Link>
+      </View>
+
+      {/* Example Box */}
+      <View className="mt-8 border-steampunk">
+        <Text className="text-steampunk-body">
+          This is a sample box demonstrating centralized steampunk styles.
+        </Text>
+      </View>
+    </SafeAreaView>
+  );
+}
+```
+
+## Step 7: Create (auth) & (onboarding) Routes
+
+### `app/(auth)/login.tsx`
+
+```tsx
+import React from "react";
+import { View, Text, TextInput, TouchableOpacity } from "react-native";
+
+export default function Login() {
+  return (
+    <View className="container-steampunk bg-steampunk">
+      <Text className="text-steampunk-title">Login</Text>
+
+      <Text className="text-steampunk-label">Email</Text>
+      <TextInput className="input-steampunk mb-4" placeholder="Enter your email" />
+
+      <Text className="text-steampunk-label">Password</Text>
+      <TextInput
+        className="input-steampunk mb-4"
+        placeholder="Enter your password"
+        secureTextEntry
+      />
+
+      <TouchableOpacity className="btn-steampunk">
+        <Text className="btn-text-steampunk">Login</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+```
+
+### `app/(auth)/sign-up.tsx`
+
+```tsx
+import React from "react";
+import { View, Text, TextInput, TouchableOpacity } from "react-native";
+
+export default function SignUp() {
+  return (
+    <View className="container-steampunk bg-steampunk">
+      <Text className="text-steampunk-title">Sign Up</Text>
+
+      <Text className="text-steampunk-label">Name</Text>
+      <TextInput className="input-steampunk mb-4" placeholder="Enter your name" />
+
+      <Text className="text-steampunk-label">Email</Text>
+      <TextInput className="input-steampunk mb-4" placeholder="Enter your email" />
+
+      <Text className="text-steampunk-label">Password</Text>
+      <TextInput
+        className="input-steampunk mb-4"
+        placeholder="Create a password"
+        secureTextEntry
+      />
+
+      <TouchableOpacity className="btn-steampunk">
+        <Text className="btn-text-steampunk">Sign Up</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+```
+
+### `app/(onboarding)/welcome.tsx`
+
+```tsx
+import React from "react";
+import { View, Text, TouchableOpacity } from "react-native";
+
+export default function Welcome() {
+  return (
+    <View className="container-steampunk bg-steampunk">
+      <Text className="text-steampunk-title">Welcome</Text>
+
+      <Text className="text-steampunk-body mb-4">
+        Discover the steampunk world with this amazing app!
+      </Text>
+
+      <TouchableOpacity className="btn-steampunk">
+        <Text className="btn-text-steampunk">Get Started</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+```
+
+### `app/(onboarding)/splash.tsx`
+
+```tsx
+import React from "react";
+import { View, Text } from "react-native";
+
+export default function Splash() {
+  return (
+    <View className="container-steampunk bg-steampunk">
+      <Text className="text-steampunk-title">Splash Screen</Text>
+    </View>
+  );
+}
+```
+
+### `app/(onboarding)/onboarding-setup.tsx`
+
+```tsx
+import React from "react";
+import { View, Text, Switch } from "react-native";
+
+export default function OnboardingSetup() {
+  const [isEnabled, setIsEnabled] = React.useState(false);
+
+  return (
+    <View className="container-steampunk bg-steampunk">
+      <Text className="text-steampunk-title">Setup Your App</Text>
+
+      <Text className="text-steampunk-body mb-4">Enable notifications?</Text>
+      <Switch
+        value={isEnabled}
+        onValueChange={() => setIsEnabled(!isEnabled)}
+        thumbColor={isEnabled ? "#f5dd4b" : "#f4f3f4"}
+        trackColor={{ false: "#767577", true: "#81b0ff" }}
+      />
+    </View>
+  );
+}
+```
+
+## Step 8: Define and Apply Centralized Classes
+
+Below is an example of how you can **centralize** your steampunk styling in **`global.css`**, and then apply these utility classes within each of the **7 screens**. This way, you avoid repeating the same styling across files, and any future theming tweaks can be done in one place.
+
+### `app/(auth)/_layout.tsx`
+
+```tsx
+import { Stack } from "expo-router";
+import "../../global.css";
+
+export default function AuthLayout() {
+  return <Stack />;
+}
+```
+
+### `app/(onboarding)/_layout.tsx`
+
+```tsx
+import { Stack } from "expo-router";
+import "../../global.css";
+
+export default function OnboardingLayout() {
+  return <Stack />;
+}
+```
+
+## Customizing Further
+
+1. **Adjust the global classes** in `global.css` to match the exact style and colors you need for your steampunk vibe (e.g., richer browns, copper-like ambers, or subtle gear patterns).
+
+2. **Add new classes** (e.g., `.card-steampunk`, `.heading-steampunk`, etc.) in the `@layer components` block for different UI elements.
+
+3. **Use local images** or specialized steampunk images for your `ImageBackground` components, or incorporate gear icons and vintage fonts for a more immersive look.
+
+With this approach, any time you need to tweak your steampunk palette or spacing, you can do it **once** in `global.css`, and all screens will stay consistent!
+
+4. touch 404
+5. links to list of 7 screens to preview
+6. font
+7. supdase for back end and login
+8. StoryBook?!
+
+
+
+
+
+
+
+# Setting Up Tailwind CSS with Nativewind in Expo
+
+## Step 1: Initialize the Project and Install Dependencies
 ```bash
 
 rm -rf MyHiddenRoutesApp

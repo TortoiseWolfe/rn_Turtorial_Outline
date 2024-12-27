@@ -48,6 +48,45 @@ Edit `global.css`:
 @tailwind components;
 @tailwind utilities;
 
+/* Custom SteamPunk Theme */
+@layer components {
+  /* Background & Container */
+  .bg-steampunk {
+    @apply bg-neutral-900;
+  }
+
+  .container-steampunk {
+    @apply flex-1 p-6 justify-center;
+  }
+
+  /* Text */
+  .text-steampunk-title {
+    @apply text-3xl text-amber-400 font-bold mb-6;
+  }
+
+  .text-steampunk-label {
+    @apply text-amber-200 mb-2;
+  }
+
+  .text-steampunk-body {
+    @apply text-amber-200;
+  }
+
+  /* Inputs */
+  .input-steampunk {
+    @apply w-full bg-neutral-800 text-amber-100 p-3 rounded-md;
+  }
+
+  /* Buttons */
+  .btn-steampunk {
+    @apply bg-amber-700 rounded-md p-3;
+  }
+
+  .btn-text-steampunk {
+    @apply text-center text-amber-50 font-semibold;
+  }
+}
+
 .viewBox {
   width: 400px;
   height: 400px;
@@ -107,19 +146,39 @@ Edit `index.tsx`:
 ```javascript
 import { Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Link } from "expo-router"; // Ensure expo-router is installed
+
 export default function Index() {
   return (
-    <SafeAreaView>
+    <SafeAreaView className="container-steampunk bg-steampunk">
       <View>
-        <Text className="text-2xl text-red-600">Nativewind</Text>
-        <Text className="text-3xl">Hello</Text>
+        <Text className="text-steampunk-title">SteamPunk App</Text>
+        <Text className="text-steampunk-body">
+          Welcome to your steampunk-themed application powered by Nativewind and Tailwind CSS.
+        </Text>
       </View>
 
-      <View className="viewBox" />
+      {/* Navigation Links */}
+      <View className="mt-8">
+        <Link href="/(auth)/login" className="link-steampunk mb-4 block">
+          Login
+        </Link>
+        <Link href="/(onboarding)/welcome" className="link-steampunk">
+          Get Started
+        </Link>
+      </View>
 
+      {/* Example Box */}
+      <View className="mt-8 border-steampunk">
+        <Text className="text-steampunk-body">
+          This is a sample box demonstrating centralized steampunk styles.
+        </Text>
+      </View>
     </SafeAreaView>
   );
 }
+
+
 ```
 
 ## Step 7: (auth) & (onboarding)
@@ -204,6 +263,12 @@ Below are minimal examples of how you would **replace** the inline Tailwind clas
 
 ## **(auth) Screens**
 
+### `app/(auth)_layout`
+
+```tsx
+
+
+```
 ### `app/(auth)/login.tsx`
 
 ```tsx
@@ -343,6 +408,13 @@ export default function ForgotPassword() {
 
 ## **(onboarding) Screens**
 
+### `app/(onboarding)_layout`
+
+```tsx
+
+
+```
+
 ### `app/(onboarding)/splash.tsx`
 
 ```tsx
@@ -438,3 +510,9 @@ export default function OnboardingSetup() {
 3. **Use local images** or specialized steampunk images for your `ImageBackground` components, or incorporate gear icons and vintage fonts for a more immersive look.
 
 With this approach, any time you need to tweak your steampunk palette or spacing, you can do it **once** in `global.css`, and all screens will stay consistent!
+
+6. touch 404
+8. links to list of 7 screens to preview
+4. font
+5. supdase for back end and login
+7. StoryBook?!

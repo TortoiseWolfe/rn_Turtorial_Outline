@@ -141,14 +141,70 @@ touch "app/(onboarding)/_layout.tsx" \
       "app/(onboarding)/onboarding-setup.tsx"
 
 ```
-
-Below is an example of how you might structure each of the **7 screens** (files) with a simple “steam-punk” inspired design using Nativewind/Tailwind classes. Each screen uses a dark background, warm metallic accent colors (like ambers, browns, coppers), and some minimal stylings. Adjust as needed to fit your exact styling preferences.
-
-> **Note**: These examples assume you are using **TypeScript** (hence `.tsx` extensions) and have configured Nativewind as described in your previous steps.
+Below is an example of how you can **centralize** your steampunk styling in **`global.css`**, and then apply these utility classes within each of the **7 screens**. This way, you avoid repeating the same styling across files, and any future theming tweaks can be done in one place.
 
 ---
 
-## 1. `app/(auth)/login.tsx`
+# 1) Define Steampunk Classes in `global.css`
+
+Inside your `global.css` (which already has `@tailwind base; @tailwind components; @tailwind utilities;`), add a custom layer for your steampunk components/utilities. For example:
+
+```css
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom SteamPunk Theme */
+@layer components {
+  /* Background & Container */
+  .bg-steampunk {
+    @apply bg-neutral-900;
+  }
+
+  .container-steampunk {
+    @apply flex-1 p-6 justify-center;
+  }
+
+  /* Text */
+  .text-steampunk-title {
+    @apply text-3xl text-amber-400 font-bold mb-6;
+  }
+
+  .text-steampunk-label {
+    @apply text-amber-200 mb-2;
+  }
+
+  .text-steampunk-body {
+    @apply text-amber-200;
+  }
+
+  /* Inputs */
+  .input-steampunk {
+    @apply w-full bg-neutral-800 text-amber-100 p-3 rounded-md;
+  }
+
+  /* Buttons */
+  .btn-steampunk {
+    @apply bg-amber-700 rounded-md p-3;
+  }
+
+  .btn-text-steampunk {
+    @apply text-center text-amber-50 font-semibold;
+  }
+}
+```
+
+> Feel free to adjust the classes, colors, spacing, etc. to refine your steampunk aesthetic.
+
+---
+
+# 2) Apply the Classes in Each Screen
+
+Below are minimal examples of how you would **replace** the inline Tailwind classes with your new **global** classes.
+
+## **(auth) Screens**
+
+### `app/(auth)/login.tsx`
 
 ```tsx
 import React from "react";
@@ -156,26 +212,26 @@ import { View, Text, TextInput, TouchableOpacity } from "react-native";
 
 export default function Login() {
   return (
-    <View className="flex-1 bg-neutral-900 p-6 justify-center">
-      <Text className="text-3xl text-amber-400 font-bold mb-6">SteamPunk Login</Text>
+    <View className="container-steampunk bg-steampunk">
+      <Text className="text-steampunk-title">SteamPunk Login</Text>
 
-      <Text className="text-amber-200 mb-2">Username</Text>
+      <Text className="text-steampunk-label">Username</Text>
       <TextInput
         placeholder="Enter your username"
         placeholderTextColor="#A98274"
-        className="w-full bg-neutral-800 text-amber-100 p-3 rounded-md mb-4"
+        className="input-steampunk mb-4"
       />
 
-      <Text className="text-amber-200 mb-2">Password</Text>
+      <Text className="text-steampunk-label">Password</Text>
       <TextInput
         placeholder="Enter your password"
         placeholderTextColor="#A98274"
         secureTextEntry
-        className="w-full bg-neutral-800 text-amber-100 p-3 rounded-md mb-6"
+        className="input-steampunk mb-6"
       />
 
-      <TouchableOpacity className="bg-amber-700 rounded-md p-3">
-        <Text className="text-center text-amber-50 font-semibold">Login</Text>
+      <TouchableOpacity className="btn-steampunk">
+        <Text className="btn-text-steampunk">Login</Text>
       </TouchableOpacity>
     </View>
   );
@@ -184,7 +240,7 @@ export default function Login() {
 
 ---
 
-## 2. `app/(auth)/sign-up.tsx`
+### `app/(auth)/sign-up.tsx`
 
 ```tsx
 import React from "react";
@@ -192,34 +248,34 @@ import { View, Text, TextInput, TouchableOpacity } from "react-native";
 
 export default function SignUp() {
   return (
-    <View className="flex-1 bg-neutral-900 p-6 justify-center">
-      <Text className="text-3xl text-amber-400 font-bold mb-6">SteamPunk Sign Up</Text>
+    <View className="container-steampunk bg-steampunk">
+      <Text className="text-steampunk-title">SteamPunk Sign Up</Text>
 
-      <Text className="text-amber-200 mb-2">Email</Text>
+      <Text className="text-steampunk-label">Email</Text>
       <TextInput
         placeholder="Enter your email"
         placeholderTextColor="#A98274"
-        className="w-full bg-neutral-800 text-amber-100 p-3 rounded-md mb-4"
+        className="input-steampunk mb-4"
       />
 
-      <Text className="text-amber-200 mb-2">Password</Text>
+      <Text className="text-steampunk-label">Password</Text>
       <TextInput
         placeholder="Create a password"
         placeholderTextColor="#A98274"
         secureTextEntry
-        className="w-full bg-neutral-800 text-amber-100 p-3 rounded-md mb-4"
+        className="input-steampunk mb-4"
       />
 
-      <Text className="text-amber-200 mb-2">Confirm Password</Text>
+      <Text className="text-steampunk-label">Confirm Password</Text>
       <TextInput
         placeholder="Repeat your password"
         placeholderTextColor="#A98274"
         secureTextEntry
-        className="w-full bg-neutral-800 text-amber-100 p-3 rounded-md mb-6"
+        className="input-steampunk mb-6"
       />
 
-      <TouchableOpacity className="bg-amber-700 rounded-md p-3">
-        <Text className="text-center text-amber-50 font-semibold">Sign Up</Text>
+      <TouchableOpacity className="btn-steampunk">
+        <Text className="btn-text-steampunk">Sign Up</Text>
       </TouchableOpacity>
     </View>
   );
@@ -228,7 +284,7 @@ export default function SignUp() {
 
 ---
 
-## 3. `app/(auth)/verification.tsx`
+### `app/(auth)/verification.tsx`
 
 ```tsx
 import React from "react";
@@ -236,19 +292,19 @@ import { View, Text, TextInput, TouchableOpacity } from "react-native";
 
 export default function Verification() {
   return (
-    <View className="flex-1 bg-neutral-900 p-6 justify-center">
-      <Text className="text-3xl text-amber-400 font-bold mb-6">Email Verification</Text>
+    <View className="container-steampunk bg-steampunk">
+      <Text className="text-steampunk-title">Email Verification</Text>
 
-      <Text className="text-amber-200 mb-2">Verification Code</Text>
+      <Text className="text-steampunk-label">Verification Code</Text>
       <TextInput
         placeholder="Enter your 6-digit code"
         placeholderTextColor="#A98274"
         keyboardType="numeric"
-        className="w-full bg-neutral-800 text-amber-100 p-3 rounded-md mb-6"
+        className="input-steampunk mb-6"
       />
 
-      <TouchableOpacity className="bg-amber-700 rounded-md p-3">
-        <Text className="text-center text-amber-50 font-semibold">Verify</Text>
+      <TouchableOpacity className="btn-steampunk">
+        <Text className="btn-text-steampunk">Verify</Text>
       </TouchableOpacity>
     </View>
   );
@@ -257,7 +313,7 @@ export default function Verification() {
 
 ---
 
-## 4. `app/(auth)/forgot-password.tsx`
+### `app/(auth)/forgot-password.tsx`
 
 ```tsx
 import React from "react";
@@ -265,18 +321,18 @@ import { View, Text, TextInput, TouchableOpacity } from "react-native";
 
 export default function ForgotPassword() {
   return (
-    <View className="flex-1 bg-neutral-900 p-6 justify-center">
-      <Text className="text-3xl text-amber-400 font-bold mb-6">Forgot Password</Text>
+    <View className="container-steampunk bg-steampunk">
+      <Text className="text-steampunk-title">Forgot Password</Text>
 
-      <Text className="text-amber-200 mb-2">Email</Text>
+      <Text className="text-steampunk-label">Email</Text>
       <TextInput
         placeholder="Enter your email"
         placeholderTextColor="#A98274"
-        className="w-full bg-neutral-800 text-amber-100 p-3 rounded-md mb-6"
+        className="input-steampunk mb-6"
       />
 
-      <TouchableOpacity className="bg-amber-700 rounded-md p-3">
-        <Text className="text-center text-amber-50 font-semibold">Reset Password</Text>
+      <TouchableOpacity className="btn-steampunk">
+        <Text className="btn-text-steampunk">Reset Password</Text>
       </TouchableOpacity>
     </View>
   );
@@ -285,7 +341,9 @@ export default function ForgotPassword() {
 
 ---
 
-## 5. `app/(onboarding)/splash.tsx`
+## **(onboarding) Screens**
+
+### `app/(onboarding)/splash.tsx`
 
 ```tsx
 import React from "react";
@@ -295,11 +353,13 @@ export default function Splash() {
   return (
     <View className="flex-1">
       <ImageBackground
-        source={{ uri: "https://images.unsplash.com/photo-1506371224150-4ca7cc20fd48" }}
+        source={{
+          uri: "https://images.unsplash.com/photo-1506371224150-4ca7cc20fd48",
+        }}
         resizeMode="cover"
         className="flex-1 justify-center items-center"
       >
-        <Text className="text-4xl text-amber-300 font-bold bg-neutral-800/60 p-4 rounded-lg">
+        <Text className="text-steampunk-title bg-neutral-800/60 p-4 rounded-lg">
           Welcome to SteamPunk World
         </Text>
       </ImageBackground>
@@ -308,11 +368,11 @@ export default function Splash() {
 }
 ```
 
-> **Tip**: You can replace the `uri` in the `ImageBackground` with a steampunk-themed image you like, or use a local asset.
+> **Tip**: You don’t necessarily need to apply `bg-steampunk` on an `ImageBackground` if you are covering the entire screen with an image. You can still integrate other classes from the global file if desired.
 
 ---
 
-## 6. `app/(onboarding)/welcome.tsx`
+### `app/(onboarding)/welcome.tsx`
 
 ```tsx
 import React from "react";
@@ -320,14 +380,14 @@ import { View, Text, TouchableOpacity } from "react-native";
 
 export default function Welcome() {
   return (
-    <View className="flex-1 bg-neutral-900 p-6 justify-center items-center">
-      <Text className="text-4xl text-amber-400 font-bold mb-4">Welcome Aboard!</Text>
-      <Text className="text-amber-200 text-center mb-10">
+    <View className="container-steampunk bg-steampunk items-center">
+      <Text className="text-steampunk-title">Welcome Aboard!</Text>
+      <Text className="text-steampunk-body text-center mb-10">
         Embark on a steam-powered adventure through our app.
       </Text>
 
-      <TouchableOpacity className="bg-amber-700 rounded-md p-4 w-full max-w-sm">
-        <Text className="text-center text-amber-50 font-semibold">Continue</Text>
+      <TouchableOpacity className="btn-steampunk w-full max-w-sm">
+        <Text className="btn-text-steampunk">Continue</Text>
       </TouchableOpacity>
     </View>
   );
@@ -336,7 +396,7 @@ export default function Welcome() {
 
 ---
 
-## 7. `app/(onboarding)/onboarding-setup.tsx`
+### `app/(onboarding)/onboarding-setup.tsx`
 
 ```tsx
 import React from "react";
@@ -346,11 +406,11 @@ export default function OnboardingSetup() {
   const [enableNotifications, setEnableNotifications] = React.useState(false);
 
   return (
-    <View className="flex-1 bg-neutral-900 p-6">
-      <Text className="text-3xl text-amber-400 font-bold mb-6">Onboarding Setup</Text>
+    <View className="container-steampunk bg-steampunk">
+      <Text className="text-steampunk-title">Onboarding Setup</Text>
 
       <View className="flex-row items-center justify-between mb-6">
-        <Text className="text-amber-200">Enable Notifications</Text>
+        <Text className="text-steampunk-body">Enable Notifications</Text>
         <Switch
           value={enableNotifications}
           onValueChange={setEnableNotifications}
@@ -359,8 +419,8 @@ export default function OnboardingSetup() {
         />
       </View>
 
-      <TouchableOpacity className="bg-amber-700 rounded-md p-3">
-        <Text className="text-center text-amber-50 font-semibold">Finish Setup</Text>
+      <TouchableOpacity className="btn-steampunk">
+        <Text className="btn-text-steampunk">Finish Setup</Text>
       </TouchableOpacity>
     </View>
   );
@@ -369,11 +429,12 @@ export default function OnboardingSetup() {
 
 ---
 
-### Customizing Further
+# Customizing Further
 
-- Adjust the **colors** (`bg-neutral-900`, `text-amber-50`, `text-amber-400`, etc.) for different steampunk vibes.
-- Modify **fonts**, **images**, **icons**, or **background patterns** to enhance the steam-punk feel.
-- Incorporate **gear**, **brass textures**, or **vintage fonts** as you see fit.
-- Replace `ImageBackground` sources with your own local or remote images that reflect a steampunk theme.
+1. **Adjust the global classes** in `global.css` to match the exact style and colors you need for your steampunk vibe (e.g., richer browns, copper-like ambers, or subtle gear patterns).
 
-With these 7 screens in place, you have a basic framework for your “steam-punk” styled onboarding and auth flow using **Nativewind** + **Tailwind CSS** in Expo!
+2. **Add new classes** (e.g., `.card-steampunk`, `.heading-steampunk`, etc.) in the `@layer components` block for different UI elements.
+
+3. **Use local images** or specialized steampunk images for your `ImageBackground` components, or incorporate gear icons and vintage fonts for a more immersive look.
+
+With this approach, any time you need to tweak your steampunk palette or spacing, you can do it **once** in `global.css`, and all screens will stay consistent!

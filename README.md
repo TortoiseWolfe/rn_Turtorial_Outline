@@ -262,49 +262,8 @@ Below is an example of how you can **centralize** your steampunk styling in **`g
 Inside your `global.css` (which already has `@tailwind base; @tailwind components; @tailwind utilities;`), add a custom layer for your steampunk components/utilities. For example:
 
 ```css
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-/* Custom SteamPunk Theme */
-@layer components {
-  /* Background & Container */
-  .bg-steampunk {
-    @apply bg-neutral-900;
-  }
-
-  .container-steampunk {
-    @apply flex-1 p-6 justify-center;
-  }
-
-  /* Text */
-  .text-steampunk-title {
-    @apply text-3xl text-amber-400 font-bold mb-6;
-  }
-
-  .text-steampunk-label {
-    @apply text-amber-200 mb-2;
-  }
-
-  .text-steampunk-body {
-    @apply text-amber-200;
-  }
-
-  /* Inputs */
-  .input-steampunk {
-    @apply w-full bg-neutral-800 text-amber-100 p-3 rounded-md;
-  }
-
-  /* Buttons */
-  .btn-steampunk {
-    @apply bg-amber-700 rounded-md p-3;
-  }
-
-  .btn-text-steampunk {
-    @apply text-center text-amber-50 font-semibold;
-  }
-}
 ```
+ask about layers and applies? moved code sample up.
 
 > Feel free to adjust the classes, colors, spacing, etc. to refine your steampunk aesthetic.
 

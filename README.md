@@ -139,6 +139,12 @@ module.exports = {
 };
 ```
 
+Edit `nativewind-env.d`:
+
+```javascript
+/// <reference types="nativewind/types" />
+```
+
 Edit `_layout.tsx`:
 
 ```javascript

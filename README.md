@@ -27,9 +27,13 @@ npm install @expo-google-fonts/rye @expo-google-fonts/special-elite @expo-google
 ```bash
 npx tailwindcss init
 ```
+##### Initialize metro config
+```bash
+npx expo customize metro.conf
+```
 ##### Create necessary configuration files
 ```bash
-touch global.css babel.config.js metro.config.js nativewind-env.d.ts +not-found.tsx
+touch global.css babel.config.js nativewind-env.d.ts
 ```
 
 ## Step 2: Configure Core Files
@@ -172,6 +176,7 @@ Create the necessary directories and files:
 ```bash
 # Create auth routes
 mkdir -p "app/(auth)"
+touch "app/+not-found.tsx"
 touch "app/(auth)/_layout.tsx" \
       "app/(auth)/login.tsx" \
       "app/(auth)/sign-up.tsx" \

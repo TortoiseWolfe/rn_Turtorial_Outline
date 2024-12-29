@@ -147,13 +147,10 @@ module.exports = {
 ### app/_layout.tsx
 ```typescript
 import { Stack } from "expo-router";
-import "../global.css";
-import { 
-  useFonts,
-  Rye_400Regular,
-  SpecialElite_400Regular,
-  ArbutusSlab_400Regular 
-} from '@expo-google-fonts/dev';
+import "../global.css";import { useFonts } from 'expo-font';
+import { Rye_400Regular } from '@expo-google-fonts/rye';
+import { SpecialElite_400Regular } from '@expo-google-fonts/special-elite';
+import { ArbutusSlab_400Regular } from '@expo-google-fonts/arbutus-slab';
 import { SplashScreen } from 'expo-router';
 
 export default function RootLayout() {

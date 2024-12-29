@@ -1,36 +1,33 @@
-# Complete Setup Guide: Expo with NativeWind, Custom Fonts, and Steampunk Theme
+# Expo with NativeWind, Custom Fonts & Steampunk Theme
 
 ## Step 1: Project Initialization and Dependencies
 
-First, let's set up our project and install all necessary dependencies:
-
+### Remove existing app if present
 ```bash
-# Remove existing app if present
 rm -rf MyHiddenRoutesApp
-
-# Create new Expo app with TypeScript template
-npx create-expo-app MyHiddenRoutesApp -t
 ```
+### Create new Expo app with TypeScript template
 ```bash
-# Navigate to project directory
+npx create-expo-app MyHiddenRoutesApp
+```
+### Navigate to project directory & Reset project
+```bash
 cd MyHiddenRoutesApp
-
-# Reset project
 npm run reset-project
 ```
+### Install core dependencies
 ```bash
-# Install core dependencies
 npm install nativewind tailwindcss react-native-reanimated react-native-safe-area-context
 ```
+### Install font packages
 ```bash
-# Install font packages
 npm install @expo-google-fonts/rye @expo-google-fonts/special-elite @expo-google-fonts/arbutus-slab
 ```
+### Initialize Tailwind
 ```bash
-# Initialize Tailwind
 npx tailwindcss init
 ```
-# Create necessary configuration files
+### Create necessary configuration files
 ```bash
 touch global.css babel.config.js metro.config.js nativewind-env.d.ts +not-found.tsx
 ```

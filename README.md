@@ -2,32 +2,32 @@
 
 ## Step 1: Project Initialization and Dependencies
 
-### Remove existing app if present
+##### Remove existing app if present
 ```bash
 rm -rf MyHiddenRoutesApp
 ```
-### Create new Expo app with TypeScript template
+##### Create new Expo app with TypeScript template
 ```bash
 npx create-expo-app MyHiddenRoutesApp
 ```
-### Navigate to project directory & Reset project
+##### Navigate to project directory & Reset project
 ```bash
 cd MyHiddenRoutesApp
 npm run reset-project
 ```
-### Install core dependencies
+##### Install core dependencies
 ```bash
 npm install nativewind tailwindcss react-native-reanimated react-native-safe-area-context
 ```
-### Install font packages
+##### Install font packages
 ```bash
 npm install @expo-google-fonts/rye @expo-google-fonts/special-elite @expo-google-fonts/arbutus-slab
 ```
-### Initialize Tailwind
+##### Initialize Tailwind
 ```bash
 npx tailwindcss init
 ```
-### Create necessary configuration files
+##### Create necessary configuration files
 ```bash
 touch global.css babel.config.js metro.config.js nativewind-env.d.ts +not-found.tsx
 ```

@@ -148,25 +148,27 @@ module.exports = {
 ### app/_layout.tsx
 ```typescript
 import { Stack } from "expo-router";
-import "../global.css";import { useFonts } from 'expo-font';
+import "../global.css";
+import { useFonts } from 'expo-font';
 import { Rye_400Regular } from '@expo-google-fonts/rye';
 import { SpecialElite_400Regular } from '@expo-google-fonts/special-elite';
 import { ArbutusSlab_400Regular } from '@expo-google-fonts/arbutus-slab';
-import { SplashScreen } from 'expo-router';
+import Splash from "./(onboarding)/splash"; // Import your custom Splash component
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
     Rye_400Regular,
     SpecialElite_400Regular,
-    ArbutusSlab_400Regular
+    ArbutusSlab_400Regular,
   });
 
   if (!fontsLoaded) {
-    return <SplashScreen />;
+    return <Splash />; // Use your custom splash screen component
   }
 
   return <Stack />;
 }
+
 ```
 
 ## Step 5: Set Up Route Structure
@@ -214,8 +216,7 @@ export default function OnboardingLayout() {
 ## Step 6: Create Main Screen Components
 
 ### app/index.tsx (Home Screen)
-```typescript
-import { Text, View } from "react-native";
+```typescriptimport { Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Link } from "expo-router";
 
@@ -231,18 +232,7 @@ export default function Index() {
 
       {/* Navigation Links */}
       <View className="mt-8">
-        <Link href="/(auth)/login" className="link-steampunk mb-4 block">
-          Login
-        </Link>
-        <Link href="/(auth)/sign-up" className="link-steampunk mb-4 block">
-          Sign Up
-        </Link>
-        <Link href="/(auth)/verification" className="link-steampunk mb-4 block">
-          Verification
-        </Link>
-        <Link href="/(auth)/forgot-password" className="link-steampunk mb-4 block">
-          Forgot Password
-        </Link>
+        {/* Onboarding process */}
         <Link href="/(onboarding)/splash" className="link-steampunk mb-4 block">
           Splash Screen
         </Link>
@@ -251,6 +241,25 @@ export default function Index() {
         </Link>
         <Link href="/(onboarding)/onboarding-setup" className="link-steampunk mb-4 block">
           Onboarding Setup
+        </Link>
+
+        {/* Authentication process */}
+        <Link href="/(auth)/sign-up" className="link-steampunk mb-4 block">
+          Sign Up
+        </Link>
+        <Link href="/(auth)/verification" className="link-steampunk mb-4 block">
+          Verification
+        </Link>
+        <Link href="/(auth)/login" className="link-steampunk mb-4 block">
+          Login
+        </Link>
+        <Link href="/(auth)/forgot-password" className="link-steampunk mb-4 block">
+          Forgot Password
+        </Link>
+
+        {/* Utility or Error Pages */}
+        <Link href="/+not-found" className="link-steampunk mb-4 block">
+          Not Found
         </Link>
       </View>
 
@@ -262,6 +271,7 @@ export default function Index() {
     </SafeAreaView>
   );
 }
+
 ```
 
 ### app/(auth)/login.tsx

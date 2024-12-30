@@ -1,3 +1,63 @@
+# Building a Hidden Routes App
+A complete guide to building a steampunk-themed mobile app with Expo, NativeWind, and Supabase
+
+## Table of Contents
+
+### [Chapter 1: Frontend Setup](#chapter-1-frontend-setup)
+- [Project Initialization and Dependencies](#project-initialization-and-dependencies)
+- [Core Configuration Files](#core-configuration-files)
+- [Global Styles](#global-styles)
+- [Base Layout and Font Loading](#base-layout-and-font-loading)
+- [Route Structure](#route-structure)
+- [Screen Components](#screen-components)
+
+### [Chapter 2: Backend Integration with Supabase](#chapter-2-backend-integration-with-supabase)
+- [Setting up Supabase Project](#setting-up-supabase-project)
+- [Database Schema Design](#database-schema-design)
+- [Authentication Configuration](#authentication-configuration)
+- [API Integration](#api-integration)
+- [Data Models and Types](#data-models-and-types)
+- [Server-Side Functions](#server-side-functions)
+
+# Chapter 1: Frontend Setup
+
+## Project Initialization and Dependencies
+[Previous content remains the same...]
+
+# Chapter 2: Backend Integration with Supabase
+
+## Setting up Supabase Project
+
+First, let's install the necessary dependencies for Supabase integration:
+
+```bash
+npm install @supabase/supabase-js
+npm install react-native-url-polyfill
+```
+
+Create a new Supabase project:
+1. Go to https://supabase.com
+2. Sign in and click "New Project"
+3. Choose a name for your project (e.g., "hidden-routes")
+4. Choose a database password (save this somewhere secure)
+5. Choose your region (pick the one closest to your users)
+6. Click "Create New Project" and wait for deployment
+
+## Database Schema Design
+[Coming soon...]
+
+## Authentication Configuration
+[Coming soon...]
+
+## API Integration
+[Coming soon...]
+
+## Data Models and Types
+[Coming soon...]
+
+## Server-Side Functions
+[Coming soon...]
+
 # Expo with NativeWind, Custom Fonts & Steampunk Theme
 
 ## Step 1: Project Initialization and Dependencies

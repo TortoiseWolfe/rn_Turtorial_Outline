@@ -44,7 +44,7 @@ npm install nativewind tailwindcss react-native-reanimated react-native-safe-are
 ```
 ##### Install font packages
 ```bash
-npm install @expo-google-fonts/roboto-slab @expo-google-fonts/special-elite @expo-google-fonts/arbutus-slab
+npm install @expo-google-fonts/almendra @expo-google-fonts/special-elite @expo-google-fonts/arbutus-slab
 ```
 ##### Initialize Tailwind
 ```bash
@@ -52,7 +52,7 @@ npx tailwindcss init
 ```
 ##### Initialize metro config
 ```bash
-npx expo customize metro.conf
+npx expo customize metro.config.js
 ```
 ##### Create necessary configuration files
 ```bash
@@ -93,7 +93,7 @@ module.exports = {
     theme: {
       extend: {
         fontFamily: {
-          robotoSlab: ['RobotoSlab_700Bold'],
+          robotoSlab: ['Almendra_700Bold'],
           specialElite: ['SpecialElite_400Regular'],
           arbutusSlab: ['ArbutusSlab_400Regular']
         }
@@ -173,14 +173,14 @@ module.exports = {
 import { Stack } from "expo-router";
 import "../global.css";
 import { useFonts } from 'expo-font';
-import { RobotoSlab_700Bold } from '@expo-google-fonts/roboto-slab';
+import { Almendra_700Bold } from '@expo-google-fonts/almendra';
 import { SpecialElite_400Regular } from '@expo-google-fonts/special-elite';
 import { ArbutusSlab_400Regular } from '@expo-google-fonts/arbutus-slab';
 import Splash from "./(onboarding)/splash";
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
-    RobotoSlab_700Bold,
+    Almendra_700Bold,
     SpecialElite_400Regular,
     ArbutusSlab_400Regular,
   });

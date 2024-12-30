@@ -11,14 +11,6 @@ A complete guide to building a steampunk-themed mobile app with Expo, NativeWind
 - [Route Structure](#step-5-set-up-route-structure)
 - [Screen Components](#step-6-create-main-screen-components)
 
-### [Chapter 2: Backend Integration with Supabase](#chapter-2-backend-integration-with-supabase)
-- [Setting up Supabase Project](#setting-up-supabase-project)
-- [Database Schema Design](#database-schema-design)
-- [Authentication Configuration](#authentication-configuration)
-- [API Integration](#api-integration)
-- [Data Models and Types](#data-models-and-types)
-- [Server-Side Functions](#server-side-functions)
-
 ### [Chapter 2: Production-Ready Backend Integration with Supabase](#chapter-2-production-ready-backend-integration-with-supabase)
 1. [Environment Variables & Security Best Practices](#1-environment-variables--security-best-practices)  
    - [1.1 Why Environment Variables?](#11-why-environment-variables)  
@@ -545,41 +537,6 @@ export default function NotFoundScreen() {
   );
 }
 ```
-
-
-# Chapter 2: Backend Integration with Supabase
-
-## Setting up Supabase Project
-
-First, let's install the necessary dependencies for Supabase integration:
-
-```bash
-npm install @supabase/supabase-js
-npm install react-native-url-polyfill
-```
-
-Create a new Supabase project:
-1. Go to https://supabase.com
-2. Sign in and click "New Project"
-3. Choose a name for your project (e.g., "hidden-routes")
-4. Choose a database password (save this somewhere secure)
-5. Choose your region (pick the one closest to your users)
-6. Click "Create New Project" and wait for deployment
-
-## Database Schema Design
-[Coming soon...]
-
-## Authentication Configuration
-[Coming soon...]
-
-## API Integration
-[Coming soon...]
-
-## Data Models and Types
-[Coming soon...]
-
-## Server-Side Functions
-[Coming soon...]
 
 Below is an **expanded, production-focused** version of Chapter 2. It details how to set up Supabase **securely** with environment variables, adhere to **best practices**, and maintain a public open-source repository without exposing private information. This guide is intended for real-world scenarios, where secrets must be guarded carefully while still enabling open collaboration.
 

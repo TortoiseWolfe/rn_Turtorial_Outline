@@ -3,13 +3,13 @@ A complete guide to building a steampunk-themed mobile app with Expo, NativeWind
 
 ## Table of Contents
 
-### [Chapter 1: Frontend Setup](#chapter-1-frontend-setup)
-- [Project Initialization and Dependencies](#project-initialization-and-dependencies)
-- [Core Configuration Files](#core-configuration-files)
-- [Global Styles](#global-styles)
-- [Base Layout and Font Loading](#base-layout-and-font-loading)
-- [Route Structure](#route-structure)
-- [Screen Components](#screen-components)
+### [Chapter 1: Frontend Setup](#expo-with-nativewind-custom-fonts--steampunk-theme)
+- [Project Initialization and Dependencies](#step-1-project-initialization-and-dependencies)
+- [Core Configuration Files](#step-2-configure-core-files)
+- [Global Styles](#step-3-set-up-global-styles)
+- [Base Layout and Font Loading](#step-4-create-base-layout-with-font-loading)
+- [Route Structure](#step-5-set-up-route-structure)
+- [Screen Components](#step-6-create-main-screen-components)
 
 ### [Chapter 2: Backend Integration with Supabase](#chapter-2-backend-integration-with-supabase)
 - [Setting up Supabase Project](#setting-up-supabase-project)

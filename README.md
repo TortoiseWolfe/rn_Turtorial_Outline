@@ -313,7 +313,6 @@ export default function Index() {
 
 ### app/(auth)/login.tsx
 ```typescript
-import React from "react";
 import { View, Text, TextInput, TouchableOpacity } from "react-native";
 
 export default function Login() {
@@ -346,7 +345,6 @@ export default function Login() {
 
 ### app/(auth)/sign-up.tsx
 ```typescript
-import React from "react";
 import { View, Text, TextInput, TouchableOpacity } from "react-native";
 
 export default function SignUp() {
@@ -387,7 +385,6 @@ export default function SignUp() {
 
 ### app/(auth)/verification.tsx
 ```typescript
-import React from "react";
 import { View, Text, TextInput, TouchableOpacity } from "react-native";
 
 export default function Verification() {
@@ -417,7 +414,6 @@ export default function Verification() {
 
 ### app/(auth)/forgot-password.tsx
 ```typescript
-import React from "react";
 import { View, Text, TextInput, TouchableOpacity } from "react-native";
 
 export default function ForgotPassword() {
@@ -446,7 +442,6 @@ export default function ForgotPassword() {
 
 ### app/(onboarding)/splash.tsx
 ```typescript
-import React from "react";
 import { View, Text } from "react-native";
 
 export default function Splash() {
@@ -463,7 +458,6 @@ export default function Splash() {
 
 ### app/(onboarding)/welcome.tsx
 ```typescript
-import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { Link } from "expo-router";
 
@@ -487,7 +481,6 @@ export default function Welcome() {
 
 ### app/(onboarding)/onboarding-setup.tsx
 ```typescript
-import React from "react";
 import { View, Text, TouchableOpacity, Switch } from "react-native";
 
 export default function OnboardingSetup() {

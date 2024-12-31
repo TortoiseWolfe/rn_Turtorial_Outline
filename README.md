@@ -260,8 +260,8 @@ import { Link } from "expo-router";
 
 export default function Index() {
   return (
-    <SafeAreaView className="container-steampunk bg-steampunk">
-      <View>
+    <SafeAreaView className="container-steampunk bg-steampunk p-6">
+      <View className="p-6">
         <Text className="text-steampunk-title">SteamPunk App</Text>
         <Text className="text-steampunk-body">
           Welcome to your steampunk-themed application powered by Nativewind and Tailwind CSS.
@@ -269,7 +269,7 @@ export default function Index() {
       </View>
 
       {/* Navigation Links */}
-      <View className="mt-8">
+      <View className="mt-8 p-6">
         {/* Onboarding process */}
         <Link href="/(onboarding)/splash" className="link-steampunk mb-4 block">
           Splash Screen
@@ -301,11 +301,12 @@ export default function Index() {
         </Link>
       </View>
 
-      <View className="mt-8 border-steampunk">
-        <Text className="text-steampunk-body">
-          This is a sample box demonstrating centralized steampunk styles.
-        </Text>
-      </View>
+      <View className="mt-8 border-steampunk max-w-md mx-left p-6">
+  <Text className="text-steampunk-body">
+    This is a sample box demonstrating centralized steampunk styles.
+  </Text>
+</View>
+
     </SafeAreaView>
   );
 }

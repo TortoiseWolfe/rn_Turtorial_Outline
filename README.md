@@ -302,11 +302,10 @@ export default function Index() {
       </View>
 
       <View className="mt-8 border-steampunk max-w-md mx-left p-6">
-  <Text className="text-steampunk-body">
-    This is a sample box demonstrating centralized steampunk styles.
-  </Text>
-</View>
-
+        <Text className="text-steampunk-body">
+          This is a sample box demonstrating centralized steampunk styles.
+        </Text>
+      </View>
     </SafeAreaView>
   );
 }

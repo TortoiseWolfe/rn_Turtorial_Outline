@@ -1,7 +1,3 @@
-Below is **one** self-contained tutorial that uses **one** script (in Chapter 1) to create **all** files (including `app.config.js`), followed by **exact** code blocks showing **every** step (including **2.4**, **2.5**, and **2.6**). No additional manual file creation in Chapter 2. Protected routes are fully demonstrated with **session checks**. Copy/paste the script, then fill the files with the code below, and you’ll have a **complete** functional steampunk-themed Expo app with Supabase.
-
----
-
 # Chapter 1: Frontend Setup
 
 ## 1.1 Single Command for Project Setup

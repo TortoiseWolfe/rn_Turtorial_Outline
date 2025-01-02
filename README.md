@@ -1,16 +1,3 @@
-Below is a **complete** and **robust** tutorial that walks you through **every** step of building a **steampunk-themed Expo app** using:
-
-- **NativeWind + Tailwind** for styling  
-- **React Hook Form** for form validations (sign-up/login)  
-- **expo-router** for file-based navigation  
-- **Supabase** for production-grade backend services (Auth, DB, RLS security)  
-
-We **do not** provide “minimal” placeholders. Instead, we show **fully fleshed-out** code, validations, and environment-variable handling—without skipping any instructions. By the end, you’ll have a **production-ready** steampunk app that you can run locally and share as an open-source project.
-
----
-
-# Table of Contents
-
 1. [Chapter 1: Frontend Setup](#chapter-1-frontend-setup)
    - [1.1 Single Command for Project Setup](#11-single-command-for-project-setup)
    - [1.2 Populate Config Files (Babel, Metro, Tailwind, etc.)](#12-populate-config-files-babel-metro-tailwind-etc)

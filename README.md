@@ -1,19 +1,4 @@
-1. [Chapter 1: Frontend Setup](#chapter-1-frontend-setup)
-   - [1.1 Single Command for Project Setup](#11-single-command-for-project-setup)
-   - [1.2 Populate Config Files (Babel, Metro, Tailwind, etc.)](#12-populate-config-files-babel-metro-tailwind-etc)
-   - [1.3 Global Styles & SteamPunk Theme](#13-global-styles--steampunk-theme)
-   - [1.4 Base Layout & Fonts Loading](#14-base-layout--fonts-loading)
-   - [1.5 Route Structure](#15-route-structure)
-   - [1.6 Screen Components (Fully Functional)](#16-screen-components-fully-functional)
-2. [Chapter 2: Production-Ready Backend Integration with Supabase](#chapter-2-production-ready-backend-integration-with-supabase)
-   - [2.1 Environment Variables & Security Best Practices](#21-environment-variables--security-best-practices)
-   - [2.2 Creating & Configuring a Supabase Project](#22-creating--configuring-a-supabase-project)
-   - [2.3 Initialize Supabase Client (Production Setup)](#23-initialize-supabase-client-production-setup)
-   - [2.4 Implementing Secure Sign-Up with React Hook Form](#24-implementing-secure-sign-up-with-react-hook-form)
-   - [2.5 Implementing Login Flow with React Hook Form](#25-implementing-login-flow-with-react-hook-form)
-   - [2.6 Managing Session State & Protecting Routes](#26-managing-session-state--protecting-routes)
-   - [2.7 Final Considerations for Production](#27-final-considerations-for-production)
-3. [Recap & Next Steps](#recap--next-steps)
+Below is **one** self-contained tutorial that uses **one** script (in Chapter 1) to create **all** files (including `app.config.js`), followed by **exact** code blocks showing **every** step (including **2.4**, **2.5**, and **2.6**). No additional manual file creation in Chapter 2. Protected routes are fully demonstrated with **session checks**. Copy/paste the script, then fill the files with the code below, and you’ll have a **complete** functional steampunk-themed Expo app with Supabase.
 
 ---
 
@@ -21,103 +6,96 @@
 
 ## 1.1 Single Command for Project Setup
 
-Run the following block **once** to create a fresh Expo project, install all dependencies, and generate the necessary config files (including `.env` and `.env.example` for Chapter 2). This ensures you **do not** have to manually create them later:
+Copy this **once** into your terminal:
 
-```bash
-# 1) Remove old project if it exists
+```
 rm -rf MyHiddenRoutesApp
-
-# 2) Create a new Expo app (TypeScript template)
 npx create-expo-app MyHiddenRoutesApp
-
-# 3) Navigate & reset
 cd MyHiddenRoutesApp
 npm run reset-project
 
-# 4) Install dependencies:
-#   - NativeWind + Tailwind + Reanimated + SafeAreaContext
-#   - React Hook Form for form validation
-#   - Google fonts for the steampunk look
-#   - dotenv for environment variables (Chapter 2, Supabase)
 npm install nativewind tailwindcss react-native-reanimated react-native-safe-area-context \
-  react-hook-form @expo-google-fonts/fondamento @expo-google-fonts/special-elite @expo-google-fonts/arbutus-slab \
-  dotenv
+  react-hook-form @expo-google-fonts/fondamento @expo-google-fonts/special-elite \
+  @expo-google-fonts/arbutus-slab dotenv
 
-# 5) Initialize Tailwind
 npx tailwindcss init
-
-# 6) Customize Metro config for NativeWind
 npx expo customize metro.config.js
 
-# 7) Create additional config files:
-touch babel.config.js nativewind-env.d.ts global.css
+touch babel.config.js nativewind-env.d.ts global.css app.config.js
 touch .env .env.example
 
-# 8) Ensure .env is ignored by Git
-# echo ".env" >> .gitignore
+mkdir -p app
+touch app/_layout.tsx
+
+mkdir -p "app/(auth)" "app/(onboarding)" "app/(protected)" && \
+touch "app/(auth)/_layout.tsx" \
+      "app/(auth)/login.tsx" \
+      "app/(auth)/sign-up.tsx" \
+      "app/(auth)/verification.tsx" \
+      "app/(auth)/forgot-password.tsx" \
+      "app/(onboarding)/_layout.tsx" \
+      "app/(onboarding)/splash.tsx" \
+      "app/(onboarding)/welcome.tsx" \
+      "app/(onboarding)/onboarding-setup.tsx" \
+      "app/(protected)/_layout.tsx" \
+      "app/(protected)/hidden-routes.tsx" \
+      "app/+not-found.tsx"
+
+touch app/index.tsx
 ```
 
-**Note**:  
-- We create `.env` and `.env.example` now so that you don’t have to do it manually when we get to Supabase.  
-- Placeholders for `.env` and `.env.example` are shown in [Chapter 2](#21-environment-variables--security-best-practices).
+No further file creation is needed in Chapter 2.
 
 ---
 
 ## 1.2 Populate Config Files (Babel, Metro, Tailwind, etc.)
 
-### **babel.config.js**
-```js
-module.exports = function(api) {
+**babel.config.js**
+```
+module.exports = function (api) {
   api.cache(true);
+  const isWeb = api.caller((caller) => caller && caller.name === 'babel-loader');
   return {
     presets: [
-      ['babel-preset-expo', { jsxImportSource: 'nativewind' }],
-      'nativewind/babel',
+      ['babel-preset-expo', { jsxImportSource: 'nativewind' }]
     ],
+    plugins: [
+      !isWeb && 'react-native-reanimated/plugin',
+      !isWeb && 'nativewind/babel'
+    ].filter(Boolean)
   };
 };
 ```
 
-### **metro.config.js**  
-*(Created by `npx expo customize metro.config.js`—replace its contents.)*
-```js
-// Learn more: https://docs.expo.dev/guides/customizing-metro
+**metro.config.js**
+```
 const { getDefaultConfig } = require('expo/metro-config');
 const { withNativeWind } = require('nativewind/metro');
-
-/** @type {import('expo/metro-config').MetroConfig} */
 const config = getDefaultConfig(__dirname);
-
-module.exports = withNativeWind(config, {
-  input: './global.css',
-});
+module.exports = withNativeWind(config, { input: './global.css' });
 ```
 
-### **tailwind.config.js**  
-*(Generated by `npx tailwindcss init`—modify as below.)*
-```js
+**tailwind.config.js** (from `npx tailwindcss init`, replace):
+```
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: [
-    './app/**/*.{js,jsx,ts,tsx}',
-    './components/**/*.{js,jsx,ts,tsx}',
-  ],
+  content: ['./app/**/*.{js,jsx,ts,tsx}'],
   presets: [require('nativewind/preset')],
   theme: {
     extend: {
       fontFamily: {
         fondamento: ['Fondamento_400Regular'],
         specialElite: ['SpecialElite_400Regular'],
-        arbutusSlab: ['ArbutusSlab_400Regular'],
-      },
-    },
+        arbutusSlab: ['ArbutusSlab_400Regular']
+      }
+    }
   },
-  plugins: [],
+  plugins: []
 };
 ```
 
-### **nativewind-env.d.ts**
-```ts
+**nativewind-env.d.ts**
+```
 /// <reference types="nativewind/types" />
 ```
 
@@ -125,44 +103,23 @@ module.exports = {
 
 ## 1.3 Global Styles & SteamPunk Theme
 
-### **global.css**
-```css
+**global.css**
+```
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* SteamPunk Theme */
 @layer components {
-  .bg-steampunk {
-    @apply bg-neutral-900;
-  }
-  .container-steampunk {
-    @apply flex-1 p-6 justify-center;
-  }
-  .text-steampunk-title {
-    @apply text-3xl text-amber-400 font-bold mb-6 font-robotoSlab;
-  }
-  .text-steampunk-label {
-    @apply text-amber-200 mb-2 font-specialElite;
-  }
-  .text-steampunk-body {
-    @apply text-amber-200 font-arbutusSlab;
-  }
-  .input-steampunk {
-    @apply w-full bg-neutral-800 text-amber-100 p-3 rounded-md font-arbutusSlab;
-  }
-  .btn-steampunk {
-    @apply bg-amber-700 rounded-md p-3;
-  }
-  .btn-text-steampunk {
-    @apply text-center text-amber-50 font-semibold font-specialElite;
-  }
-  .link-steampunk {
-    @apply text-amber-400 underline hover:text-amber-300 font-specialElite;
-  }
-  .border-steampunk {
-    @apply border-2 border-amber-700 rounded-lg p-4;
-  }
+  .bg-steampunk { @apply bg-neutral-900; }
+  .container-steampunk { @apply flex-1 p-6 justify-center; }
+  .text-steampunk-title { @apply text-3xl text-amber-400 font-bold mb-6 font-robotoSlab; }
+  .text-steampunk-label { @apply text-amber-200 mb-2 font-specialElite; }
+  .text-steampunk-body { @apply text-amber-200 font-arbutusSlab; }
+  .input-steampunk { @apply w-full bg-neutral-800 text-amber-100 p-3 rounded-md font-arbutusSlab; }
+  .btn-steampunk { @apply bg-amber-700 rounded-md p-3; }
+  .btn-text-steampunk { @apply text-center text-amber-50 font-semibold font-specialElite; }
+  .link-steampunk { @apply text-amber-400 underline hover:text-amber-300 font-specialElite; }
+  .border-steampunk { @apply border-2 border-amber-700 rounded-lg p-4; }
 }
 ```
 
@@ -170,23 +127,27 @@ module.exports = {
 
 ## 1.4 Base Layout & Fonts Loading
 
-### **app/_layout.tsx**
-```tsx
+**app/_layout.tsx**
+```
 import { Stack } from 'expo-router';
 import '../global.css';
 import { useFonts } from 'expo-font';
-import { Fondamento_400Regular } from '@expo-google-fonts/fondamento';
-import { SpecialElite_400Regular } from '@expo-google-fonts/special-elite';
-import { ArbutusSlab_400Regular } from '@expo-google-fonts/arbutus-slab';
-
+import {
+  Fondamento_400Regular
+} from '@expo-google-fonts/fondamento';
+import {
+  SpecialElite_400Regular
+} from '@expo-google-fonts/special-elite';
+import {
+  ArbutusSlab_400Regular
+} from '@expo-google-fonts/arbutus-slab';
 import Splash from './(onboarding)/splash';
 
 export default function RootLayout() {
-  // Load your fonts
   const [fontsLoaded] = useFonts({
     Fondamento_400Regular,
     SpecialElite_400Regular,
-    ArbutusSlab_400Regular,
+    ArbutusSlab_400Regular
   });
 
   if (!fontsLoaded) {
@@ -201,25 +162,8 @@ export default function RootLayout() {
 
 ## 1.5 Route Structure
 
-Let’s create `(auth)`, `(onboarding)`, and a `+not-found` route:
-
-```bash
-mkdir -p "app/(auth)" "app/(onboarding)" && \
-touch "app/(auth)/_layout.tsx" \
-      "app/(auth)/login.tsx" \
-      "app/(auth)/sign-up.tsx" \
-      "app/(auth)/verification.tsx" \
-      "app/(auth)/forgot-password.tsx" \
-      "app/+not-found.tsx" \
-      "app/(onboarding)/_layout.tsx" \
-      "app/(onboarding)/splash.tsx" \
-      "app/(onboarding)/welcome.tsx" \
-      "app/(onboarding)/onboarding-setup.tsx"
-
+**app/(auth)/_layout.tsx**
 ```
-
-### **app/(auth)/_layout.tsx**
-```tsx
 import { Stack } from 'expo-router';
 import '../../global.css';
 
@@ -228,8 +172,8 @@ export default function AuthLayout() {
 }
 ```
 
-### **app/(onboarding)/_layout.tsx**
-```tsx
+**app/(onboarding)/_layout.tsx**
+```
 import { Stack } from 'expo-router';
 import '../../global.css';
 
@@ -238,14 +182,22 @@ export default function OnboardingLayout() {
 }
 ```
 
+**app/(protected)/_layout.tsx** (used in Chapter 2)
+```
+import { Stack } from 'expo-router';
+import '../../global.css';
+
+export default function ProtectedLayout() {
+  return <Stack />;
+}
+```
+
 ---
 
 ## 1.6 Screen Components (Fully Functional)
 
-We’ll create **app/index.tsx** for the home screen and all other screens in `(auth)` and `(onboarding)`. The codes below are **complete**—they can be extended in Chapter 2 to incorporate real auth from Supabase.
-
-### **app/index.tsx** (Home Screen)
-```tsx
+**app/index.tsx**
+```
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { View, Text } from 'react-native';
 import { Link } from 'expo-router';
@@ -261,18 +213,14 @@ export default function HomeScreen() {
       </View>
 
       <View className="mt-8 p-6">
-        {/* Onboarding */}
         <Link href="/(onboarding)/splash" className="link-steampunk mb-4 block">Splash Screen</Link>
         <Link href="/(onboarding)/welcome" className="link-steampunk mb-4 block">Welcome</Link>
         <Link href="/(onboarding)/onboarding-setup" className="link-steampunk mb-4 block">Onboarding Setup</Link>
-
-        {/* Auth */}
         <Link href="/(auth)/sign-up" className="link-steampunk mb-4 block">Sign Up</Link>
         <Link href="/(auth)/verification" className="link-steampunk mb-4 block">Verification</Link>
         <Link href="/(auth)/login" className="link-steampunk mb-4 block">Login</Link>
         <Link href="/(auth)/forgot-password" className="link-steampunk mb-4 block">Forgot Password</Link>
-
-        {/* Not Found */}
+        <Link href="/(protected)/hidden-routes" className="link-steampunk mb-4 block">Protected Routes</Link>
         <Link href="/+not-found" className="link-steampunk mb-4 block">Not Found</Link>
       </View>
 
@@ -286,22 +234,20 @@ export default function HomeScreen() {
 }
 ```
 
-### **app/(auth)/login.tsx** (Will be upgraded in Chapter 2)
-```tsx
+**app/(auth)/login.tsx**
+```
 import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 
 export default function Login() {
   return (
     <View className="container-steampunk bg-steampunk">
       <Text className="text-steampunk-title">SteamPunk Login</Text>
-
       <Text className="text-steampunk-label">Username</Text>
       <TextInput
         placeholder="Enter your username"
         placeholderTextColor="#A98274"
         className="input-steampunk mb-4"
       />
-
       <Text className="text-steampunk-label">Password</Text>
       <TextInput
         placeholder="Enter your password"
@@ -309,7 +255,6 @@ export default function Login() {
         secureTextEntry
         className="input-steampunk mb-6"
       />
-
       <TouchableOpacity className="btn-steampunk">
         <Text className="btn-text-steampunk">Login</Text>
       </TouchableOpacity>
@@ -318,22 +263,20 @@ export default function Login() {
 }
 ```
 
-### **app/(auth)/sign-up.tsx** (Will be upgraded in Chapter 2)
-```tsx
+**app/(auth)/sign-up.tsx**
+```
 import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 
 export default function SignUp() {
   return (
     <View className="container-steampunk bg-steampunk">
       <Text className="text-steampunk-title">Create Account</Text>
-
       <Text className="text-steampunk-label">Email</Text>
       <TextInput
         placeholder="Enter your email"
         placeholderTextColor="#A98274"
         className="input-steampunk mb-4"
       />
-
       <Text className="text-steampunk-label">Password</Text>
       <TextInput
         placeholder="Create a password"
@@ -341,7 +284,6 @@ export default function SignUp() {
         secureTextEntry
         className="input-steampunk mb-4"
       />
-
       <Text className="text-steampunk-label">Confirm Password</Text>
       <TextInput
         placeholder="Repeat your password"
@@ -349,7 +291,6 @@ export default function SignUp() {
         secureTextEntry
         className="input-steampunk mb-6"
       />
-
       <TouchableOpacity className="btn-steampunk">
         <Text className="btn-text-steampunk">Sign Up</Text>
       </TouchableOpacity>
@@ -358,18 +299,15 @@ export default function SignUp() {
 }
 ```
 
-### **app/(auth)/verification.tsx**
-```tsx
+**app/(auth)/verification.tsx**
+```
 import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 
 export default function Verification() {
   return (
     <View className="container-steampunk bg-steampunk">
       <Text className="text-steampunk-title">Email Verification</Text>
-      <Text className="text-steampunk-body mb-4">
-        Enter the verification code sent to your email.
-      </Text>
-
+      <Text className="text-steampunk-body mb-4">Enter the verification code sent to your email.</Text>
       <Text className="text-steampunk-label">Verification Code</Text>
       <TextInput
         placeholder="Enter your 6-digit code"
@@ -377,7 +315,6 @@ export default function Verification() {
         keyboardType="numeric"
         className="input-steampunk mb-6"
       />
-
       <TouchableOpacity className="btn-steampunk">
         <Text className="btn-text-steampunk">Verify</Text>
       </TouchableOpacity>
@@ -386,8 +323,8 @@ export default function Verification() {
 }
 ```
 
-### **app/(auth)/forgot-password.tsx**
-```tsx
+**app/(auth)/forgot-password.tsx**
+```
 import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 
 export default function ForgotPassword() {
@@ -397,14 +334,12 @@ export default function ForgotPassword() {
       <Text className="text-steampunk-body mb-4">
         Enter your email address to receive password reset instructions.
       </Text>
-
       <Text className="text-steampunk-label">Email</Text>
       <TextInput
         placeholder="Enter your email"
         placeholderTextColor="#A98274"
         className="input-steampunk mb-6"
       />
-
       <TouchableOpacity className="btn-steampunk">
         <Text className="btn-text-steampunk">Send Reset Link</Text>
       </TouchableOpacity>
@@ -413,24 +348,22 @@ export default function ForgotPassword() {
 }
 ```
 
-### **app/(onboarding)/splash.tsx**
-```tsx
+**app/(onboarding)/splash.tsx**
+```
 import { View, Text } from 'react-native';
 
 export default function Splash() {
   return (
     <View className="container-steampunk bg-steampunk items-center justify-center">
       <Text className="text-steampunk-title">Welcome to SteamPunk World</Text>
-      <Text className="text-steampunk-body text-center">
-        Loading your steampunk adventure...
-      </Text>
+      <Text className="text-steampunk-body text-center">Loading your steampunk adventure...</Text>
     </View>
   );
 }
 ```
 
-### **app/(onboarding)/welcome.tsx**
-```tsx
+**app/(onboarding)/welcome.tsx**
+```
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Link } from 'expo-router';
 
@@ -441,7 +374,6 @@ export default function Welcome() {
       <Text className="text-steampunk-body text-center mb-10">
         Embark on a steam-powered adventure through our app.
       </Text>
-
       <Link href="/(auth)/login" asChild>
         <TouchableOpacity className="btn-steampunk w-full max-w-sm">
           <Text className="btn-text-steampunk">Begin Journey</Text>
@@ -452,8 +384,8 @@ export default function Welcome() {
 }
 ```
 
-### **app/(onboarding)/onboarding-setup.tsx**
-```tsx
+**app/(onboarding)/onboarding-setup.tsx**
+```
 import { View, Text, TouchableOpacity, Switch } from 'react-native';
 import React from 'react';
 
@@ -463,7 +395,6 @@ export default function OnboardingSetup() {
   return (
     <View className="container-steampunk bg-steampunk">
       <Text className="text-steampunk-title">Customize Your Experience</Text>
-
       <View className="flex-row items-center justify-between mb-6">
         <Text className="text-steampunk-body">Enable Notifications</Text>
         <Switch
@@ -473,7 +404,6 @@ export default function OnboardingSetup() {
           trackColor={{ true: '#7B5530', false: '#374151' }}
         />
       </View>
-
       <TouchableOpacity className="btn-steampunk">
         <Text className="btn-text-steampunk">Complete Setup</Text>
       </TouchableOpacity>
@@ -482,8 +412,24 @@ export default function OnboardingSetup() {
 }
 ```
 
-### **app/+not-found.tsx**
-```tsx
+**app/(protected)/hidden-routes.tsx**
+```
+import { View, Text } from 'react-native';
+
+export default function HiddenRoutes() {
+  return (
+    <View className="container-steampunk bg-steampunk">
+      <Text className="text-steampunk-title">Hidden Steam Routes</Text>
+      <Text className="text-steampunk-body">
+        Only authorized adventurers can see this content.
+      </Text>
+    </View>
+  );
+}
+```
+
+**app/+not-found.tsx**
+```
 import { Stack, Link } from 'expo-router';
 import { View, Text, TouchableOpacity } from 'react-native';
 
@@ -507,84 +453,29 @@ export default function NotFoundScreen() {
 }
 ```
 
-> **At this point**, you have a fully functional **frontend** with steampunk styling, a custom font loader, basic route structure, and placeholders for authentication screens.
-
 ---
 
 # Chapter 2: Production-Ready Backend Integration with Supabase
 
-In this chapter, we’ll show a **complete** approach to configuring and using Supabase in a **production** environment. This includes environment variables, secure key management, email confirmations, route protection, and session handling with **React Hook Form** validations.
-
----
-
 ## 2.1 Environment Variables & Security Best Practices
 
-### `.env` & `.env.example`
-
-You already created `.env` and `.env.example`. Update them:
-
-```ini
-# .env
-EXPO_PUBLIC_SUPABASE_URL="https://<PROJECT>.supabase.co"
-EXPO_PUBLIC_SUPABASE_ANON_KEY="your-anon-public-key"
+`.env`
 ```
-
-```ini
-# .env.example
-EXPO_PUBLIC_SUPABASE_URL="https://example.supabase.co"
+EXPO_PUBLIC_SUPABASE_URL="https://<PROJECT>.supabase.co"
 EXPO_PUBLIC_SUPABASE_ANON_KEY="anon-public-key"
 ```
 
-- **Never commit** the real `.env`.  
-- **OK** to commit `.env.example` with placeholders.
-
-### Why Environment Variables?
-
-- The **anon key** is public but best to keep it in `.env` for easy rotation and to avoid scattering it in code.  
-- **service_role** key (if needed) is strictly private—don’t include it in the client at all.  
-
-### 1.3 Secrets in CI/CD
-
-- Use GitHub Actions (or similar) to store these environment variables, then inject them at build time.  
-- Don’t print secrets to logs.
-
----
-
 ## 2.2 Creating & Configuring a Supabase Project
 
-1. Go to [Supabase.com](https://supabase.com/) → log in → create a new project.  
-2. Copy **Project URL** (like `https://abcdefgh.supabase.co`) and the **anon** key.  
-3. Enable **Row Level Security (RLS)** on the tables you create to ensure only authenticated users can access them.  
-
----
+1. [Sign up on Supabase](https://supabase.com/)  
+2. Create project, note URL/anon key  
+3. Enable RLS
 
 ## 2.3 Initialize Supabase Client (Production Setup)
 
-Inside your project, create **lib/supabaseClient.ts** (if you haven’t yet):
+No new file creation. **app.config.js** was **already** created by the script. Fill it:
 
-```bash
-mkdir lib
-touch lib/supabaseClient.ts
 ```
-
-```ts
-// lib/supabaseClient.ts
-import 'react-native-url-polyfill/auto';
-import { createClient } from '@supabase/supabase-js';
-import Constants from 'expo-constants';
-
-// Retrieve environment variables from app.config.js => extra
-const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl || '';
-const supabaseAnonKey = Constants.expoConfig?.extra?.supabaseAnonKey || '';
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-```
-
-### Referencing `.env` in `app.config.js`
-
-Create or edit **app.config.js** at your project root if it doesn’t exist:
-
-```js
 import 'dotenv/config';
 
 export default ({ config }) => {
@@ -592,22 +483,35 @@ export default ({ config }) => {
     ...config,
     extra: {
       supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
-      supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
-    },
+      supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY
+    }
   };
 };
 ```
 
-That’s how `Constants.expoConfig?.extra?.supabaseUrl` is filled with your `.env` variables at **build time**.
+Then create or edit **lib/supabaseClient.ts**:
 
----
+```
+mkdir lib
+touch lib/supabaseClient.ts
+```
+
+```
+import 'react-native-url-polyfill/auto';
+import { createClient } from '@supabase/supabase-js';
+import Constants from 'expo-constants';
+
+const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl || '';
+const supabaseAnonKey = Constants.expoConfig?.extra?.supabaseAnonKey || '';
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+```
 
 ## 2.4 Implementing Secure Sign-Up with React Hook Form
 
-We’ll **transform** the existing `app/(auth)/sign-up.tsx` into a **fully validated** form that hits the Supabase sign-up endpoint. This is **complete** code—no placeholders.
+Replace **app/(auth)/sign-up.tsx**:
 
-```tsx
-// app/(auth)/sign-up.tsx
+```
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
@@ -624,38 +528,34 @@ export default function SignUp() {
     control,
     handleSubmit,
     watch,
-    formState: { errors },
+    formState: { errors }
   } = useForm<SignUpFormData>({
     defaultValues: {
       email: '',
       password: '',
-      confirmPassword: '',
-    },
+      confirmPassword: ''
+    }
   });
 
-  const onSubmit = async (data: SignUpFormData) => {
-    const { email, password } = data;
+  const onSubmit = async ({ email, password }: SignUpFormData) => {
     try {
-      // Attempt to sign up with Supabase
-      const { data: signUpData, error } = await supabase.auth.signUp({ email, password });
+      const { error } = await supabase.auth.signUp({ email, password });
       if (error) {
         Alert.alert('Sign Up Error', error.message);
         return;
       }
-      Alert.alert('Success', 'A confirmation email has been sent. Please verify your account.');
+      Alert.alert('Success', 'A confirmation email has been sent.');
     } catch (err: any) {
       Alert.alert('Sign Up Error', err.message);
     }
   };
 
-  // For password match validation
   const passwordValue = watch('password');
 
   return (
     <View className="container-steampunk bg-steampunk">
       <Text className="text-steampunk-title">Create Account</Text>
 
-      {/* Email Field */}
       <Text className="text-steampunk-label">Email</Text>
       <Controller
         control={control}
@@ -664,8 +564,8 @@ export default function SignUp() {
           required: 'Email is required',
           pattern: {
             value: /^\S+@\S+\.\S+$/,
-            message: 'Invalid email format',
-          },
+            message: 'Invalid email format'
+          }
         }}
         render={({ field: { onChange, onBlur, value } }) => (
           <TextInput
@@ -675,26 +575,20 @@ export default function SignUp() {
             onBlur={onBlur}
             onChangeText={onChange}
             value={value}
-            keyboardType="email-address"
             autoCapitalize="none"
+            keyboardType="email-address"
           />
         )}
       />
-      {errors.email && (
-        <Text className="text-red-500 mb-2 font-arbutusSlab">{errors.email.message}</Text>
-      )}
+      {errors.email && <Text className="text-red-500 mb-2">{errors.email.message}</Text>}
 
-      {/* Password Field */}
       <Text className="text-steampunk-label">Password</Text>
       <Controller
         control={control}
         name="password"
         rules={{
           required: 'Password is required',
-          minLength: {
-            value: 6,
-            message: 'Password must be at least 6 characters',
-          },
+          minLength: { value: 6, message: 'Must be at least 6 chars' }
         }}
         render={({ field: { onChange, onBlur, value } }) => (
           <TextInput
@@ -709,18 +603,15 @@ export default function SignUp() {
           />
         )}
       />
-      {errors.password && (
-        <Text className="text-red-500 mb-2 font-arbutusSlab">{errors.password.message}</Text>
-      )}
+      {errors.password && <Text className="text-red-500 mb-2">{errors.password.message}</Text>}
 
-      {/* Confirm Password */}
       <Text className="text-steampunk-label">Confirm Password</Text>
       <Controller
         control={control}
         name="confirmPassword"
         rules={{
-          required: 'Please confirm your password',
-          validate: (value) => value === passwordValue || 'Passwords do not match',
+          required: 'Confirm your password',
+          validate: val => val === passwordValue || 'Passwords do not match'
         }}
         render={({ field: { onChange, onBlur, value } }) => (
           <TextInput
@@ -736,7 +627,7 @@ export default function SignUp() {
         )}
       />
       {errors.confirmPassword && (
-        <Text className="text-red-500 mb-2 font-arbutusSlab">{errors.confirmPassword.message}</Text>
+        <Text className="text-red-500 mb-2">{errors.confirmPassword.message}</Text>
       )}
 
       <TouchableOpacity className="btn-steampunk mt-4" onPress={handleSubmit(onSubmit)}>
@@ -747,19 +638,11 @@ export default function SignUp() {
 }
 ```
 
-**Key Points**:
-1. We used `react-hook-form` to validate email format, password length, and confirm that passwords match.  
-2. We call `supabase.auth.signUp({ email, password })` directly.  
-3. If successful, we show a success alert to confirm email verification steps.
-
----
-
 ## 2.5 Implementing Login Flow with React Hook Form
 
-Similarly, we upgrade `app/(auth)/login.tsx` to do actual Supabase login:
+Replace **app/(auth)/login.tsx**:
 
-```tsx
-// app/(auth)/login.tsx
+```
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
@@ -773,28 +656,25 @@ type LoginFormData = {
 
 export default function Login() {
   const router = useRouter();
-
   const {
     control,
     handleSubmit,
-    formState: { errors },
+    formState: { errors }
   } = useForm<LoginFormData>({
     defaultValues: {
       email: '',
-      password: '',
-    },
+      password: ''
+    }
   });
 
-  const onSubmit = async (data: LoginFormData) => {
+  const onSubmit = async ({ email, password }: LoginFormData) => {
     try {
-      const { email, password } = data;
-      const { data: signInData, error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
         Alert.alert('Login Error', error.message);
         return;
       }
-      if (signInData?.session) {
-        // If success, navigate away
+      if (data.session) {
         router.replace('/');
       }
     } catch (err: any) {
@@ -806,7 +686,6 @@ export default function Login() {
     <View className="container-steampunk bg-steampunk">
       <Text className="text-steampunk-title">SteamPunk Login</Text>
 
-      {/* Email Field */}
       <Text className="text-steampunk-label">Email</Text>
       <Controller
         control={control}
@@ -815,27 +694,24 @@ export default function Login() {
           required: 'Email is required',
           pattern: {
             value: /^\S+@\S+\.\S+$/,
-            message: 'Invalid email format',
-          },
+            message: 'Invalid email format'
+          }
         }}
         render={({ field: { onChange, onBlur, value } }) => (
           <TextInput
             className="input-steampunk mb-2"
             placeholder="Enter your email"
             placeholderTextColor="#A98274"
+            autoCapitalize="none"
+            keyboardType="email-address"
             onBlur={onBlur}
             onChangeText={onChange}
             value={value}
-            keyboardType="email-address"
-            autoCapitalize="none"
           />
         )}
       />
-      {errors.email && (
-        <Text className="text-red-500 mb-2 font-arbutusSlab">{errors.email.message}</Text>
-      )}
+      {errors.email && <Text className="text-red-500 mb-2">{errors.email.message}</Text>}
 
-      {/* Password Field */}
       <Text className="text-steampunk-label">Password</Text>
       <Controller
         control={control}
@@ -847,16 +723,14 @@ export default function Login() {
             placeholder="Enter your password"
             placeholderTextColor="#A98274"
             secureTextEntry
+            autoCapitalize="none"
             onBlur={onBlur}
             onChangeText={onChange}
             value={value}
-            autoCapitalize="none"
           />
         )}
       />
-      {errors.password && (
-        <Text className="text-red-500 mb-2 font-arbutusSlab">{errors.password.message}</Text>
-      )}
+      {errors.password && <Text className="text-red-500 mb-2">{errors.password.message}</Text>}
 
       <TouchableOpacity className="btn-steampunk" onPress={handleSubmit(onSubmit)}>
         <Text className="btn-text-steampunk">Login</Text>
@@ -866,68 +740,49 @@ export default function Login() {
 }
 ```
 
-**Key Points**:
-- Validates email format and presence of password.  
-- On success, we call `router.replace('/')` to go back to the home screen.
-
----
-
 ## 2.6 Managing Session State & Protecting Routes
 
-### 2.6.1 Real-Time Session Updates
+In **app/_layout.tsx**, watch auth events:
 
-In **app/_layout.tsx**, you can add logic to watch for sign-in/sign-out events:
-
-```tsx
-// app/_layout.tsx
+```
 import React from 'react';
 import { Stack } from 'expo-router';
 import { supabase } from '../lib/supabaseClient';
-
 import '../global.css';
 import { useFonts } from 'expo-font';
-import { Fondamento_400Regular } from '@expo-google-fonts/fondamento';
-import { SpecialElite_400Regular } from '@expo-google-fonts/special-elite';
-import { ArbutusSlab_400Regular } from '@expo-google-fonts/arbutus-slab';
+import {
+  Fondamento_400Regular
+} from '@expo-google-fonts/fondamento';
+import {
+  SpecialElite_400Regular
+} from '@expo-google-fonts/special-elite';
+import {
+  ArbutusSlab_400Regular
+} from '@expo-google-fonts/arbutus-slab';
 import Splash from './(onboarding)/splash';
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
     Fondamento_400Regular,
     SpecialElite_400Regular,
-    ArbutusSlab_400Regular,
+    ArbutusSlab_400Regular
   });
 
   React.useEffect(() => {
     const { data: subscription } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('[Auth Event]', event, session);
-      // Optionally update global auth state if you use Redux/Context
     });
-
-    return () => {
-      subscription?.subscription.unsubscribe();
-    };
+    return () => { subscription?.subscription.unsubscribe(); };
   }, []);
 
-  if (!fontsLoaded) {
-    return <Splash />;
-  }
-
+  if (!fontsLoaded) { return <Splash />; }
   return <Stack />;
 }
 ```
 
-### 2.6.2 Protected Routes
+**Protected Routes** (in `app/(protected)/_layout.tsx`):
 
-If certain screens should be accessible only to logged-in users, create a `(protected)` folder:
-
-```bash
-mkdir -p app/(protected)
-touch app/(protected)/_layout.tsx app/(protected)/hidden-routes.tsx
 ```
-
-**app/(protected)/_layout.tsx**:
-```tsx
 import React, { useEffect, useState } from 'react';
 import { Stack, useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabaseClient';
@@ -959,49 +814,16 @@ export default function ProtectedLayout() {
 }
 ```
 
-**app/(protected)/hidden-routes.tsx**:
-```tsx
-import { View, Text } from 'react-native';
-
-export default function HiddenRoutes() {
-  return (
-    <View className="container-steampunk bg-steampunk">
-      <Text className="text-steampunk-title">Hidden Steam Routes</Text>
-      <Text className="text-steampunk-body">
-        Only authorized adventurers can see this content.
-      </Text>
-    </View>
-  );
-}
-```
+This ensures `/(protected)/hidden-routes` is only accessible if logged in.
 
 ---
 
 ## 2.7 Final Considerations for Production
 
-1. **Rotate Keys**: Even though the anon key is public, rotate it occasionally or if compromised.  
-2. **Strict RLS**: Set row-level security policies carefully to ensure user data is only accessible by the right user.  
-3. **Secrets in CI/CD**: Store real `.env` values in GitHub Actions or other CI environments—don’t commit them to your repo.  
-4. **Logging & Monitoring**: Use Supabase logs to track queries and watch for anomalies.
+Rotate keys, RLS policies, no `.env` commits, logs, etc.
 
 ---
 
 # Recap & Next Steps
 
-**Congratulations!** You have:
-
-1. A **steampunk-themed** Expo + NativeWind + Tailwind app, loaded with custom Google fonts and consistent styling.  
-2. A **file-based router** courtesy of expo-router, splitting auth, onboarding, and protected routes.  
-3. **Environment variable management** with `.env` and `.env.example`, preventing secret leakage.  
-4. A **fully integrated** Supabase client:
-   - **Sign-Up** flow with email confirmations.  
-   - **Login** flow with session management.  
-   - **Protected** routes for authenticated users only.
-
-**Next Steps**:
-- Explore Supabase **Edge Functions** for server-side logic.  
-- Write advanced **Row-Level Security** policies or roles.  
-- Add push notifications or offline caching (if needed).  
-- Integrate **testing** (Jest + React Native Testing Library) to verify UI flows and forms.  
-
-With all these steps, you have a **complete** codebase that is **ready for production** or open-source collaboration—embrace your steam-powered Hidden Routes!
+This is a **complete** tutorial, from **one script** (Chapter 1) to **production** Supabase flows (Chapter 2) with **React Hook Form** validations, environment variables, and **protected routes**. You can now add advanced RLS, edge functions, or push notifications—your hidden steampunk routes are fully ready.

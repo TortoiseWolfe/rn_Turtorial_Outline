@@ -2,9 +2,7 @@
 
 ## 1.1 Single Command for Project Setup
 
-Copy this **once** into your terminal:
-
-```
+```bash
 rm -rf MyHiddenRoutesApp
 npx create-expo-app MyHiddenRoutesApp
 cd MyHiddenRoutesApp
@@ -40,14 +38,12 @@ touch "app/(auth)/_layout.tsx" \
 touch app/index.tsx
 ```
 
-No further file creation is needed in Chapter 2.
-
 ---
 
-## 1.2 Populate Config Files (Babel, Metro, Tailwind, etc.)
+## 1.2 Populate Config Files (Babel, Metro, Tailwind)
 
-**babel.config.js**
-```
+**babel.config.js** (JavaScript)
+```js
 module.exports = function (api) {
   api.cache(true);
   const isWeb = api.caller((caller) => caller && caller.name === 'babel-loader');
@@ -63,16 +59,16 @@ module.exports = function (api) {
 };
 ```
 
-**metro.config.js**
-```
+**metro.config.js** (JavaScript)
+```js
 const { getDefaultConfig } = require('expo/metro-config');
 const { withNativeWind } = require('nativewind/metro');
 const config = getDefaultConfig(__dirname);
 module.exports = withNativeWind(config, { input: './global.css' });
 ```
 
-**tailwind.config.js** (from `npx tailwindcss init`, replace):
-```
+**tailwind.config.js** (JavaScript)
+```js
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: ['./app/**/*.{js,jsx,ts,tsx}'],
@@ -90,8 +86,8 @@ module.exports = {
 };
 ```
 
-**nativewind-env.d.ts**
-```
+**nativewind-env.d.ts** (TypeScript)
+```ts
 /// <reference types="nativewind/types" />
 ```
 
@@ -99,8 +95,8 @@ module.exports = {
 
 ## 1.3 Global Styles & SteamPunk Theme
 
-**global.css**
-```
+**global.css** (CSS)
+```css
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -123,8 +119,8 @@ module.exports = {
 
 ## 1.4 Base Layout & Fonts Loading
 
-**app/_layout.tsx**
-```
+**app/_layout.tsx** (TypeScript/JSX)
+```tsx
 import { Stack } from 'expo-router';
 import '../global.css';
 import { useFonts } from 'expo-font';
@@ -158,8 +154,8 @@ export default function RootLayout() {
 
 ## 1.5 Route Structure
 
-**app/(auth)/_layout.tsx**
-```
+**app/(auth)/_layout.tsx** (TypeScript/JSX)
+```tsx
 import { Stack } from 'expo-router';
 import '../../global.css';
 
@@ -168,8 +164,8 @@ export default function AuthLayout() {
 }
 ```
 
-**app/(onboarding)/_layout.tsx**
-```
+**app/(onboarding)/_layout.tsx** (TypeScript/JSX)
+```tsx
 import { Stack } from 'expo-router';
 import '../../global.css';
 
@@ -178,8 +174,8 @@ export default function OnboardingLayout() {
 }
 ```
 
-**app/(protected)/_layout.tsx** (used in Chapter 2)
-```
+**app/(protected)/_layout.tsx** (TypeScript/JSX)
+```tsx
 import { Stack } from 'expo-router';
 import '../../global.css';
 
@@ -192,8 +188,8 @@ export default function ProtectedLayout() {
 
 ## 1.6 Screen Components (Fully Functional)
 
-**app/index.tsx**
-```
+**app/index.tsx** (TypeScript/JSX)
+```tsx
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { View, Text } from 'react-native';
 import { Link } from 'expo-router';
@@ -230,8 +226,8 @@ export default function HomeScreen() {
 }
 ```
 
-**app/(auth)/login.tsx**
-```
+**app/(auth)/login.tsx** (TypeScript/JSX)
+```tsx
 import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 
 export default function Login() {
@@ -259,8 +255,8 @@ export default function Login() {
 }
 ```
 
-**app/(auth)/sign-up.tsx**
-```
+**app/(auth)/sign-up.tsx** (TypeScript/JSX)
+```tsx
 import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 
 export default function SignUp() {
@@ -295,8 +291,8 @@ export default function SignUp() {
 }
 ```
 
-**app/(auth)/verification.tsx**
-```
+**app/(auth)/verification.tsx** (TypeScript/JSX)
+```tsx
 import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 
 export default function Verification() {
@@ -319,8 +315,8 @@ export default function Verification() {
 }
 ```
 
-**app/(auth)/forgot-password.tsx**
-```
+**app/(auth)/forgot-password.tsx** (TypeScript/JSX)
+```tsx
 import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 
 export default function ForgotPassword() {
@@ -344,8 +340,8 @@ export default function ForgotPassword() {
 }
 ```
 
-**app/(onboarding)/splash.tsx**
-```
+**app/(onboarding)/splash.tsx** (TypeScript/JSX)
+```tsx
 import { View, Text } from 'react-native';
 
 export default function Splash() {
@@ -358,8 +354,8 @@ export default function Splash() {
 }
 ```
 
-**app/(onboarding)/welcome.tsx**
-```
+**app/(onboarding)/welcome.tsx** (TypeScript/JSX)
+```tsx
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Link } from 'expo-router';
 
@@ -380,8 +376,8 @@ export default function Welcome() {
 }
 ```
 
-**app/(onboarding)/onboarding-setup.tsx**
-```
+**app/(onboarding)/onboarding-setup.tsx** (TypeScript/JSX)
+```tsx
 import { View, Text, TouchableOpacity, Switch } from 'react-native';
 import React from 'react';
 
@@ -408,8 +404,8 @@ export default function OnboardingSetup() {
 }
 ```
 
-**app/(protected)/hidden-routes.tsx**
-```
+**app/(protected)/hidden-routes.tsx** (TypeScript/JSX)
+```tsx
 import { View, Text } from 'react-native';
 
 export default function HiddenRoutes() {
@@ -424,8 +420,8 @@ export default function HiddenRoutes() {
 }
 ```
 
-**app/+not-found.tsx**
-```
+**app/+not-found.tsx** (TypeScript/JSX)
+```tsx
 import { Stack, Link } from 'expo-router';
 import { View, Text, TouchableOpacity } from 'react-native';
 
@@ -456,22 +452,23 @@ export default function NotFoundScreen() {
 ## 2.1 Environment Variables & Security Best Practices
 
 `.env`
-```
+```bash
 EXPO_PUBLIC_SUPABASE_URL="https://<PROJECT>.supabase.co"
 EXPO_PUBLIC_SUPABASE_ANON_KEY="anon-public-key"
 ```
 
 ## 2.2 Creating & Configuring a Supabase Project
 
-1. [Sign up on Supabase](https://supabase.com/)  
+1. Sign up on Supabase  
 2. Create project, note URL/anon key  
 3. Enable RLS
 
 ## 2.3 Initialize Supabase Client (Production Setup)
 
-No new file creation. **app.config.js** was **already** created by the script. Fill it:
+No new manual steps. `app.config.js` was created in the script. Fill it:
 
-```
+**app.config.js** (JavaScript)
+```js
 import 'dotenv/config';
 
 export default ({ config }) => {
@@ -485,14 +482,15 @@ export default ({ config }) => {
 };
 ```
 
-Then create or edit **lib/supabaseClient.ts**:
+Then:
 
-```
+```bash
 mkdir lib
 touch lib/supabaseClient.ts
 ```
 
-```
+**lib/supabaseClient.ts** (TypeScript)
+```ts
 import 'react-native-url-polyfill/auto';
 import { createClient } from '@supabase/supabase-js';
 import Constants from 'expo-constants';
@@ -505,9 +503,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 ## 2.4 Implementing Secure Sign-Up with React Hook Form
 
-Replace **app/(auth)/sign-up.tsx**:
-
-```
+Replace **app/(auth)/sign-up.tsx** (TypeScript/JSX)
+```tsx
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
@@ -558,21 +555,18 @@ export default function SignUp() {
         name="email"
         rules={{
           required: 'Email is required',
-          pattern: {
-            value: /^\S+@\S+\.\S+$/,
-            message: 'Invalid email format'
-          }
+          pattern: { value: /^\S+@\S+\.\S+$/, message: 'Invalid email format' }
         }}
         render={({ field: { onChange, onBlur, value } }) => (
           <TextInput
             className="input-steampunk mb-2"
             placeholder="Enter your email"
             placeholderTextColor="#A98274"
+            autoCapitalize="none"
+            keyboardType="email-address"
             onBlur={onBlur}
             onChangeText={onChange}
             value={value}
-            autoCapitalize="none"
-            keyboardType="email-address"
           />
         )}
       />
@@ -592,10 +586,10 @@ export default function SignUp() {
             placeholder="Create a password"
             placeholderTextColor="#A98274"
             secureTextEntry
+            autoCapitalize="none"
             onBlur={onBlur}
             onChangeText={onChange}
             value={value}
-            autoCapitalize="none"
           />
         )}
       />
@@ -615,10 +609,10 @@ export default function SignUp() {
             placeholder="Repeat your password"
             placeholderTextColor="#A98274"
             secureTextEntry
+            autoCapitalize="none"
             onBlur={onBlur}
             onChangeText={onChange}
             value={value}
-            autoCapitalize="none"
           />
         )}
       />
@@ -636,13 +630,12 @@ export default function SignUp() {
 
 ## 2.5 Implementing Login Flow with React Hook Form
 
-Replace **app/(auth)/login.tsx**:
-
-```
+Replace **app/(auth)/login.tsx** (TypeScript/JSX)
+```tsx
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert } from 'react-native';
-import { useForm, Controller } from 'react-hook-form';
 import { supabase } from '../../lib/supabaseClient';
+import { useForm, Controller } from 'react-hook-form';
 import { useRouter } from 'expo-router';
 
 type LoginFormData = {
@@ -657,10 +650,7 @@ export default function Login() {
     handleSubmit,
     formState: { errors }
   } = useForm<LoginFormData>({
-    defaultValues: {
-      email: '',
-      password: ''
-    }
+    defaultValues: { email: '', password: '' }
   });
 
   const onSubmit = async ({ email, password }: LoginFormData) => {
@@ -688,10 +678,7 @@ export default function Login() {
         name="email"
         rules={{
           required: 'Email is required',
-          pattern: {
-            value: /^\S+@\S+\.\S+$/,
-            message: 'Invalid email format'
-          }
+          pattern: { value: /^\S+@\S+\.\S+$/, message: 'Invalid email format' }
         }}
         render={({ field: { onChange, onBlur, value } }) => (
           <TextInput
@@ -738,9 +725,8 @@ export default function Login() {
 
 ## 2.6 Managing Session State & Protecting Routes
 
-In **app/_layout.tsx**, watch auth events:
-
-```
+In **app/_layout.tsx** (TypeScript/JSX):
+```tsx
 import React from 'react';
 import { Stack } from 'expo-router';
 import { supabase } from '../lib/supabaseClient';
@@ -776,9 +762,8 @@ export default function RootLayout() {
 }
 ```
 
-**Protected Routes** (in `app/(protected)/_layout.tsx`):
-
-```
+**app/(protected)/_layout.tsx** (TypeScript/JSX)
+```tsx
 import React, { useEffect, useState } from 'react';
 import { Stack, useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabaseClient';
@@ -810,16 +795,14 @@ export default function ProtectedLayout() {
 }
 ```
 
-This ensures `/(protected)/hidden-routes` is only accessible if logged in.
-
 ---
 
 ## 2.7 Final Considerations for Production
 
-Rotate keys, RLS policies, no `.env` commits, logs, etc.
+Rotate keys, strict RLS, no real `.env` in repo, watch logs, etc.
 
 ---
 
 # Recap & Next Steps
 
-This is a **complete** tutorial, from **one script** (Chapter 1) to **production** Supabase flows (Chapter 2) with **React Hook Form** validations, environment variables, and **protected routes**. You can now add advanced RLS, edge functions, or push notifications—your hidden steampunk routes are fully ready.
+You now have a **complete** steampunk-themed Expo app (Chapter 1) plus a **production** Supabase integration (Chapter 2) with sign-up/login validation and protected routes. Copy/paste these code blocks, and you can run `npm run web` or `expo start --web` without stalling. Happy coding!

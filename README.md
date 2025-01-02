@@ -54,7 +54,7 @@ touch babel.config.js nativewind-env.d.ts global.css
 touch .env .env.example
 
 # 8) Ensure .env is ignored by Git
-echo ".env" >> .gitignore
+# echo ".env" >> .gitignore
 ```
 
 **Note**:  

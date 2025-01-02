@@ -204,19 +204,18 @@ export default function RootLayout() {
 Let’s create `(auth)`, `(onboarding)`, and a `+not-found` route:
 
 ```bash
-mkdir -p app/(auth)
-touch app/+not-found.tsx
-touch app/(auth)/_layout.tsx \
-      app/(auth)/login.tsx \
-      app/(auth)/sign-up.tsx \
-      app/(auth)/verification.tsx \
-      app/(auth)/forgot-password.tsx
+mkdir -p "app/(auth)" "app/(onboarding)" && \
+touch "app/(auth)/_layout.tsx" \
+      "app/(auth)/login.tsx" \
+      "app/(auth)/sign-up.tsx" \
+      "app/(auth)/verification.tsx" \
+      "app/(auth)/forgot-password.tsx" \
+      "app/+not-found.tsx" \
+      "app/(onboarding)/_layout.tsx" \
+      "app/(onboarding)/splash.tsx" \
+      "app/(onboarding)/welcome.tsx" \
+      "app/(onboarding)/onboarding-setup.tsx"
 
-mkdir -p app/(onboarding)
-touch app/(onboarding)/_layout.tsx \
-      app/(onboarding)/splash.tsx \
-      app/(onboarding)/welcome.tsx \
-      app/(onboarding)/onboarding-setup.tsx
 ```
 
 ### **app/(auth)/_layout.tsx**

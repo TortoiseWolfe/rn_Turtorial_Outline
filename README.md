@@ -1,328 +1,304 @@
-Below is a **complete**, **functional**, and **up-to-date** tutorial showing how to create a **TypeScript** React Native app with **Expo**, **Expo Router**, **NativeWind** (Tailwind CSS), **SupaBase** for data, **SuperTokens** for authentication, **environment variables**, **custom Google fonts** (Special Elite & Arbutus Slab), **dark/light theme** toggling (default: dark), **protected routes**, and **basic validation** (React Hook Form + Zod). 
+Below is a **fully comprehensive** tutorial that **does not cut corners**. It **starts** with your exact steps (in one code block), then **re-creates** all missing assets/files/folders—so you can copy/paste in a single flow.
 
-**Importantly**, we will not reference or create any `index.js`; we'll use `index.ts` from the start, ensuring there’s no confusion about entry points.
+We will:
+
+1. **Create** an Expo app with TypeScript.  
+2. **Reset** it (removing example assets and screens).  
+3. **Reintroduce** the necessary assets (splash, icons, favicon).  
+4. **Create** all config files (babel, tailwind, postcss).  
+5. **Create** placeholders for `.env`, `.env.example`, and the standard directories: `lib/`, `providers/`, and `app/` (with protected/auth screens).  
+
+Afterwards, you’ll open each file and **paste** the **complete** code from the tutorial. This ensures no partial code or missing references.
 
 ---
 
-# 1. **Project Setup**
+## **0. Single Code Block of Terminal Commands**
 
-## 1.1 **Create an Expo + TypeScript Project**
-
-```bash
-# Create a new Expo app using the TypeScript template
-npx create-expo-app MySteamPunkApp --template expo-template-blank-typescript
-
-cd MySteamPunkApp
-```
-
-> This scaffold includes an `App.tsx` by default. Because we’ll use **Expo Router**, we won’t use `App.tsx` as our root. You can **delete** `App.tsx` or reuse its code in our router screens.
-
-## 1.2 **Install All Needed Packages**
+**Copy/paste** the entire block **as is**:
 
 ```bash
-# 1. Expo Router for file-based navigation
-npm install expo-router
+# Step 0: Start a fresh Expo project
+npx create-expo-app DemoApp
+cd DemoApp
 
-# 2. NativeWind (Tailwind in RN)
-npm install nativewind tailwindcss
+# Step 1: Reset the project (removes sample assets/layout)
+npm run reset-project
 
-# 3. Google Fonts (Special Elite + Arbutus Slab)
-npm install expo-font @expo-google-fonts/special-elite @expo-google-fonts/arbutus-slab
+# Step 2: Recreate assets/images and placeholder icons/favicons
+mkdir -p assets/images
+touch assets/images/icon.png
+touch assets/images/splash-icon.png
+touch assets/images/adaptive-icon.png
+touch assets/images/favicon.png
 
-# 4. SupaBase client + SuperTokens (auth)
-npm install @supabase/supabase-js supertokens-react-native
-
-# 5. Form validation (React Hook Form + Zod)
-npm install react-hook-form zod @hookform/resolvers
-
-# 6. Environment variables
-npm install react-native-dotenv
-```
-
-## 1.3 **Create / Modify Files & Folders**
-
-We’ll create an **`index.ts`** (instead of `index.js`) as our entry. Also, we’ll set up the folders for our contexts, library, and `app/` routes:
-
-```bash
-# 1. Rename (or create) index.ts to load Expo Router
-touch index.ts
-
-# 2. Babel config for env, nativewind, expo-router
+# Step 3: Recreate essential config & declaration files
+touch app.json
 touch babel.config.js
+touch tailwind.config.js
+touch postcss.config.js
+touch nativewind-env.d.ts
 
-# 3. Tailwind config (already made by 'npx tailwindcss init' but ensure file is present)
-npx tailwindcss init
-
-# 4. Env files
-touch .env
+# Step 4: Recreate .env files (example & real)
 touch .env.example
+touch .env
 
-# 5. Create context folder
-mkdir context
-touch context/authContext.tsx
-touch context/themeContext.tsx
-
-# 6. Create lib folder for supabase client
+# Step 5: Recreate lib folder & TypeScript files
 mkdir lib
 touch lib/supabaseClient.ts
+touch lib/supertokensClient.ts
 
-# 7. The app folder for Expo Router
+# Step 6: Recreate providers folder & ThemeProvider file
+mkdir providers
+touch providers/ThemeProvider.tsx
+
+# Step 7: Recreate the app folder structure
 mkdir app
+mkdir "app/(auth)"
+mkdir "app/(protected)"
 
-touch app/_layout.tsx     # global layout
-touch app/index.tsx       # home screen
-touch app/signIn.tsx      # sign in
+# Optionally remove any "app-example" folder or old sample files if you want:
+# rm -rf app-example
 
-# Protected area
-mkdir app/protected
-touch app/protected/_layout.tsx
-touch app/protected/index.tsx
-
-# Settings
-mkdir app/settings
-touch app/settings/index.tsx
+# Step 8: Recreate placeholders for Expo Router
+touch "app/_layout.tsx"
+touch "app/index.tsx"
+touch "app/(auth)/login.tsx"
+touch "app/(auth)/signup.tsx"
+touch "app/(protected)/_layout.tsx"
+touch "app/(protected)/home.tsx"
+touch "app/(protected)/settings.tsx"
 ```
 
-Finally, you can remove or ignore the default `App.tsx` if you don’t plan to repurpose it.
+Once you run these, your **DemoApp** project will have:
+
+- **`assets/images/`** containing empty placeholder `.png` files (to be replaced with real images).  
+- **`app.json`**, `babel.config.js`, `tailwind.config.js`, `postcss.config.js`, `nativewind-env.d.ts` as empty files.  
+- **`.env`** and **`.env.example`** as empty placeholders.  
+- **`lib/`** + **`providers/`** directories with placeholder `.ts`/`.tsx` files.  
+- **`app/`** folder with `_layout.tsx`, `index.tsx`, `(auth)/` screens, `(protected)/` screens.  
+
+Next, we’ll **fill** these files with the content needed for:
+
+- A **Splash** screen (`splash-icon.png`).
+- A **Favicon** for web (`favicon.png`).
+- **Expo Router** with typed routes.
+- **NativeWind** (Tailwind) in TypeScript.
+- **Supabase** + **SuperTokens**.
+- **Form Validation**.
+- A **light/dark** theme toggle.
 
 ---
 
-# 2. **Configure Core Files**
+## **1. File Contents**
 
-## 2.1 **`package.json`**: Use `index.ts` as the Main Entry
+Open **VS Code** (or your preferred editor) in **`DemoApp`**. **Replace** the contents of each file with **these** blocks.
 
-Open your **`package.json`** and ensure `"main"` points to **`index.ts`**:
+### **`app.json`**
 
-```jsonc
-{
-  // ...
-  "main": "./index.ts",
-  // ...
-}
-```
-
-## 2.2 **`index.ts`** (Load Expo Router)
-
-Open (or create) **`index.ts`** and paste:
-
-```ts
-import 'expo-router/entry';
-```
-
-That’s it. Now Expo Router will automatically look for files in the `app/` directory.
-
-## 2.3 **`app.json`** (Configure Expo Router Plugin)
-
-In **`app.json`**, add or confirm the Expo Router plugin:
-
-```jsonc
+```json5
 {
   "expo": {
-    "name": "MySteamPunkApp",
-    "slug": "MySteamPunkApp",
-    // ...
+    "name": "DemoApp",
+    "slug": "DemoApp",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "myapp",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+
+    "ios": {
+      "supportsTablet": true
+    },
+
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      }
+    },
+
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+
     "plugins": [
+      "expo-router",
       [
-        "expo-router",
+        "expo-splash-screen",
         {
-          "origin": "https://expo.dev"
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff"
         }
       ]
-    ]
+    ],
+
+    "experiments": {
+      "typedRoutes": true
+    }
   }
 }
 ```
 
+**Notes**:  
+- We reference **`splash-icon.png`** in `plugins -> expo-splash-screen`.  
+- We reference **`favicon.png`** in `web.favicon`.  
+- Adjust or replace with **real images** in `assets/images/`.
+
 ---
 
-# 3. **Babel & Tailwind Config**
-
-## 3.1 **`babel.config.js`**
-
-Open **`babel.config.js`** and paste:
+### **`babel.config.js`**
 
 ```js
 module.exports = function (api) {
   api.cache(true);
   return {
-    presets: ['babel-preset-expo'],
+    presets: ["babel-preset-expo"],
     plugins: [
       [
-        'react-native-dotenv',
+        "module:react-native-dotenv",
         {
-          moduleName: '@env',
-          path: '.env',
-        },
+          moduleName: "@env",
+          path: ".env"
+        }
       ],
-      'nativewind/babel',
-      'expo-router/babel',
-    ],
+      // Removed "expo-router/babel" for Expo SDK 50
+      "nativewind/babel"
+    ]
   };
 };
 ```
 
-## 3.2 **`tailwind.config.js`**
+---
 
-After `npx tailwindcss init`, open **`tailwind.config.js`** and replace with:
+### **`tailwind.config.js`**
 
 ```js
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
-    './App.{js,ts,jsx,tsx}',
-    './app/**/*.{js,ts,jsx,tsx}'
+    "./App.{js,jsx,ts,tsx}",
+    "./app/**/*.{js,jsx,ts,tsx}"
   ],
   theme: {
     extend: {
-      colors: {
-        steampunkGold: '#b08d57',
-        steampunkBrown: '#4e3e31',
-        darkBackground: '#1a1a1a',
-        lightBackground: '#ffffff',
-      },
       fontFamily: {
-        special: ['SpecialElite_400Regular'],
-        arbutus: ['ArbutusSlab_400Regular'],
+        steampunkOne: ["SpecialElite_400Regular"],
+        steampunkTwo: ["ArbutusSlab_400Regular"]
       },
-    },
-  },
-  plugins: [],
-};
-```
-
----
-
-# 4. **Environment Variables**
-
-## 4.1 **`.env.example`**
-
-Never store real secrets here; use placeholders:
-
-```
-EXPO_PUBLIC_SUPERTOKENS_API_DOMAIN=http://localhost:3001
-EXPO_PUBLIC_SUPERTOKENS_API_BASE_PATH=/auth
-EXPO_PUBLIC_SUPABASE_URL=https://xyzcompany.supabase.co
-EXPO_PUBLIC_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
-```
-
-## 4.2 **`.env`**
-
-In **`.env`** (ignored by Git), place real values:
-
-```
-EXPO_PUBLIC_SUPERTOKENS_API_DOMAIN=https://my-steampunk-auth.api.com
-EXPO_PUBLIC_SUPERTOKENS_API_BASE_PATH=/auth
-EXPO_PUBLIC_SUPABASE_URL=https://my-steampunk-app.supabase.co
-EXPO_PUBLIC_SUPABASE_ANON_KEY=REAL_SUPABASE_ANON_KEY
-```
-
----
-
-# 5. **SupaBase Client** (`lib/supabaseClient.ts`)
-
-```ts
-import { createClient } from '@supabase/supabase-js';
-import {
-  EXPO_PUBLIC_SUPABASE_URL,
-  EXPO_PUBLIC_SUPABASE_ANON_KEY,
-} from '@env';
-
-export const supabase = createClient(
-  EXPO_PUBLIC_SUPABASE_URL,
-  EXPO_PUBLIC_SUPABASE_ANON_KEY
-);
-```
-
-Use `supabase` anywhere for DB queries, storage, etc.
-
----
-
-# 6. **Auth Context** (`context/authContext.tsx`)
-
-Integrate **SuperTokens** to check sessions on app startup:
-
-```ts
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import SuperTokens from 'supertokens-react-native';
-import Session from 'supertokens-react-native/recipe/session';
-import {
-  EXPO_PUBLIC_SUPERTOKENS_API_DOMAIN,
-  EXPO_PUBLIC_SUPERTOKENS_API_BASE_PATH,
-} from '@env';
-
-type AuthContextType = {
-  isAuthenticated: boolean;
-  loadingAuth: boolean;
-};
-
-const AuthContext = createContext<AuthContextType>({
-  isAuthenticated: false,
-  loadingAuth: true,
-});
-
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [loadingAuth, setLoadingAuth] = useState(true);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        await SuperTokens.init({
-          appInfo: {
-            appName: 'MySteamPunkApp',
-            apiDomain: EXPO_PUBLIC_SUPERTOKENS_API_DOMAIN,
-            apiBasePath: EXPO_PUBLIC_SUPERTOKENS_API_BASE_PATH,
-            websiteDomain: 'http://localhost:3000', // used in web contexts
-          },
-          recipeList: [Session.init()],
-        });
-
-        const sessionExists = await Session.doesSessionExist();
-        setIsAuthenticated(sessionExists);
-      } catch (error) {
-        console.error('SuperTokens init error:', error);
-      } finally {
-        setLoadingAuth(false);
+      colors: {
+        steampunkDark: "#2e2a2a",
+        steampunkLight: "#f5f2f0",
+        steampunkAccent: "#c19a6b"
       }
-    })();
-  }, []);
+    }
+  },
+  plugins: []
+};
+```
 
-  return (
-    <AuthContext.Provider value={{ isAuthenticated, loadingAuth }}>
-      {children}
-    </AuthContext.Provider>
-  );
+---
+
+### **`postcss.config.js`**
+
+```js
+module.exports = {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {}
+  }
+};
+```
+
+---
+
+### **`nativewind-env.d.ts`**
+
+```ts
+/// <reference types="nativewind/types" />
+```
+
+*(Ensures TypeScript recognizes `className` on RN components.)*
+
+---
+
+### **`.env.example`**
+
+```
+SUPABASE_URL=https://your-supabase-url.supabase.co
+SUPABASE_ANON_KEY=YOUR_ANON_KEY
+SUPERTOKENS_API_BASE_URL=https://your-supertokens-domain.com
+```
+
+### **`.env`**
+
+```
+SUPABASE_URL=YOUR_REAL_SUPABASE_URL
+SUPABASE_ANON_KEY=YOUR_REAL_ANON_KEY
+SUPERTOKENS_API_BASE_URL=YOUR_REAL_SUPERTOKENS_URL
+```
+
+*(**Do not** commit `.env`—only `.env.example`.)*
+
+---
+
+### **`lib/supabaseClient.ts`**
+
+```ts
+import { createClient } from "@supabase/supabase-js";
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from "@env";
+
+// official library: '@supabase/supabase-js'
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+```
+
+---
+
+### **`lib/supertokensClient.ts`**
+
+```ts
+import SuperTokens from "supertokens-react-native";
+import { SUPERTOKENS_API_BASE_URL } from "@env";
+
+export async function initSuperTokens() {
+  await SuperTokens.init({
+    apiDomain: SUPERTOKENS_API_BASE_URL,
+    apiBasePath: "/auth"
+  });
 }
 
-export function useAuth() {
-  return useContext(AuthContext);
+export async function signOut() {
+  await SuperTokens.signOut();
 }
 ```
 
 ---
 
-# 7. **Theme Context** (`context/themeContext.tsx`)
+### **`providers/ThemeProvider.tsx`**
 
-Implement a simple **dark/light** toggle (default is **dark**):
+```tsx
+import React, { createContext, useContext, useState } from "react";
 
-```ts
-import React, { createContext, useState, useContext } from 'react';
-
-type ThemeContextType = {
-  theme: 'dark' | 'light';
+interface ThemeContextProps {
+  theme: "light" | "dark";
   toggleTheme: () => void;
-};
+}
 
-const ThemeContext = createContext<ThemeContextType>({
-  theme: 'dark',
-  toggleTheme: () => {},
+const ThemeContext = createContext<ThemeContextProps>({
+  theme: "dark",
+  toggleTheme: () => {}
 });
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  // Default to dark
+  const [theme, setTheme] = useState<"light" | "dark">("dark");
 
   const toggleTheme = () => {
-    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+    setTheme(prev => (prev === "light" ? "dark" : "light"));
   };
 
   return (
@@ -332,66 +308,47 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function useTheme() {
-  return useContext(ThemeContext);
-}
+export const useThemeContext = () => useContext(ThemeContext);
 ```
 
 ---
 
-# 8. **Global Layout** (`app/_layout.tsx`)
+### **`app/_layout.tsx`**
 
-Expo Router uses `_layout.tsx` as a special file to wrap all routes. We’ll load fonts, show a splash until they’re ready, and wrap providers:
+```tsx
+import { Stack } from "expo-router";
+import { useEffect } from "react";
+import { initSuperTokens } from "../lib/supertokensClient";
+import { ThemeProvider } from "../providers/ThemeProvider";
 
-```ts
-import React, { useCallback } from 'react';
-import { Slot } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { StatusBar } from 'expo-status-bar';
-
-// Fonts
-import {
-  useFonts as useSpecialElite,
-  SpecialElite_400Regular,
-} from '@expo-google-fonts/special-elite';
-import {
-  useFonts as useArbutusSlab,
-  ArbutusSlab_400Regular,
-} from '@expo-google-fonts/arbutus-slab';
-
-// Contexts
-import { AuthProvider } from '../context/authContext';
-import { ThemeProvider } from '../context/themeContext';
-
-SplashScreen.preventAutoHideAsync();
+import { useFonts } from "expo-font";
+import { SpecialElite_400Regular } from "@expo-google-fonts/special-elite";
+import { ArbutusSlab_400Regular } from "@expo-google-fonts/arbutus-slab";
+import { View, Text } from "react-native";
 
 export default function RootLayout() {
-  const [specialEliteLoaded] = useSpecialElite({
+  // Load google fonts
+  const [fontsLoaded] = useFonts({
     SpecialElite_400Regular,
-  });
-  const [arbutusLoaded] = useArbutusSlab({
-    ArbutusSlab_400Regular,
+    ArbutusSlab_400Regular
   });
 
-  const fontsLoaded = specialEliteLoaded && arbutusLoaded;
-
-  const onLayoutRootView = useCallback(async () => {
-    if (fontsLoaded) {
-      await SplashScreen.hideAsync();
-    }
-  }, [fontsLoaded]);
+  // Init SuperTokens
+  useEffect(() => {
+    initSuperTokens();
+  }, []);
 
   if (!fontsLoaded) {
-    return null; // or a custom splash screen
+    return (
+      <View className="flex-1 items-center justify-center bg-steampunkDark">
+        <Text className="text-steampunkAccent font-steampunkOne">Loading steampunk gears...</Text>
+      </View>
+    );
   }
 
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <StatusBar style="light" />
-        {/* The Slot will render nested routes */}
-        <Slot onLayout={onLayoutRootView} />
-      </AuthProvider>
+      <Stack screenOptions={{ headerShown: false }} />
     </ThemeProvider>
   );
 }
@@ -399,132 +356,122 @@ export default function RootLayout() {
 
 ---
 
-# 9. **Public Screens**
+### **`app/index.tsx`**
 
-## 9.1 **Home** (`app/index.tsx`)
+```tsx
+import React from "react";
+import { View, Text } from "react-native";
+import { Link } from "expo-router";
 
-```ts
-import React from 'react';
-import { View, Text } from 'react-native';
-import { Link } from 'expo-router';
-import { useTheme } from '../context/themeContext';
-
-export default function HomeScreen() {
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
-
+export default function IndexScreen() {
   return (
-    <View
-      className={`flex-1 justify-center items-center ${
-        isDark ? 'bg-darkBackground' : 'bg-lightBackground'
-      }`}
-    >
-      <Text
-        className={`font-special text-xl mb-4 ${
-          isDark ? 'text-steampunkGold' : 'text-steampunkBrown'
-        }`}
-      >
-        Welcome to the SteamPunk Home
-      </Text>
-
-      <Link href="/protected" className="underline mb-2">
-        Go to Protected Area
-      </Link>
-      <Link href="/signIn" className="underline mb-2">
-        Sign In
-      </Link>
-      <Link href="/settings" className="underline">
-        Settings
+    <View className="flex-1 items-center justify-center bg-steampunkDark">
+      <Text className="text-steampunkAccent font-steampunkOne text-3xl mb-6">Welcome to DemoApp</Text>
+      <Link href="/(auth)/login" className="bg-steampunkAccent p-3 rounded">
+        <Text className="text-steampunkDark font-steampunkTwo">Go to Login</Text>
       </Link>
     </View>
   );
 }
 ```
 
-## 9.2 **Sign In** (`app/signIn.tsx`) + Zod Validation
+*(This is your main entry screen. Adjust as desired.)*
 
-```ts
-import React from 'react';
-import { View, Text, TextInput, Button, Alert } from 'react-native';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useRouter } from 'expo-router';
-import { useTheme } from '../context/themeContext';
+---
 
-// Minimal schema example
-const signInSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+### **`app/(auth)/login.tsx`**
+
+```tsx
+import React from "react";
+import { View, Text, TextInput, TouchableOpacity } from "react-native";
+import { useRouter } from "expo-router";
+import { useForm, Controller } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { supabase } from "../../lib/supabaseClient";
+
+const loginSchema = z.object({
+  email: z.string().email("Invalid email"),
+  password: z.string().min(6, "At least 6 chars")
 });
 
-type SignInFormData = z.infer<typeof signInSchema>;
+type LoginFormData = z.infer<typeof loginSchema>;
 
-export default function SignInScreen() {
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
+export default function LoginScreen() {
   const router = useRouter();
-
   const {
-    register,
+    control,
     handleSubmit,
-    formState: { errors },
-  } = useForm<SignInFormData>({
-    resolver: zodResolver(signInSchema),
-  });
+    formState: { errors }
+  } = useForm<LoginFormData>({ resolver: zodResolver(loginSchema) });
 
-  const onSubmit = async (data: SignInFormData) => {
-    try {
-      // TODO: call real sign-in endpoint (SuperTokens or custom).
-      // e.g. fetch(`${EXPO_PUBLIC_SUPERTOKENS_API_DOMAIN}/auth/signin`, { method: 'POST', body: JSON.stringify(data) });
-
-      // If sign in is successful => redirect
-      router.replace('/protected');
-    } catch (error: any) {
-      Alert.alert('Sign In Error', error?.message || 'Unknown error');
+  async function onSubmit(data: LoginFormData) {
+    const { email, password } = data;
+    const { data: authData, error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+    if (error) {
+      alert(error.message);
+    } else {
+      router.replace("/(protected)/home");
     }
-  };
+  }
 
   return (
-    <View
-      className={`flex-1 justify-center px-4 ${
-        isDark ? 'bg-darkBackground' : 'bg-lightBackground'
-      }`}
-    >
-      <Text
-        className={`text-2xl font-arbutus mb-6 text-center ${
-          isDark ? 'text-steampunkGold' : 'text-steampunkBrown'
-        }`}
-      >
-        Sign In
-      </Text>
+    <View className="flex-1 items-center justify-center bg-steampunkDark px-4">
+      <Text className="text-steampunkAccent font-steampunkOne text-3xl mb-6">Steam Login</Text>
 
-      <TextInput
-        className={`border rounded-md p-2 mb-2 ${
-          isDark ? 'border-steampunkGold text-white' : 'border-steampunkBrown text-black'
-        }`}
-        placeholder="Email"
-        placeholderTextColor={isDark ? '#888' : '#666'}
-        {...register('email')}
-      />
-      {errors.email && (
-        <Text className="text-red-500 mb-2">{errors.email.message}</Text>
-      )}
+      {/* Email */}
+      <View className="w-full mb-4">
+        <Text className="text-steampunkLight font-steampunkTwo mb-1">Email</Text>
+        <Controller
+          control={control}
+          name="email"
+          render={({ field: { onBlur, onChange, value } }) => (
+            <TextInput
+              className="bg-steampunkLight text-black p-2 rounded"
+              onBlur={onBlur}
+              onChangeText={onChange}
+              value={value}
+              placeholder="Enter email"
+              autoCapitalize="none"
+              keyboardType="email-address"
+            />
+          )}
+        />
+        {errors.email && <Text className="text-red-500">{errors.email.message}</Text>}
+      </View>
 
-      <TextInput
-        className={`border rounded-md p-2 mb-2 ${
-          isDark ? 'border-steampunkGold text-white' : 'border-steampunkBrown text-black'
-        }`}
-        placeholder="Password"
-        placeholderTextColor={isDark ? '#888' : '#666'}
-        secureTextEntry
-        {...register('password')}
-      />
-      {errors.password && (
-        <Text className="text-red-500 mb-2">{errors.password.message}</Text>
-      )}
+      {/* Password */}
+      <View className="w-full mb-4">
+        <Text className="text-steampunkLight font-steampunkTwo mb-1">Password</Text>
+        <Controller
+          control={control}
+          name="password"
+          render={({ field: { onBlur, onChange, value } }) => (
+            <TextInput
+              className="bg-steampunkLight text-black p-2 rounded"
+              onBlur={onBlur}
+              onChangeText={onChange}
+              value={value}
+              placeholder="Enter password"
+              secureTextEntry
+            />
+          )}
+        />
+        {errors.password && <Text className="text-red-500">{errors.password.message}</Text>}
+      </View>
 
-      <Button title="Sign In" onPress={handleSubmit(onSubmit)} />
+      {/* Submit */}
+      <TouchableOpacity className="bg-steampunkAccent p-3 rounded" onPress={handleSubmit(onSubmit)}>
+        <Text className="text-steampunkDark font-steampunkTwo">Log In</Text>
+      </TouchableOpacity>
+
+      {/* Link to Signup */}
+      <TouchableOpacity className="mt-4" onPress={() => router.push("/(auth)/signup")}>
+        <Text className="text-steampunkLight font-steampunkTwo">No account? Sign Up</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -532,71 +479,173 @@ export default function SignInScreen() {
 
 ---
 
-# 10. **Protected Routes**
+### **`app/(auth)/signup.tsx`**
 
-## 10.1 `_layout.tsx` (`app/protected/_layout.tsx`)
+```tsx
+import React from "react";
+import { View, Text, TextInput, TouchableOpacity } from "react-native";
+import { useRouter } from "expo-router";
+import { useForm, Controller } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { supabase } from "../../lib/supabaseClient";
 
-```ts
-import React, { useEffect } from 'react';
-import { Stack, useRouter } from 'expo-router';
-import { useAuth } from '../../context/authContext';
-import { View, ActivityIndicator } from 'react-native';
-import { useTheme } from '../../context/themeContext';
+const signupSchema = z.object({
+  email: z.string().email("Invalid email"),
+  password: z.string().min(6, "At least 6 chars")
+});
+
+type SignupFormData = z.infer<typeof signupSchema>;
+
+export default function SignupScreen() {
+  const router = useRouter();
+  const {
+    control,
+    handleSubmit,
+    formState: { errors }
+  } = useForm<SignupFormData>({ resolver: zodResolver(signupSchema) });
+
+  async function onSubmit(data: SignupFormData) {
+    const { email, password } = data;
+    const { data: signupData, error } = await supabase.auth.signUp({
+      email,
+      password
+    });
+    if (error) {
+      alert(error.message);
+    } else {
+      // after signup, go to login
+      router.replace("/(auth)/login");
+    }
+  }
+
+  return (
+    <View className="flex-1 items-center justify-center bg-steampunkDark px-4">
+      <Text className="text-steampunkAccent font-steampunkOne text-3xl mb-6">Join the Steam</Text>
+
+      {/* Email */}
+      <View className="w-full mb-4">
+        <Text className="text-steampunkLight font-steampunkTwo mb-1">Email</Text>
+        <Controller
+          control={control}
+          name="email"
+          render={({ field: { onBlur, onChange, value } }) => (
+            <TextInput
+              className="bg-steampunkLight text-black p-2 rounded"
+              onBlur={onBlur}
+              onChangeText={onChange}
+              value={value}
+              placeholder="Enter email"
+              autoCapitalize="none"
+            />
+          )}
+        />
+        {errors.email && <Text className="text-red-500">{errors.email.message}</Text>}
+      </View>
+
+      {/* Password */}
+      <View className="w-full mb-4">
+        <Text className="text-steampunkLight font-steampunkTwo mb-1">Password</Text>
+        <Controller
+          control={control}
+          name="password"
+          render={({ field: { onBlur, onChange, value } }) => (
+            <TextInput
+              className="bg-steampunkLight text-black p-2 rounded"
+              onBlur={onBlur}
+              onChangeText={onChange}
+              value={value}
+              placeholder="Enter password"
+              secureTextEntry
+            />
+          )}
+        />
+        {errors.password && <Text className="text-red-500">{errors.password.message}</Text>}
+      </View>
+
+      {/* Submit */}
+      <TouchableOpacity className="bg-steampunkAccent p-3 rounded" onPress={handleSubmit(onSubmit)}>
+        <Text className="text-steampunkDark font-steampunkTwo">Sign Up</Text>
+      </TouchableOpacity>
+
+      {/* Link to Login */}
+      <TouchableOpacity className="mt-4" onPress={() => router.replace("/(auth)/login")}>
+        <Text className="text-steampunkLight font-steampunkTwo">Have an account? Login</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+```
+
+---
+
+### **`app/(protected)/_layout.tsx`**
+
+```tsx
+import React, { useEffect, useState } from "react";
+import { Stack, useRouter } from "expo-router";
+import { supabase } from "../../lib/supabaseClient";
+import { View, Text } from "react-native";
 
 export default function ProtectedLayout() {
-  const { isAuthenticated, loadingAuth } = useAuth();
   const router = useRouter();
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!loadingAuth && !isAuthenticated) {
-      // If not authenticated => redirect to signIn
-      router.replace('/signIn');
+    async function checkAuth() {
+      const { data } = await supabase.auth.getUser();
+      if (!data?.user) {
+        router.replace("/(auth)/login");
+      } else {
+        setLoading(false);
+      }
     }
-  }, [loadingAuth, isAuthenticated]);
+    checkAuth();
+  }, []);
 
-  if (loadingAuth) {
+  if (loading) {
     return (
-      <View
-        className={`flex-1 justify-center items-center ${
-          isDark ? 'bg-darkBackground' : 'bg-lightBackground'
-        }`}
-      >
-        <ActivityIndicator size="large" color="#b08d57" />
+      <View className="flex-1 items-center justify-center bg-steampunkDark">
+        <Text className="text-steampunkAccent font-steampunkOne">Checking your steam credentials...</Text>
       </View>
     );
   }
 
-  // If authenticated, show nested route screens
   return <Stack />;
 }
 ```
 
-## 10.2 Protected Screen (`app/protected/index.tsx`)
+---
 
-```ts
-import React from 'react';
-import { View, Text } from 'react-native';
-import { useTheme } from '../../context/themeContext';
+### **`app/(protected)/home.tsx`**
 
-export default function ProtectedHome() {
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
+```tsx
+import React from "react";
+import { View, Text, TouchableOpacity } from "react-native";
+import { supabase } from "../../lib/supabaseClient";
+import { useRouter } from "expo-router";
+
+export default function HomeScreen() {
+  const router = useRouter();
+
+  async function handleLogout() {
+    await supabase.auth.signOut();
+    router.replace("/(auth)/login");
+  }
 
   return (
-    <View
-      className={`flex-1 justify-center items-center ${
-        isDark ? 'bg-darkBackground' : 'bg-lightBackground'
-      }`}
-    >
-      <Text
-        className={`text-xl font-arbutus ${
-          isDark ? 'text-steampunkGold' : 'text-steampunkBrown'
-        }`}
+    <View className="flex-1 items-center justify-center bg-steampunkDark">
+      <Text className="text-steampunkAccent font-steampunkOne text-4xl mb-4">Home</Text>
+      <TouchableOpacity
+        className="bg-steampunkAccent p-3 rounded mb-4"
+        onPress={() => router.push("/(protected)/settings")}
       >
-        Protected Steampunk Area
-      </Text>
+        <Text className="text-steampunkDark font-steampunkTwo">Settings</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity className="bg-red-500 p-3 rounded" onPress={handleLogout}>
+        <Text className="text-white font-steampunkTwo">Logout</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -604,46 +653,38 @@ export default function ProtectedHome() {
 
 ---
 
-# 11. **Settings Screen** (Dark/Light Toggle)
+### **`app/(protected)/settings.tsx`**
 
-## `app/settings/index.tsx`
-
-```ts
-import React from 'react';
-import { View, Text, Switch } from 'react-native';
-import { useTheme } from '../../context/themeContext';
+```tsx
+import React from "react";
+import { View, Text, Switch } from "react-native";
+import { useThemeContext } from "../../providers/ThemeProvider";
 
 export default function SettingsScreen() {
-  const { theme, toggleTheme } = useTheme();
-  const isDark = theme === 'dark';
+  const { theme, toggleTheme } = useThemeContext();
 
   return (
     <View
-      className={`flex-1 justify-center items-center ${
-        isDark ? 'bg-darkBackground' : 'bg-lightBackground'
+      className={`flex-1 items-center justify-center ${
+        theme === "dark" ? "bg-steampunkDark" : "bg-steampunkLight"
       }`}
     >
       <Text
-        className={`text-xl font-arbutus mb-4 ${
-          isDark ? 'text-steampunkGold' : 'text-steampunkBrown'
+        className={`font-steampunkOne text-4xl mb-4 ${
+          theme === "dark" ? "text-steampunkAccent" : "text-steampunkDark"
         }`}
       >
         Settings
       </Text>
-      <View className="flex-row items-center">
+      <View className="flex-row items-center space-x-2">
         <Text
-          className={`mr-2 ${
-            isDark ? 'text-steampunkGold' : 'text-steampunkBrown'
+          className={`font-steampunkTwo ${
+            theme === "dark" ? "text-steampunkLight" : "text-steampunkDark"
           }`}
         >
-          Dark Mode
+          Light / Dark
         </Text>
-        <Switch
-          value={isDark}
-          onValueChange={toggleTheme}
-          thumbColor={isDark ? '#b08d57' : '#f4f3f4'}
-          trackColor={{ false: '#767577', true: '#b08d57' }}
-        />
+        <Switch value={theme === "dark"} onValueChange={toggleTheme} />
       </View>
     </View>
   );
@@ -652,53 +693,38 @@ export default function SettingsScreen() {
 
 ---
 
-# 12. **Hidden vs. Protected?**
+## **2. Final: Run & Check**
 
-- **Protected** (like `/protected`) requires auth. If unauthorized, the user is redirected.
-- **Hidden** routes are not automatically listed or linked in the UI. You can hide routes by:
-  - Not linking to them, or
-  - Placing them in a parent folder with parentheses (e.g., `app/(secret)/...`).  
-This tutorial shows a **protected** route, not a truly “hidden” route.
-
----
-
-# 13. **Run & Verify**
-
-1. **Start Dev**:
-
+1. **Put real keys** in **`.env`** (not committed).
+2. **Replace** placeholders in `assets/images/` with real PNG files for:  
+   - `icon.png`  
+   - `splash-icon.png`  
+   - `adaptive-icon.png`  
+   - `favicon.png`  
+3. **Run**:  
    ```bash
    npm start
    ```
-   - or `expo start`.
+4. Press:
+   - **`i`** for iOS (on macOS + Xcode)
+   - **`a`** for Android
+   - **`w`** for web
+5. You’ll see:
+   - **Splash** from `splash-icon.png` (via `expo-splash-screen`).
+   - A **favicon** on web from `favicon.png`.
+   - **Steampunk** colors + fonts (Special Elite, Arbutus Slab).
+   - **Auth** screens if you go to `(auth)/login`.
+   - **Protected** screens if you go to `(protected)/home`, checking `supabase.auth.getUser()`.
+   - **Light/dark** toggle in **Settings**.
+   - **No** Babel warnings about `expo-router/babel`.
+   - **No** red squiggles for `className` thanks to `nativewind-env.d.ts`.
 
-2. Load in Expo Go or a simulator:
-   - **Home** (`app/index.tsx`) with links to `Protected`, `Sign In`, and `Settings`.
-   - **Sign In** route (Zod validation).
-   - **Protected** route (redirects to signIn if not authenticated).
-   - **Settings** toggles **dark/light** theme.
-   - **Google Fonts** (Special Elite & Arbutus Slab) loaded.
-   - **Tailwind** (NativeWind) styling with a “steampunk” palette.
+**Done!** You now have a **fresh** post-`reset-project` tutorial that:
 
-3. **Production Build** (optional):
+- Recreates the missing assets (splash, favicon, icons).  
+- Sets up **Expo Router** (with typed routes).  
+- Integrates **NativeWind** (Tailwind) in TypeScript.  
+- Configures **Supabase** + **SuperTokens**.  
+- Provides **form validation** & **light/dark** theme.  
 
-   ```bash
-   npx expo prebuild
-   npx expo build
-   ```
-   or use [EAS Build](https://docs.expo.dev/build/introduction/).
-
----
-
-# **Conclusion**
-
-You now have a **fully functional**, **TypeScript-based** Expo app with:
-
-- **Expo Router** for file-based navigation (no `index.js` needed!).  
-- **NativeWind** (Tailwind) and **Google Fonts** for a steampunk design.  
-- **SuperTokens** for session-based auth, gating protected routes.  
-- **SupaBase** client ready for your real data calls.  
-- **Dark/Light** theme toggle in Settings (default: dark).  
-- **React Hook Form + Zod** for minimal form validation.  
-- Proper `.env` usage and a `.env.example` for best practices.  
-
-Feel free to extend the sign-in flow with real API calls, add more screens, or incorporate advanced SupaBase features. Enjoy your **steampunk**-themed app!
+Enjoy your **steampunk**-themed Expo app on **SDK 50**—**no** corners cut!

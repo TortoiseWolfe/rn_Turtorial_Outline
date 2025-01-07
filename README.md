@@ -1,85 +1,82 @@
-## **0. Single Code Block of Terminal Commands**
-
-**Copy/paste** the entire block **as is**:
+## 0) One Block of Terminal Commands
 
 ```bash
-# Step 0: Start a fresh Expo project
+# Step 0: Create & reset the project
 npx create-expo-app DemoApp
 cd DemoApp
-
-# Step 1: Reset the project (removes sample assets/layout)
 npm run reset-project
 
-# Step 2: Recreate assets/images and placeholder icons/favicons
+# Step 1: Install all required dependencies
+npx expo install nativewind tailwindcss react-native-reanimated react-native-safe-area-context \
+  expo-router \
+  @supabase/supabase-js \
+  supertokens-react-native \
+  react-hook-form \
+  zod \
+  @hookform/resolvers \
+  expo-font \
+  @expo-google-fonts/special-elite \
+  @expo-google-fonts/arbutus-slab \
+  react-native-dotenv \
+  expo-constants \
+  react-native-web \
+  # The rest are installed automatically or come with expo
+
+# Step 2: Recreate assets & placeholders
 mkdir -p assets/images
 touch assets/images/icon.png
 touch assets/images/splash-icon.png
 touch assets/images/adaptive-icon.png
 touch assets/images/favicon.png
 
-# Step 3: Recreate essential config & declaration files
-touch app.json
-touch babel.config.js
+# Step 3: Create config files for tailwind, postcss, babel, metro
 touch tailwind.config.js
 touch postcss.config.js
+touch babel.config.js
+npx expo customize metro.config.js
+
+# Step 4: Create global.css for Tailwind
+touch global.css
+
+# Step 5: Create .env (real) & .env.example
+touch .env .env.example
+
+# Step 6: Create nativewind-env.d.ts for TS
 touch nativewind-env.d.ts
 
-# Step 4: Recreate .env files (example & real)
-touch .env.example
-touch .env
-
-# Step 5: Recreate lib folder & TypeScript files
+# Step 7: Create lib & providers folders & files
 mkdir lib
 touch lib/supabaseClient.ts
 touch lib/supertokensClient.ts
 
-# Step 6: Recreate providers folder & ThemeProvider file
 mkdir providers
 touch providers/ThemeProvider.tsx
 
-# Step 7: Recreate the app folder structure
+# Step 8: Create app folder structure
 mkdir app
+touch app/_layout.tsx
+touch app/index.tsx
 mkdir "app/(auth)"
-mkdir "app/(protected)"
-
-# Optionally remove any "app-example" folder or old sample files if you want:
-# rm -rf app-example
-
-# Step 8: Recreate placeholders for Expo Router
-touch "app/_layout.tsx"
-touch "app/index.tsx"
 touch "app/(auth)/login.tsx"
 touch "app/(auth)/signup.tsx"
+mkdir "app/(protected)"
 touch "app/(protected)/_layout.tsx"
 touch "app/(protected)/home.tsx"
 touch "app/(protected)/settings.tsx"
+
+# If there's an app-example folder left, you can remove it:
+# rm -rf app-example
 ```
 
-Once you run these, your **DemoApp** project will have:
-
-- **`assets/images/`** containing empty placeholder `.png` files (to be replaced with real images).  
-- **`app.json`**, `babel.config.js`, `tailwind.config.js`, `postcss.config.js`, `nativewind-env.d.ts` as empty files.  
-- **`.env`** and **`.env.example`** as empty placeholders.  
-- **`lib/`** + **`providers/`** directories with placeholder `.ts`/`.tsx` files.  
-- **`app/`** folder with `_layout.tsx`, `index.tsx`, `(auth)/` screens, `(protected)/` screens.  
-
-Next, we’ll **fill** these files with the content needed for:
-
-- A **Splash** screen (`splash-icon.png`).
-- A **Favicon** for web (`favicon.png`).
-- **Expo Router** with typed routes.
-- **NativeWind** (Tailwind) in TypeScript.
-- **Supabase** + **SuperTokens**.
-- **Form Validation**.
-- A **light/dark** theme toggle.
+After running, you will have a **fresh** project with empty placeholders for assets, config, and all the screens we need.
 
 ---
 
-## **1. File Contents**
+## 1) Fill Each File with the Complete Code
 
-Open **VS Code** (or your preferred editor) in **`DemoApp`**. **Replace** the contents of each file with **these** blocks.
+Open **`DemoApp`** in VS Code (or your editor of choice). **Replace** each file’s contents below.
 
-### **`app.json`**
+### **`app.json`** (Expo config with splash plugin & favicon)
 
 ```json5
 {
@@ -96,14 +93,12 @@ Open **VS Code** (or your preferred editor) in **`DemoApp`**. **Replace** the co
     "ios": {
       "supportsTablet": true
     },
-
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       }
     },
-
     "web": {
       "bundler": "metro",
       "output": "static",
@@ -122,7 +117,6 @@ Open **VS Code** (or your preferred editor) in **`DemoApp`**. **Replace** the co
         }
       ]
     ],
-
     "experiments": {
       "typedRoutes": true
     }
@@ -130,46 +124,19 @@ Open **VS Code** (or your preferred editor) in **`DemoApp`**. **Replace** the co
 }
 ```
 
-**Notes**:  
-- We reference **`splash-icon.png`** in `plugins -> expo-splash-screen`.  
-- We reference **`favicon.png`** in `web.favicon`.  
-- Adjust or replace with **real images** in `assets/images/`.
+- **`splash-icon.png`** used by **`expo-splash-screen`**.  
+- **`favicon.png`** for web.  
+- **Typed routes** enabled.
 
 ---
 
-### **`babel.config.js`**
-
-```js
-module.exports = function (api) {
-  api.cache(true);
-  return {
-    presets: ["babel-preset-expo"],
-    plugins: [
-      [
-        "module:react-native-dotenv",
-        {
-          moduleName: "@env",
-          path: ".env"
-        }
-      ],
-      // Removed "expo-router/babel" for Expo SDK 50
-      "nativewind/babel"
-    ]
-  };
-};
-```
-
----
-
-### **`tailwind.config.js`**
+### **`tailwind.config.js`** (from NativeWind snippet)
 
 ```js
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: [
-    "./App.{js,jsx,ts,tsx}",
-    "./app/**/*.{js,jsx,ts,tsx}"
-  ],
+  content: ["./app/**/*.{js,jsx,ts,tsx}"],
+  presets: [require("nativewind/preset")],
   theme: {
     extend: {
       fontFamily: {
@@ -187,6 +154,18 @@ module.exports = {
 };
 ```
 
+*(We add a bit more for the steampunk theme.)*
+
+---
+
+### **`global.css`** (Tailwind directives)
+
+```css
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+```
+
 ---
 
 ### **`postcss.config.js`**
@@ -202,13 +181,53 @@ module.exports = {
 
 ---
 
+### **`babel.config.js`** (SDK 50+ with `jsxImportSource: "nativewind"`)
+
+```js
+module.exports = function (api) {
+  api.cache(true);
+  return {
+    presets: [
+      [
+        "babel-preset-expo",
+        {
+          jsxImportSource: "nativewind"
+        }
+      ],
+      "nativewind/babel"
+    ]
+  };
+};
+```
+
+---
+
+### **`metro.config.js`** (Customize to load `global.css`)
+
+Replace the newly generated **`metro.config.js`** with:
+
+```js
+const { getDefaultConfig } = require("expo/metro-config");
+const { withNativeWind } = require("nativewind/metro");
+
+const config = getDefaultConfig(__dirname);
+
+module.exports = withNativeWind(config, {
+  input: "./global.css"
+});
+```
+
+*(If your file is `.cjs` or `.mjs`, adapt accordingly.)*
+
+---
+
 ### **`nativewind-env.d.ts`**
 
 ```ts
 /// <reference types="nativewind/types" />
 ```
 
-*(Ensures TypeScript recognizes `className` on RN components.)*
+Ensures TypeScript recognizes `className`.
 
 ---
 
@@ -220,6 +239,8 @@ SUPABASE_ANON_KEY=YOUR_ANON_KEY
 SUPERTOKENS_API_BASE_URL=https://your-supertokens-domain.com
 ```
 
+*(Commit **this** to your repo, not the real .env!)*
+
 ### **`.env`**
 
 ```
@@ -228,7 +249,7 @@ SUPABASE_ANON_KEY=YOUR_REAL_ANON_KEY
 SUPERTOKENS_API_BASE_URL=YOUR_REAL_SUPERTOKENS_URL
 ```
 
-*(**Do not** commit `.env`—only `.env.example`.)*
+*(**Don’t** commit this.)*
 
 ---
 
@@ -238,7 +259,6 @@ SUPERTOKENS_API_BASE_URL=YOUR_REAL_SUPERTOKENS_URL
 import { createClient } from "@supabase/supabase-js";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "@env";
 
-// official library: '@supabase/supabase-js'
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 ```
 
@@ -264,7 +284,7 @@ export async function signOut() {
 
 ---
 
-### **`providers/ThemeProvider.tsx`**
+### **`providers/ThemeProvider.tsx`** (Light/Dark)
 
 ```tsx
 import React, { createContext, useContext, useState } from "react";
@@ -280,7 +300,6 @@ const ThemeContext = createContext<ThemeContextProps>({
 });
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  // Default to dark
   const [theme, setTheme] = useState<"light" | "dark">("dark");
 
   const toggleTheme = () => {
@@ -299,27 +318,29 @@ export const useThemeContext = () => useContext(ThemeContext);
 
 ---
 
-### **`app/_layout.tsx`**
+### **`app/_layout.tsx`** (Root Layout, importing `global.css`, setting up SuperTokens, fonts)
 
 ```tsx
+import "../global.css"; // 1) Import Tailwind's global CSS
 import { Stack } from "expo-router";
 import { useEffect } from "react";
 import { initSuperTokens } from "../lib/supertokensClient";
 import { ThemeProvider } from "../providers/ThemeProvider";
 
+// Google fonts
 import { useFonts } from "expo-font";
 import { SpecialElite_400Regular } from "@expo-google-fonts/special-elite";
 import { ArbutusSlab_400Regular } from "@expo-google-fonts/arbutus-slab";
 import { View, Text } from "react-native";
 
 export default function RootLayout() {
-  // Load google fonts
+  // Load steampunk fonts
   const [fontsLoaded] = useFonts({
     SpecialElite_400Regular,
     ArbutusSlab_400Regular
   });
 
-  // Init SuperTokens
+  // Initialize SuperTokens
   useEffect(() => {
     initSuperTokens();
   }, []);
@@ -340,9 +361,11 @@ export default function RootLayout() {
 }
 ```
 
+*(The `import "../global.css";` is essential—this is how **NativeWind** loads your Tailwind CSS.)*
+
 ---
 
-### **`app/index.tsx`**
+### **`app/index.tsx`** (Main entry screen)
 
 ```tsx
 import React from "react";
@@ -361,11 +384,9 @@ export default function IndexScreen() {
 }
 ```
 
-*(This is your main entry screen. Adjust as desired.)*
-
 ---
 
-### **`app/(auth)/login.tsx`**
+### **`app/(auth)/login.tsx`** (React Hook Form + Zod)
 
 ```tsx
 import React from "react";
@@ -391,8 +412,7 @@ export default function LoginScreen() {
     formState: { errors }
   } = useForm<LoginFormData>({ resolver: zodResolver(loginSchema) });
 
-  async function onSubmit(data: LoginFormData) {
-    const { email, password } = data;
+  async function onSubmit({ email, password }: LoginFormData) {
     const { data: authData, error } = await supabase.auth.signInWithPassword({
       email,
       password
@@ -454,7 +474,7 @@ export default function LoginScreen() {
         <Text className="text-steampunkDark font-steampunkTwo">Log In</Text>
       </TouchableOpacity>
 
-      {/* Link to Signup */}
+      {/* Link to Sign Up */}
       <TouchableOpacity className="mt-4" onPress={() => router.push("/(auth)/signup")}>
         <Text className="text-steampunkLight font-steampunkTwo">No account? Sign Up</Text>
       </TouchableOpacity>
@@ -465,7 +485,7 @@ export default function LoginScreen() {
 
 ---
 
-### **`app/(auth)/signup.tsx`**
+### **`app/(auth)/signup.tsx`** (React Hook Form + Zod)
 
 ```tsx
 import React from "react";
@@ -491,8 +511,7 @@ export default function SignupScreen() {
     formState: { errors }
   } = useForm<SignupFormData>({ resolver: zodResolver(signupSchema) });
 
-  async function onSubmit(data: SignupFormData) {
-    const { email, password } = data;
+  async function onSubmit({ email, password }: SignupFormData) {
     const { data: signupData, error } = await supabase.auth.signUp({
       email,
       password
@@ -500,7 +519,6 @@ export default function SignupScreen() {
     if (error) {
       alert(error.message);
     } else {
-      // after signup, go to login
       router.replace("/(auth)/login");
     }
   }
@@ -565,7 +583,7 @@ export default function SignupScreen() {
 
 ---
 
-### **`app/(protected)/_layout.tsx`**
+### **`app/(protected)/_layout.tsx`** (Check if user is logged in)
 
 ```tsx
 import React, { useEffect, useState } from "react";
@@ -622,6 +640,7 @@ export default function HomeScreen() {
   return (
     <View className="flex-1 items-center justify-center bg-steampunkDark">
       <Text className="text-steampunkAccent font-steampunkOne text-4xl mb-4">Home</Text>
+
       <TouchableOpacity
         className="bg-steampunkAccent p-3 rounded mb-4"
         onPress={() => router.push("/(protected)/settings")}
@@ -639,7 +658,7 @@ export default function HomeScreen() {
 
 ---
 
-### **`app/(protected)/settings.tsx`**
+### **`app/(protected)/settings.tsx`** (Light/Dark Toggle)
 
 ```tsx
 import React from "react";
@@ -679,38 +698,28 @@ export default function SettingsScreen() {
 
 ---
 
-## **2. Final: Run & Check**
+## 2) Run & Verify
 
-1. **Put real keys** in **`.env`** (not committed).
-2. **Replace** placeholders in `assets/images/` with real PNG files for:  
-   - `icon.png`  
-   - `splash-icon.png`  
-   - `adaptive-icon.png`  
-   - `favicon.png`  
-3. **Run**:  
-   ```bash
-   npm start
-   ```
-4. Press:
-   - **`i`** for iOS (on macOS + Xcode)
-   - **`a`** for Android
-   - **`w`** for web
-5. You’ll see:
-   - **Splash** from `splash-icon.png` (via `expo-splash-screen`).
-   - A **favicon** on web from `favicon.png`.
-   - **Steampunk** colors + fonts (Special Elite, Arbutus Slab).
-   - **Auth** screens if you go to `(auth)/login`.
-   - **Protected** screens if you go to `(protected)/home`, checking `supabase.auth.getUser()`.
-   - **Light/dark** toggle in **Settings**.
-   - **No** Babel warnings about `expo-router/babel`.
-   - **No** red squiggles for `className` thanks to `nativewind-env.d.ts`.
+From **`DemoApp`**:
 
-**Done!** You now have a **fresh** post-`reset-project` tutorial that:
+```bash
+npm start
+```
 
-- Recreates the missing assets (splash, favicon, icons).  
-- Sets up **Expo Router** (with typed routes).  
-- Integrates **NativeWind** (Tailwind) in TypeScript.  
-- Configures **Supabase** + **SuperTokens**.  
-- Provides **form validation** & **light/dark** theme.  
+- Press **`i`** for iOS (on macOS).  
+- Press **`a`** for Android.  
+- Press **`w`** for web (since we installed `react-native-web`).
 
-Enjoy your **steampunk**-themed Expo app on **SDK 50**—**no** corners cut!
+Check:
+
+1. **Splash**: You’ll see `splash-icon.png` on iOS/Android due to `expo-splash-screen` plugin.  
+2. **Favicon**: On web, you have `favicon.png`.  
+3. **No** Babel warning about `expo-router/babel`.  
+4. **Tailwind**: Classes (e.g. `bg-steampunkDark`) should work.  
+5. **NativeWind** pipeline: `global.css` is loaded in `_layout.tsx`, processed by `metro.config.js`.  
+6. **Supabase** + **SuperTokens**: Log in, sign up, or check if user is protected in `(protected)/_layout.tsx`.  
+7. **Form Validation** with zod & react-hook-form.  
+8. **Light/Dark** theme toggle in settings, default dark.  
+9. **Typed routes** thanks to `"experiments": { "typedRoutes": true }` in `app.json`.
+
+You now have a **complete** tutorial that merges **all** the pieces we’ve been working on, including the newest **NativeWind** snippet for Expo SDK 50+, your steampunk theme, splash images, web favicon, Supabase, SuperTokens, environment variables, typed routes, and form validation. Enjoy your fully functional Expo Router app!

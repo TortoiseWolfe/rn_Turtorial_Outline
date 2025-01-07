@@ -30,7 +30,8 @@ touch assets/images/adaptive-icon.png
 touch assets/images/favicon.png
 
 # Step 3: Create config files for tailwind, postcss, babel, metro
-touch tailwind.config.js
+npx tailwindcss init
+# touch tailwind.config.js
 touch postcss.config.js
 touch babel.config.js
 npx expo customize metro.config.js

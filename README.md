@@ -1,17 +1,3 @@
-Below is a **fully comprehensive** tutorial that **does not cut corners**. It **starts** with your exact steps (in one code block), then **re-creates** all missing assets/files/folders—so you can copy/paste in a single flow.
-
-We will:
-
-1. **Create** an Expo app with TypeScript.  
-2. **Reset** it (removing example assets and screens).  
-3. **Reintroduce** the necessary assets (splash, icons, favicon).  
-4. **Create** all config files (babel, tailwind, postcss).  
-5. **Create** placeholders for `.env`, `.env.example`, and the standard directories: `lib/`, `providers/`, and `app/` (with protected/auth screens).  
-
-Afterwards, you’ll open each file and **paste** the **complete** code from the tutorial. This ensures no partial code or missing references.
-
----
-
 ## **0. Single Code Block of Terminal Commands**
 
 **Copy/paste** the entire block **as is**:

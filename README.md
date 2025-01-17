@@ -1,13 +1,3 @@
-Below is a **single, production-ready tutorial** that you can **copy** in one go—**no missing code**. Just replace placeholders like `YOUR_SUBDOMAIN` and `YOUR_SUPABASE_ANON_KEY` in **`.env.local`** with your real values, and you’ll have:
-
-1. **Dark theme** by default **across all screens** (toggling to light if desired).  
-2. **Environment variables** that **stay** correct (no reverting to defaults).  
-3. **Spacing** between buttons on web or native.  
-4. **Zod**-based sign-up/sign-in with **Supabase**—no Node backend.  
-5. **No** leftover snippet omissions or reintroduced bugs.
-
----
-
 ```bash
 # Copy & run these commands to scaffold:
 npx create-expo-app rn_Protected_Routez

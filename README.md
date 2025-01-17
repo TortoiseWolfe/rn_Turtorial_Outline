@@ -33,6 +33,12 @@ mkdir -p "lib"
 mkdir -p "context"
 mkdir -p "app/(auth)"
 mkdir -p "app/(protected)"
+touch "lib/supabaseClient.ts"
+touch "app/(auth)/signUp.tsx"
+touch "app/(auth)/signIn.tsx"
+touch "app/(protected)/_layout.tsx"
+touch "app/(protected)/profile.tsx"
+code .
 ```
 
 ### **Explanations**  
@@ -107,7 +113,6 @@ module.exports = withNativeWind(config, {
 });
 ```
 
-No test yet—still need app code.
 
 ---
 
@@ -147,10 +152,6 @@ No test yet—still need app code.
 
 ## **6) Supabase Client**: `"lib/supabaseClient.ts"`
 
-```bash
-touch "lib/supabaseClient.ts"
-```
-
 **`lib/supabaseClient.ts`:**
 ```ts
 import { createClient } from "@supabase/supabase-js";
@@ -174,10 +175,6 @@ No quotes in `.env.local`. This ensures environment variables load in Expo.
 ## **7) Dark Theme & Custom Fonts** in Root Layout
 
 ### 7.1. **`context/theme.tsx`** (outside `app/`)
-
-```bash
-touch "context/theme.tsx"
-```
 
 **`context/theme.tsx`:**
 ```ts
@@ -219,10 +216,6 @@ export function useTheme() {
 
 ### 7.2. **`app/_layout.tsx`** (Root Layout)
 
-```bash
-touch "app/_layout.tsx"
-```
-
 ```tsx
 import { Slot } from "expo-router";
 import { useFonts } from "expo-font"; // from expo-font, not expo-router
@@ -260,10 +253,6 @@ No compile error about “useFonts is not a function”—we import from `"expo-
 ---
 
 ### 7.3. **`app/index.tsx`** (Home)
-
-```bash
-touch "app/index.tsx"
-```
 
 ```tsx
 import React from 'react';
@@ -323,11 +312,6 @@ export default function HomeScreen() {
 ---
 
 ## **8) Sign Up & Sign In** with Zod
-
-```bash
-touch "app/(auth)/signUp.tsx"
-touch "app/(auth)/signIn.tsx"
-```
 
 ### **`app/(auth)/signUp.tsx`**
 
@@ -453,11 +437,6 @@ export default function SignInScreen() {
 ---
 
 ## **9) Protected Route** in `"app/(protected)/_layout.tsx"`
-
-```bash
-touch "app/(protected)/_layout.tsx"
-touch "app/(protected)/profile.tsx"
-```
 
 ### 9.1. **`app/(protected)/_layout.tsx`**
 

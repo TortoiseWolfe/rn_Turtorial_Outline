@@ -1,12 +1,4 @@
-Below is **one last, absolutely minimal** Expo Router + TypeScript + AuthContext tutorial that **cannot** produce multiple navigators—unless there’s **leftover or conflicting code** somewhere else in your project. 
-
-**If you follow each step exactly** in a **brand-new folder** (deleting any old files or layouts), you will **not** see the “Another navigator is already registered” error. If you still see it, it means there is **other code** in your workspace that we have not accounted for.
-
----
-
-# 1. Start Completely Fresh
-
-Open a **new** folder and run these exact commands. This ensures no leftover code or partial layouts remain.
+## 1. Brand-New Project
 
 ```bash
 npx create-expo-app rn_Protected_Routez
@@ -14,53 +6,57 @@ cd rn_Protected_Routez
 npm run reset-project
 rm -rf app-example
 ```
+At this point, your `app` folder is basically empty (maybe has `_layout.tsx`). We’ll overwrite that anyway.
 
-After that, confirm your `app` folder is **essentially empty** (maybe just `_layout.tsx` if the template generated it, but we’ll overwrite it anyway).
-
-If you don’t have Formik, Yup, or Async Storage yet:
-
+If you need **Formik**, **Yup**, or **Async Storage**:
 ```bash
 npm install formik yup @react-native-async-storage/async-storage
 ```
 
 ---
 
-# 2. Final Folder Structure
+## 2. Final File Structure
 
-Create these **exact** files, no extras:
+Create a new folder `src/context` (or any name) **outside** `app/`. Then your `app/` folder only contains route files. This way, **Expo Router** won’t parse your context as a screen.
 
 ```
-app/
-├ (auth)/
-│   ├ signin.tsx
-│   └ signup.tsx
-├ (protected)/
-│   ├ _layout.tsx     <-- checks if user is logged in, no <Stack> here
-│   └ profile.tsx
-├ context/
-│   └ AuthContext.tsx <-- global auth logic
-├ _layout.tsx          <-- SINGLE <Stack> in root
-└ index.tsx            <-- home screen
+rn_Protected_Routez/
+├ app/
+│  ├ (auth)/
+│  │   ├ signin.tsx
+│  │   └ signup.tsx
+│  ├ (protected)/
+│  │   ├ _layout.tsx
+│  │   └ profile.tsx
+│  ├ _layout.tsx
+│  └ index.tsx
+├ src/
+│  └ context/
+│      └ AuthContext.ts
+├ package.json
+└ etc.
 ```
 
-**Important**:  
-- No `NavigationContainer` anywhere.  
-- **Exactly one** `<Stack>` in `app/_layout.tsx`.  
-- `(auth)/_layout.tsx` does **not** exist, `(protected)/_layout.tsx` has **no** `<Stack>`, only `<Slot>`.
+Note:
+- We renamed `AuthContext.tsx` → `AuthContext.ts`, placed in `src/context/`.  
+- `(auth)` and `(protected)` have only their screens + `_layout.tsx`.  
+- The root `app/_layout.tsx` has exactly one `<Stack>`.  
+
+This ensures **only** route files are in `app/`, and **no** extraneous `.tsx` files that might get registered as routes.
 
 ---
 
-# 3. Auth Context
+## 3. Create the Auth Context
 
-Create folder & file:
+### 3.1 `src/context/AuthContext.ts`
 
 ```bash
-mkdir -p app/context
-touch app/context/AuthContext.tsx
+mkdir -p src/context
+touch src/context/AuthContext.ts
 ```
 
-### **app/context/AuthContext.tsx**
-```tsx
+**src/context/AuthContext.ts**:
+```ts
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -91,7 +87,7 @@ type Props = {
   children: ReactNode;
 };
 
-export const AuthProvider: React.FC<Props> = ({ children }) => {
+export function AuthProvider({ children }: Props) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -114,8 +110,8 @@ export const AuthProvider: React.FC<Props> = ({ children }) => {
     checkStorage();
   }, []);
 
-  // Fake sign-in (replace with real calls)
-  const signIn = async (email: string, _password: string) => {
+  // Fake sign-in
+  async function signIn(email: string, _password: string) {
     const fakeToken = 'abc123';
     const userData = { id: 1, email };
     setToken(fakeToken);
@@ -123,10 +119,10 @@ export const AuthProvider: React.FC<Props> = ({ children }) => {
 
     await AsyncStorage.setItem('userToken', fakeToken);
     await AsyncStorage.setItem('userData', JSON.stringify(userData));
-  };
+  }
 
   // Fake sign-up
-  const signUp = async (email: string, _password: string) => {
+  async function signUp(email: string, _password: string) {
     const fakeToken = 'xyz789';
     const userData = { id: 2, email };
     setToken(fakeToken);
@@ -134,14 +130,14 @@ export const AuthProvider: React.FC<Props> = ({ children }) => {
 
     await AsyncStorage.setItem('userToken', fakeToken);
     await AsyncStorage.setItem('userData', JSON.stringify(userData));
-  };
+  }
 
-  const signOut = async () => {
+  async function signOut() {
     setToken(null);
     setUser(null);
     await AsyncStorage.removeItem('userToken');
     await AsyncStorage.removeItem('userData');
-  };
+  }
 
   return (
     <AuthContext.Provider
@@ -150,55 +146,54 @@ export const AuthProvider: React.FC<Props> = ({ children }) => {
       {children}
     </AuthContext.Provider>
   );
-};
+}
 ```
+
+We used `.ts` (no `x`), so **Expo Router** will ignore it as a route even if it’s in the `app` folder. But we placed it outside `app` anyway, for clarity.
 
 ---
 
-# 4. Root Layout With ONE `<Stack>`
+## 4. Root Layout (Single `<Stack>`)
+
+**app/_layout.tsx** (overwriting any existing one):
 
 ```bash
 touch app/_layout.tsx
 ```
 
-### **app/_layout.tsx**
 ```tsx
 import React from 'react';
 import { Slot, Stack } from 'expo-router';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider } from '../src/context/AuthContext';
 
 export default function RootLayout() {
   return (
     <AuthProvider>
       {/* 
-        We define exactly one <Stack> 
-        and never define another <Stack> or <NavigationContainer> 
+        Single <Stack> 
+        No other <Stack> or <NavigationContainer> anywhere else 
       */}
       <Stack screenOptions={{ headerShown: true }} />
-
-      {/* Renders the active route: index, (auth), (protected), etc. */}
       <Slot />
     </AuthProvider>
   );
 }
 ```
 
-This is **the only** place we have a Stack.  
-
 ---
 
-# 5. Home Screen (`app/index.tsx`)
+## 5. Home Screen: `app/index.tsx`
 
 ```bash
 touch app/index.tsx
 ```
 
-### **app/index.tsx**
+**app/index.tsx**:
 ```tsx
 import React, { useContext } from 'react';
 import { View, Text, Button, StyleSheet } from 'react-native';
 import { Link, useRouter } from 'expo-router';
-import { AuthContext } from './context/AuthContext';
+import { AuthContext } from '../src/context/AuthContext';
 
 export default function HomeScreen() {
   const { user } = useContext(AuthContext);
@@ -238,7 +233,7 @@ const styles = StyleSheet.create({
 
 ---
 
-# 6. Auth Routes: `(auth)/signin.tsx` & `(auth)/signup.tsx`
+## 6. Auth Screens: `(auth)/signin.tsx` & `(auth)/signup.tsx`
 
 ```bash
 mkdir -p app/\(auth\)
@@ -253,7 +248,7 @@ import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
 import { Formik } from 'formik';
 import * as Yup from 'yup';
 import { useRouter } from 'expo-router';
-import { AuthContext } from '../context/AuthContext';
+import { AuthContext } from '../../src/context/AuthContext';
 
 const SignInSchema = Yup.object().shape({
   email: Yup.string().email('Invalid email').required('Email is required'),
@@ -349,7 +344,7 @@ import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
 import { Formik } from 'formik';
 import * as Yup from 'yup';
 import { useRouter } from 'expo-router';
-import { AuthContext } from '../context/AuthContext';
+import { AuthContext } from '../../src/context/AuthContext';
 
 const SignUpSchema = Yup.object().shape({
   email: Yup.string().email('Invalid email').required('Email is required'),
@@ -455,7 +450,7 @@ const styles = StyleSheet.create({
 
 ---
 
-# 7. Protected Layout & Screen
+## 7. Protected Layout & Screen
 
 ```bash
 mkdir -p app/\(protected\)
@@ -466,8 +461,8 @@ touch app/\(protected\)/profile.tsx
 ### **app/(protected)/_layout.tsx**
 ```tsx
 import React, { useContext } from 'react';
-import { AuthContext } from '../context/AuthContext';
 import { Slot, Redirect } from 'expo-router';
+import { AuthContext } from '../../src/context/AuthContext';
 
 export default function ProtectedLayout() {
   const { user } = useContext(AuthContext);
@@ -479,14 +474,13 @@ export default function ProtectedLayout() {
   return <Slot />;
 }
 ```
-
-> Notice that we are **not** calling `<Stack>` or `<NavigationContainer>` here—just a `<Slot/>`.
+> No `<Stack>` or `<NavigationContainer>` here—just `<Slot/>`.
 
 ### **app/(protected)/profile.tsx**
 ```tsx
 import React, { useContext } from 'react';
 import { View, Text, Button, StyleSheet } from 'react-native';
-import { AuthContext } from '../context/AuthContext';
+import { AuthContext } from '../../src/context/AuthContext';
 import { useRouter } from 'expo-router';
 
 export default function ProfileScreen() {
@@ -516,50 +510,45 @@ const styles = StyleSheet.create({
 
 ---
 
-# 8. Test It Out
+## 8. Test It (No Multiple Navigator Error)
 
-1. **Run**:
+1. **Clear caches**:
    ```bash
+   rm -rf node_modules
+   npm install
    npx expo start -c
    ```
-   (The `-c` clears caches to avoid stale code.)
+2. **Open** the app in Expo Go or an emulator.  
+3. **Home**: If not logged in, see “Home Screen” → Sign In / Sign Up.  
+4. **Sign In** / **Sign Up**: On success, you’ll land at `/profile` (which is `/(protected)/profile`).  
+5. **Protected**: If not logged in, `_layout.tsx` in `(protected)` automatically redirects to `/(auth)/signin`. Logged in? See your user, can sign out.
 
-2. **Open** in Expo Go or an emulator.  
-3. **Home Screen**: If user not logged in, shows “Home Screen” with links to Sign In / Sign Up.  
-4. **Sign In**: After success, it navigates to `/(protected)/profile`.  
-5. **Profile**: If you aren’t logged in and try going to `/(protected)/profile`, `_layout.tsx` redirects you to sign in. If you are logged in, it shows your email and a sign-out button.
+**No** “Another navigator is already registered” error, because:
 
-You **will not** see the dreaded “Another navigator is already registered” error as long as:
+- `AuthContext.ts` is outside `app/`, so Expo Router doesn’t parse it as a route.  
+- We have **only one** `<Stack>` in `app/_layout.tsx`.  
+- No `NavigationContainer` or additional stacks anywhere.  
 
-- **No** other `_layout.tsx` is creating another `<Stack>`.  
-- **No** `NavigationContainer` from `@react-navigation/native` is used anywhere.  
-- **No** leftover `Tabs`, `Drawer`, or “old code” is still floating around.  
+If you **still** see the same error after following these steps in a brand-new project, then you likely have:
 
-If you see the error again after following these steps **in a brand-new folder**, then there must be some leftover or conflicting code outside these files (or you have a second `_layout.tsx` you missed).
-
----
-
-# 9. Still Getting The Error?
-
-If, **even after** following this minimal tutorial in a fresh directory, you still get the error:
-
-1. **Show/inspect your entire `app` folder**. Maybe an old file is overshadowing your new code.  
-2. Remove `node_modules`, remove `yarn.lock` or `package-lock.json`, reinstall, and do `expo start -c`.  
-3. Ensure you’re not mixing older React Navigation code. For instance, if you see “NavigationContainer” in your project anywhere, remove it.  
-4. Check for multiple `_layout.tsx` files at the same level—only the one in `app/_layout.tsx` should have `<Stack>`.  
-5. Confirm your versions: sometimes older expo-router or react-navigation versions can cause unexpected conflicts.
+1. Another leftover `_layout.tsx` in `(auth)` or `(protected)` that we didn’t remove.  
+2. Another file with `.tsx` in `app/` that’s missing a default export, or that tries to define another navigator.  
+3. Mixed code from older React Navigation setups (`NavigationContainer`).  
+4. Additional custom scripts that modify the router.
 
 ---
 
-# Conclusion
+## 9. Production Tips
 
-This is the **most minimal** possible file-based routing setup with **one** `<Stack>` in the root, and a simple `(protected)` folder guarded by `_layout.tsx`. It does **not** produce “Another navigator is already registered” **unless** there’s conflicting leftover code. 
+- Replace fake signIn/signUp with real API calls.  
+- For extra security, use `expo-secure-store` for tokens.  
+- Add error handling for sign-in failures.  
+- Test thoroughly on Android, iOS, and Web.
 
-If it still happens, double-check you have:
+**Done!** With this approach:
 
-- **No** second `_layout.tsx` with `<Stack>`  
-- **No** `NavigationContainer` anywhere  
-- **No** leftover “navigation” folder or older code  
-- **One** root layout only
+- Your `AuthContext.ts` is **outside** the `app` folder, so it’s never treated like a route.  
+- You have exactly one `<Stack>` in the root layout, so no “multiple navigators.”  
+- `(protected)/_layout.tsx` just checks `user` and returns `<Slot/>`.  
 
-**That’s it**—this tutorial definitely won’t produce multiple navigator errors if copied verbatim into a new project. Enjoy your **Next.js-style** router with full TypeScript, form validation, and a global Auth context!
+No leftover route definitions means **no** “Another navigator is already registered for this container.” Enjoy your bulletproof Next.js-style routing with Expo Router!

@@ -1,4 +1,4 @@
-## 1. Scaffold with Your Commands
+## 1. Scaffold With Your Commands
 
 **Copy & run these commands to scaffold**:
 
@@ -9,9 +9,10 @@ npm run reset-project
 rm -rf app-example
 ```
 
-At this point, you have a fresh Expo app with TypeScript, Expo Router, and an empty `app` folder. There’s **no need** to reconfigure TS or install Expo Router because your reset script already sets it up.
+At this point, you have a fresh Expo app with TypeScript, Expo Router, and an empty `app` folder. **No need** to install or configure Expo Router again—your reset script took care of that.
 
-If you don’t have **Formik**, **Yup**, or **Async Storage** yet, install them:
+If you don’t already have **Formik**, **Yup**, or **Async Storage**, install them now:
+
 ```bash
 npm install formik yup @react-native-async-storage/async-storage
 ```
@@ -20,46 +21,44 @@ Otherwise, skip.
 
 ---
 
-## 2. Project Structure
+## 2. Final Folder Structure
 
-We’ll structure it like Next.js:
+We’ll use parentheses-based routing to separate the **auth** screens (`(auth)`) and the **protected** screens (`(protected)`). The key difference to avoid the “multiple navigators” error is that we’ll **only** place a `<Stack>` in the **root** `app/_layout.tsx`, and **no** additional stacks or containers anywhere else.
 
 ```
 app/
 ├ (auth)/
 │   ├ signin.tsx
-│   ├ signup.tsx
+│   └ signup.tsx
 ├ (protected)/
-│   ├ _layout.tsx     <-- Protect all screens in (protected) folder
+│   ├ _layout.tsx          <-- Protect everything in (protected)
 │   └ profile.tsx
 ├ context/
-│   └ AuthContext.tsx <-- Global auth state
-├ _layout.tsx          <-- Root layout (wrap everything in AuthProvider)
-└ index.tsx            <-- Home screen
+│   └ AuthContext.tsx      <-- Global auth state
+├ _layout.tsx              <-- Root layout (single <Stack>)
+└ index.tsx                <-- Home screen
 ```
 
-1. `app/_layout.tsx` wraps the entire app with `<AuthProvider>`.  
-2. `(auth)` is for sign-in / sign-up.  
-3. `(protected)` is for any restricted screen (like Profile).  
-4. `context/AuthContext.tsx` holds your shared Auth logic.
+- `app/_layout.tsx` has **one** `<Stack>`, ensuring we only have a single navigation container.  
+- `(protected)/_layout.tsx` does **not** add another `<Stack>`, it merely checks if the user is logged in (auth guard) and then renders `<Slot/>`.  
+- `(auth)/signin.tsx` and `(auth)/signup.tsx` contain our sign-in and sign-up screens.  
+- `context/AuthContext.tsx` holds a minimal “fake” authentication flow using Async Storage.
+
+Following this arrangement will keep Expo Router happy and avoid the “Another navigator is already registered” error.
 
 ---
 
-## 3. Global Auth Context
+## 3. Auth Context
 
-We need a file `app/context/AuthContext.tsx` that:
-- Stores `user`, `token`, and a `loading` state.
-- Provides `signIn`, `signUp`, and `signOut` methods.
-- Checks Async Storage at startup to persist sessions.
-
-### 3.1 Create & Paste
+### 3.1 Create the AuthContext File
 
 ```bash
 mkdir -p app/context
 touch app/context/AuthContext.tsx
 ```
 
-**app/context/AuthContext.tsx**:
+### **app/context/AuthContext.tsx**
+
 ```tsx
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -114,7 +113,7 @@ export const AuthProvider: React.FC<Props> = ({ children }) => {
     checkStorage();
   }, []);
 
-  // Fake sign-in (replace with real backend call)
+  // Fake sign-in (replace with real backend call in production)
   const signIn = async (email: string, _password: string) => {
     const fakeToken = 'abc123';
     const userData = { id: 1, email };
@@ -125,7 +124,7 @@ export const AuthProvider: React.FC<Props> = ({ children }) => {
     await AsyncStorage.setItem('userData', JSON.stringify(userData));
   };
 
-  // Fake sign-up (replace with real backend call)
+  // Fake sign-up (replace with real backend call in production)
   const signUp = async (email: string, _password: string) => {
     const fakeToken = 'xyz789';
     const userData = { id: 2, email };
@@ -155,17 +154,18 @@ export const AuthProvider: React.FC<Props> = ({ children }) => {
 
 ---
 
-## 4. Root Layout: `app/_layout.tsx`
+## 4. Root Layout (Single `<Stack>`)
 
-We wrap **all** routes with `AuthProvider`. `_layout.tsx` is like `_app.tsx` in Next.js.
+**Important**: We only declare **one** `<Stack>` in the root layout, so we don’t trigger multiple navigator conflicts.
 
-### 4.1 Create & Paste
+### 4.1 Create the Root Layout
 
 ```bash
 touch app/_layout.tsx
 ```
 
-**app/_layout.tsx**:
+### **app/_layout.tsx**
+
 ```tsx
 import React from 'react';
 import { Slot, Stack } from 'expo-router';
@@ -174,26 +174,29 @@ import { AuthProvider } from './context/AuthContext';
 export default function RootLayout() {
   return (
     <AuthProvider>
-      {/* Optional: customize your Stack UI */}
+      {/* We define ONE Stack here, so there's only a single navigation container */}
       <Stack screenOptions={{ headerShown: true }} />
-      {/* Slot renders whatever route is active (index, (auth), (protected), etc.) */}
+      {/* Slot renders the active route (index, (auth), (protected), etc.) */}
       <Slot />
     </AuthProvider>
   );
 }
 ```
 
+> Note that we **do not** put another `<Stack>` in `(protected)/_layout.tsx`. That’s what can cause the “multiple navigator” error.
+
 ---
 
 ## 5. Home Screen: `app/index.tsx`
 
-The “home” route that either greets the user or shows links to sign in / sign up.
+A basic home screen. If the user is logged in, show a “Welcome” message and a button to Profile. Otherwise, show links to sign in / sign up.
 
 ```bash
 touch app/index.tsx
 ```
 
-**app/index.tsx**:
+### **app/index.tsx**
+
 ```tsx
 import React, { useContext } from 'react';
 import { View, Text, Button, StyleSheet } from 'react-native';
@@ -209,7 +212,10 @@ export default function HomeScreen() {
       {user ? (
         <>
           <Text style={styles.title}>Welcome back, {user.email}!</Text>
-          <Button title="Go to Profile" onPress={() => router.push('/(protected)/profile')} />
+          <Button
+            title="Go to Profile"
+            onPress={() => router.push('/(protected)/profile')}
+          />
         </>
       ) : (
         <>
@@ -246,11 +252,11 @@ const styles = StyleSheet.create({
 
 ---
 
-## 6. Public Auth Routes: `(auth)/signin.tsx` & `(auth)/signup.tsx`
+## 6. Public Auth Screens: `(auth)/signin.tsx` & `(auth)/signup.tsx`
 
-We’ll group sign-in and sign-up under `(auth)`. (Parentheses means it’s a separate route group that won’t appear in the URL path.)
+We’ll group sign-in and sign-up in a folder named `(auth)`. The parentheses mean it won’t show up in the URL path, just like Next.js route groups.
 
-### 6.1 Create the `(auth)` folder and screens
+### 6.1 Create the `(auth)` Folder & Screens
 
 ```bash
 mkdir -p app/\(auth\)
@@ -258,7 +264,8 @@ touch app/\(auth\)/signin.tsx
 touch app/\(auth\)/signup.tsx
 ```
 
-#### **app/(auth)/signin.tsx**:
+#### **app/(auth)/signin.tsx**
+
 ```tsx
 import React, { useContext } from 'react';
 import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
@@ -366,7 +373,8 @@ const styles = StyleSheet.create({
 });
 ```
 
-#### **app/(auth)/signup.tsx**:
+#### **app/(auth)/signup.tsx**
+
 ```tsx
 import React, { useContext } from 'react';
 import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
@@ -493,9 +501,9 @@ const styles = StyleSheet.create({
 
 ## 7. Protected Routes: `(protected)/_layout.tsx` & `(protected)/profile.tsx`
 
-We guard these routes in `(protected)/_layout.tsx`. If no user, we redirect to `(auth)/signin`.
+We do **not** add another `<Stack>` here. Instead, we simply check if the user is logged in. If not, redirect to `/(auth)/signin`. If yes, render `<Slot/>` to show protected screens.
 
-### 7.1 Create the `(protected)` folder & files
+### 7.1 Create the `(protected)` Folder & Files
 
 ```bash
 mkdir -p app/\(protected\)
@@ -503,7 +511,8 @@ touch app/\(protected\)/_layout.tsx
 touch app/\(protected\)/profile.tsx
 ```
 
-#### **app/(protected)/_layout.tsx**:
+#### **app/(protected)/_layout.tsx**
+
 ```tsx
 import React, { useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
@@ -512,17 +521,18 @@ import { Slot, Redirect } from 'expo-router';
 export default function ProtectedLayout() {
   const { user } = useContext(AuthContext);
 
-  // If user not logged in, redirect to (auth)/signin
+  // If user is NOT logged in, redirect to (auth)/signin
   if (!user) {
     return <Redirect href="/(auth)/signin" />;
   }
 
-  // Otherwise, render the protected screens
+  // Otherwise, render protected screens
   return <Slot />;
 }
 ```
 
-#### **app/(protected)/profile.tsx**:
+#### **app/(protected)/profile.tsx**
+
 ```tsx
 import React, { useContext } from 'react';
 import { View, Text, Button, StyleSheet } from 'react-native';
@@ -535,7 +545,7 @@ export default function ProfileScreen() {
 
   const handleSignOut = async () => {
     await signOut();
-    // Go back to home on sign out
+    // After sign-out, go back to home
     router.replace('/');
   };
 
@@ -565,42 +575,59 @@ const styles = StyleSheet.create({
 });
 ```
 
-> Since `(protected)/_layout.tsx` **automatically** checks for a user, each protected screen is safe. The parentheses in the folder name `(protected)` means it’s grouped, but not in the visible URL path (like Next.js). So visiting `/profile` effectively is `/(protected)/profile`.
+> Because `(protected)/_layout.tsx` checks for `user` before rendering `<Slot/>`, any screen placed in `(protected)` is automatically protected. Visiting `/(protected)/profile` logs you in if you have a user, otherwise it redirects you to `/(auth)/signin`.
 
 ---
 
-## 8. Testing & Summary
+## 8. Test & Verify (No Multiple Navigator Error)
 
-1. **Run**:
+1. **Start**:
    ```bash
    npm start
    ```
-   or 
+   or
    ```bash
    npx expo start
    ```
-2. **Home**: (`/`)
-   - If not logged in, you see “Home Screen” with “Sign In” / “Sign Up” links.
-   - If logged in, you see “Welcome back, [user.email]!” and a button to Profile.
-3. **Sign In**: (`/(auth)/signin`)
-   - After sign in, you’re redirected to `/(protected)/profile`.
-4. **Protected**: (`/(protected)/profile`)
-   - If you try to visit this link when not logged in, `_layout.tsx` redirects to `/(auth)/signin`.
-   - Once logged in, you see “Logged in as: [email]” and can sign out.
 
-### Production Tips
+2. **Home**:  
+   - Open `/`. If not logged in, see “Home Screen” → links to sign in / sign up.  
+   - If logged in, “Welcome back, [user.email]!” plus a button to go to `/profile`.
 
-- Replace the **fake** sign-in / sign-up calls with real API logic.  
-- Consider `expo-secure-store` for token storage if you need more security.  
-- Handle token refresh if tokens expire.  
-- Add robust error handling / user feedback.
+3. **Sign In** (`/(auth)/signin`):  
+   - Provide an email/password. On success, you’ll land at `/(protected)/profile`.
 
-**Done!** You have a **Next.js-style** Expo Router setup with:
+4. **Profile** (`/(protected)/profile`):  
+   - If you attempt to visit it while logged out, `_layout.tsx` in `(protected)` redirects to `/(auth)/signin`.
+   - Logged in? See your user email and a sign-out button.
 
-- **TypeScript** (already configured).
-- **AuthContext** for global auth state.
-- **(auth)** folder for sign in / sign up.
-- **(protected)** folder for guarded routes (Profile).
-- Form validation with **Formik + Yup**.
+**You will not** see the “Another navigator is already registered” error because:
 
-Enjoy your production-ready protected routes!
+- We have **only one** `<Stack>` in the root layout (`app/_layout.tsx`).  
+- Child layout `_layout.tsx` files just do `<Slot/>`, no nested stacks.  
+- No `<NavigationContainer>` usage anywhere else—Expo Router manages all that under the hood.
+
+---
+
+## 9. Production Tips
+
+- **Real Backend**: Replace the `signIn` / `signUp` mocks with actual API calls, token validation, etc.  
+- **Secure Storage**: For extra security, consider `expo-secure-store` instead of `@react-native-async-storage/async-storage`.  
+- **Handle Token Expiry**: If your tokens expire, add refresh logic or re-check token validity on app load.  
+- **Error Handling**: In production, display user-friendly errors on sign-in failure.  
+- **Testing**: Use unit tests for the AuthContext logic and integration tests for sign-in flows.
+
+---
+
+# Complete Functional Tutorial
+
+By following the **exact** file structure and code above, you’ll have:
+
+1. A **single** navigation container (the `<Stack>` in the root layout).  
+2. **AuthContext** to store user & token, plus `signIn`, `signUp`, and `signOut` methods.  
+3. **(auth)** folder for public routes (Sign In & Sign Up).  
+4. **(protected)** folder for secure routes.  
+   - `_layout.tsx` checks `user` to guard all screens.  
+5. **No** “Another navigator is already registered” error, since we only define one `<Stack>` at the top level.
+
+**Enjoy your production-ready, Next.js-style Expo Router app**—no extra navigation containers required!

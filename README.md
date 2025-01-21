@@ -1,171 +1,59 @@
-## 1. Scaffold & Reset Project
+## 1. New Project & Basic Housekeeping
 
 ```bash
-npx create-expo-app rn_Protected_Routez
-cd rn_Protected_Routez
+npx create-expo-app rn_Demo
+cd rn_Demo
 npm run reset-project
 rm -rf app-example
-
-# OPTIONAL: If you need them
-npm install formik yup @react-native-async-storage/async-storage
 ```
 
-At this point, your `app` folder is nearly empty, and you have TypeScript + Expo Router set up.
-
----
-
-## 2. Create Folders & Files
-
-Run these **exact** commands to create the **entire** structure:
+Then:
 
 ```bash
-mkdir -p src/context
-touch src/context/AuthContext.tsx
-
-mkdir -p app/\(auth\)
-touch app/\(auth\)/signin.tsx
-touch app/\(auth\)/signup.tsx
-
-mkdir -p app/\(protected\)
-touch app/\(protected\)/_layout.tsx
-touch app/\(protected\)/profile.tsx
-
-touch app/_layout.tsx
-touch app/index.tsx
+npm install expo-router
 ```
 
-You now have:
+Ensure `package.json` says:
 
-```
-rn_Protected_Routez/
-├ app/
-│  ├ (auth)/
-│  │   ├ signin.tsx
-│  │   └ signup.tsx
-│  ├ (protected)/
-│  │   ├ _layout.tsx
-│  │   └ profile.tsx
-│  ├ _layout.tsx
-│  └ index.tsx
-├ src/
-│  └ context/
-│      └ AuthContext.tsx
-├ package.json
-└ ...
-```
-
----
-
-## 3. Paste the Code into Each File
-
-### 3.1 **`src/context/AuthContext.tsx`**
-
-```tsx
-import React, { createContext, useEffect, useState, ReactNode } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
-type User = {
-  id: number;
-  email: string;
-};
-
-type AuthContextType = {
-  user: User | null;
-  token: string | null;
-  loading: boolean;
-  signIn: (email: string, pw: string) => Promise<void>;
-  signUp: (email: string, pw: string) => Promise<void>;
-  signOut: () => Promise<void>;
-};
-
-export const AuthContext = createContext<AuthContextType>({
-  user: null,
-  token: null,
-  loading: true,
-  signIn: async () => {},
-  signUp: async () => {},
-  signOut: async () => {},
-});
-
-type AuthProviderProps = { children: ReactNode };
-
-export function AuthProvider({ children }: AuthProviderProps) {
-  const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function loadStorage() {
-      try {
-        const storedToken = await AsyncStorage.getItem('userToken');
-        const storedUser = await AsyncStorage.getItem('userData');
-        if (storedToken && storedUser) {
-          setToken(storedToken);
-          setUser(JSON.parse(storedUser));
-        }
-      } catch (err) {
-        console.warn('Error reading from storage:', err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadStorage();
-  }, []);
-
-  // Fake sign-in (replace with real API)
-  async function signIn(email: string, _pw: string) {
-    const fakeToken = 'abc123';
-    const userData = { id: 1, email };
-    setToken(fakeToken);
-    setUser(userData);
-
-    await AsyncStorage.setItem('userToken', fakeToken);
-    await AsyncStorage.setItem('userData', JSON.stringify(userData));
+```jsonc
+{
+  "main": "expo-router/entry",
+  "dependencies": {
+    "expo-router": "...",
+    // ...
   }
-
-  // Fake sign-up (replace with real API)
-  async function signUp(email: string, _pw: string) {
-    const fakeToken = 'xyz789';
-    const userData = { id: 2, email };
-    setToken(fakeToken);
-    setUser(userData);
-
-    await AsyncStorage.setItem('userToken', fakeToken);
-    await AsyncStorage.setItem('userData', JSON.stringify(userData));
-  }
-
-  async function signOut() {
-    setToken(null);
-    setUser(null);
-    await AsyncStorage.removeItem('userToken');
-    await AsyncStorage.removeItem('userData');
-  }
-
-  return (
-    <AuthContext.Provider
-      value={{ user, token, loading, signIn, signUp, signOut }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
 }
 ```
 
 ---
 
-### 3.2 **`app/_layout.tsx`**
+## 2. Single Top-Level Layout
+
+Create a **single** `_layout.tsx` in `app/`, which is your **only** top-level `<Stack>`:
+
+```bash
+touch app/_layout.tsx
+```
+
+**Paste:**
 
 ```tsx
-import React from 'react';
-import { Slot, Stack } from 'expo-router';
-import { AuthProvider } from '../src/context/AuthContext';
+// app/_layout.tsx
+import { Stack } from "expo-router";
+import AuthProvider from "../context/auth";
 
 export default function RootLayout() {
   return (
     <AuthProvider>
-      {/* Single <Stack> in the entire project */}
-      <Stack screenOptions={{ headerShown: true }} />
-      <Slot />
+      {/**
+       * The single top-level Stack for the entire app.
+       * Expo Router will handle everything behind the scenes.
+       */}
+      <Stack
+        screenOptions={{
+          headerShown: false,
+        }}
+      />
     </AuthProvider>
   );
 }
@@ -173,343 +61,460 @@ export default function RootLayout() {
 
 ---
 
-### 3.3 **`app/index.tsx`**
+## 3. Auth Context
+
+We’ll store:
+
+1. An `authToken` (or `user`)  
+2. `signIn`, `signUp`, `signOut` methods  
+3. A minimal “fake” HTTP request to simulate server calls  
+
+```bash
+mkdir context
+touch context/auth.tsx
+```
+
+**Paste:**
 
 ```tsx
-import React, { useContext } from 'react';
-import { View, Text, Button, StyleSheet } from 'react-native';
-import { Link, useRouter } from 'expo-router';
-import { AuthContext } from '../src/context/AuthContext';
+// context/auth.tsx
+import React, { createContext, useContext, useState } from "react";
 
-export default function HomeScreen() {
-  const { user } = useContext(AuthContext);
-  const router = useRouter();
+// Types
+type AuthToken = string | null;
+
+interface AuthContextProps {
+  authToken: AuthToken;
+  loading: boolean;
+  error: string | null;
+  signUp: (email: string, password: string) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<void>;
+  signOut: () => void;
+}
+
+const AuthContext = createContext<AuthContextProps>({
+  authToken: null,
+  loading: false,
+  error: null,
+  signUp: async () => {},
+  signIn: async () => {},
+  signOut: () => {},
+});
+
+export default function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [authToken, setAuthToken] = useState<AuthToken>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fake API endpoints for demonstration:
+  const FAKE_SIGNUP_ENDPOINT = "https://example.com/api/signup";
+  const FAKE_SIGNIN_ENDPOINT = "https://example.com/api/signin";
+
+  async function signUp(email: string, password: string) {
+    setLoading(true);
+    setError(null);
+    try {
+      // Fake HTTP request
+      // In real life, you'd do something like:
+      // const response = await fetch(FAKE_SIGNUP_ENDPOINT, { ... });
+      // if (!response.ok) throw new Error("Sign up failed");
+      // const data = await response.json();
+      // setAuthToken(data.token);
+
+      // For this demo, let's simulate success after 1 second
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      setAuthToken("fake_signup_token");
+    } catch (err: any) {
+      setError(err.message || "Sign up failed");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function signIn(email: string, password: string) {
+    setLoading(true);
+    setError(null);
+    try {
+      // Fake HTTP request
+      // In a real app:
+      // const response = await fetch(FAKE_SIGNIN_ENDPOINT, { ... });
+      // if (!response.ok) throw new Error("Sign in failed");
+      // const data = await response.json();
+      // setAuthToken(data.token);
+
+      // Simulate success
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      setAuthToken("fake_signin_token");
+    } catch (err: any) {
+      setError(err.message || "Sign in failed");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function signOut() {
+    setAuthToken(null);
+    setError(null);
+  }
 
   return (
-    <View style={styles.container}>
-      {user ? (
-        <>
-          <Text style={styles.title}>Welcome back, {user.email}!</Text>
-          <Button
-            title="Go to Profile"
-            onPress={() => router.push('/(protected)/profile')}
-          />
-        </>
-      ) : (
-        <>
-          <Text style={styles.title}>Home Screen</Text>
-          <Link href="/(auth)/signin" style={styles.link}>
-            Sign In
-          </Link>
-          <Link href="/(auth)/signup" style={styles.link}>
-            Sign Up
-          </Link>
-        </>
-      )}
-    </View>
+    <AuthContext.Provider
+      value={{
+        authToken,
+        loading,
+        error,
+        signUp,
+        signIn,
+        signOut,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  title: { fontSize: 22, marginBottom: 20 },
-  link: { color: 'blue', fontSize: 18, marginVertical: 8 },
-});
+export function useAuth() {
+  return useContext(AuthContext);
+}
 ```
 
 ---
 
-### 3.4 **`app/(auth)/signin.tsx`**
+## 4. Auth Routes: `(auth)` Folder
+
+We’ll create `(auth)` with `_layout.tsx`, `sign-in.tsx`, and `sign-up.tsx`, each with **email + password** fields and **basic validation**.
+
+```bash
+mkdir -p app/\(auth\)
+touch app/\(auth\)/_layout.tsx
+touch app/\(auth\)/sign-in.tsx
+touch app/\(auth\)/sign-up.tsx
+```
+
+### (auth)/_layout.tsx
 
 ```tsx
-import React, { useContext } from 'react';
-import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
-import { Formik } from 'formik';
-import * as Yup from 'yup';
-import { useRouter } from 'expo-router';
-import { AuthContext } from '../../src/context/AuthContext';
+// app/(auth)/_layout.tsx
+import { Stack } from "expo-router";
 
-const SignInSchema = Yup.object().shape({
-  email: Yup.string().email('Invalid email').required('Email is required'),
-  password: Yup.string().required('Password is required'),
-});
+export default function AuthLayout() {
+  return (
+    <Stack
+      screenOptions={{
+        headerTitle: "Auth Flow",
+        headerShown: true,
+      }}
+    />
+  );
+}
+```
 
-export default function SignIn() {
-  const { signIn } = useContext(AuthContext);
+### sign-in.tsx
+
+```tsx
+// app/(auth)/sign-in.tsx
+import { View, Text, Button, TextInput, StyleSheet } from "react-native";
+import { useState } from "react";
+import { Link, useRouter } from "expo-router";
+import { useAuth } from "../../context/auth";
+
+export default function SignInScreen() {
+  const { signIn, loading, error } = useAuth();
   const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [localError, setLocalError] = useState("");
+
+  async function handleSignIn() {
+    // Basic client-side validation
+    if (!validateEmail(email)) {
+      setLocalError("Invalid email format");
+      return;
+    }
+    if (password.length < 8) {
+      setLocalError("Password must be at least 8 characters");
+      return;
+    }
+
+    setLocalError(""); // Clear local error
+    await signIn(email, password);
+    if (!error) {
+      // If sign in is successful, route to protected Profile
+      router.replace("(protected)/profile");
+    }
+  }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Sign In</Text>
+      <Text style={styles.title}>Sign In</Text>
 
-      <Formik
-        initialValues={{ email: '', password: '' }}
-        validationSchema={SignInSchema}
-        onSubmit={async (values, actions) => {
-          try {
-            await signIn(values.email, values.password);
-            router.replace('/(protected)/profile');
-          } catch (err) {
-            console.error(err);
-          } finally {
-            actions.setSubmitting(false);
-          }
-        }}
-      >
-        {({
-          handleChange,
-          handleBlur,
-          handleSubmit,
-          values,
-          errors,
-          touched,
-          isSubmitting,
-        }) => (
-          <View style={styles.form}>
-            <TextInput
-              style={styles.input}
-              placeholder="Email"
-              autoCapitalize="none"
-              onChangeText={handleChange('email')}
-              onBlur={handleBlur('email')}
-              value={values.email}
-            />
-            {touched.email && errors.email && (
-              <Text style={styles.error}>{errors.email}</Text>
-            )}
+      {localError ? <Text style={styles.error}>{localError}</Text> : null}
+      {error ? <Text style={styles.error}>{error}</Text> : null}
 
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              secureTextEntry
-              onChangeText={handleChange('password')}
-              onBlur={handleBlur('password')}
-              value={values.password}
-            />
-            {touched.password && errors.password && (
-              <Text style={styles.error}>{errors.password}</Text>
-            )}
+      <TextInput
+        style={styles.input}
+        placeholder="Email"
+        autoCapitalize="none"
+        onChangeText={setEmail}
+        value={email}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Password (min 8 chars)"
+        secureTextEntry
+        onChangeText={setPassword}
+        value={password}
+      />
 
-            <Button
-              onPress={handleSubmit}
-              title={isSubmitting ? 'Signing In...' : 'Sign In'}
-              disabled={isSubmitting}
-            />
-          </View>
-        )}
-      </Formik>
+      <Button title={loading ? "Signing In..." : "Sign In"} onPress={handleSignIn} />
+
+      <Link href="/(auth)/sign-up" style={styles.link}>
+        Don’t have an account? Sign Up
+      </Link>
     </View>
   );
 }
 
+function validateEmail(email: string) {
+  // Basic email check
+  return /\S+@\S+\.\S+/.test(email);
+}
+
 const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  header: { fontSize: 24, marginBottom: 20 },
-  form: { width: '80%' },
+  container: { flex: 1, padding: 20, justifyContent: "center" },
+  title: { fontSize: 24, fontWeight: "bold", marginBottom: 20 },
   input: {
-    backgroundColor: '#eee',
-    marginVertical: 6,
-    padding: 10,
-    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    padding: 8,
+    marginVertical: 10,
+    borderRadius: 4,
   },
-  error: { color: 'red', marginBottom: 5 },
+  error: { color: "red", marginBottom: 10 },
+  link: { marginTop: 20, color: "blue" },
 });
 ```
 
----
-
-### 3.5 **`app/(auth)/signup.tsx`**
+### sign-up.tsx
 
 ```tsx
-import React, { useContext } from 'react';
-import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
-import { Formik } from 'formik';
-import * as Yup from 'yup';
-import { useRouter } from 'expo-router';
-import { AuthContext } from '../../src/context/AuthContext';
+// app/(auth)/sign-up.tsx
+import { View, Text, Button, TextInput, StyleSheet } from "react-native";
+import { useState } from "react";
+import { Link, useRouter } from "expo-router";
+import { useAuth } from "../../context/auth";
 
-const SignUpSchema = Yup.object().shape({
-  email: Yup.string().email('Invalid email').required('Email is required'),
-  password: Yup.string().min(4, 'Too short').required('Password is required'),
-  confirmPassword: Yup.string()
-    .oneOf([Yup.ref('password'), ''], 'Passwords must match')
-    .required('Confirm your password'),
-});
-
-export default function SignUp() {
-  const { signUp } = useContext(AuthContext);
+export default function SignUpScreen() {
+  const { signUp, loading, error } = useAuth();
   const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPass, setConfirmPass] = useState("");
+  const [localError, setLocalError] = useState("");
+
+  async function handleSignUp() {
+    // Basic client-side validation
+    if (!validateEmail(email)) {
+      setLocalError("Invalid email format");
+      return;
+    }
+    if (password.length < 8) {
+      setLocalError("Password must be at least 8 characters");
+      return;
+    }
+    if (password !== confirmPass) {
+      setLocalError("Passwords do not match");
+      return;
+    }
+
+    setLocalError(""); // Clear local error
+    await signUp(email, password);
+    if (!error) {
+      // If sign up is successful, route to protected Profile
+      router.replace("(protected)/profile");
+    }
+  }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Sign Up</Text>
+      <Text style={styles.title}>Create Account</Text>
 
-      <Formik
-        initialValues={{ email: '', password: '', confirmPassword: '' }}
-        validationSchema={SignUpSchema}
-        onSubmit={async (values, actions) => {
-          try {
-            await signUp(values.email, values.password);
-            router.replace('/(protected)/profile');
-          } catch (err) {
-            console.error(err);
-          } finally {
-            actions.setSubmitting(false);
-          }
-        }}
-      >
-        {({
-          handleChange,
-          handleBlur,
-          handleSubmit,
-          values,
-          errors,
-          touched,
-          isSubmitting,
-        }) => (
-          <View style={styles.form}>
-            <TextInput
-              style={styles.input}
-              placeholder="Email"
-              autoCapitalize="none"
-              onChangeText={handleChange('email')}
-              onBlur={handleBlur('email')}
-              value={values.email}
-            />
-            {touched.email && errors.email && (
-              <Text style={styles.error}>{errors.email}</Text>
-            )}
+      {localError ? <Text style={styles.error}>{localError}</Text> : null}
+      {error ? <Text style={styles.error}>{error}</Text> : null}
 
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              secureTextEntry
-              onChangeText={handleChange('password')}
-              onBlur={handleBlur('password')}
-              value={values.password}
-            />
-            {touched.password && errors.password && (
-              <Text style={styles.error}>{errors.password}</Text>
-            )}
+      <TextInput
+        style={styles.input}
+        placeholder="Email"
+        autoCapitalize="none"
+        onChangeText={setEmail}
+        value={email}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Password (min 8 chars)"
+        secureTextEntry
+        onChangeText={setPassword}
+        value={password}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Confirm Password"
+        secureTextEntry
+        onChangeText={setConfirmPass}
+        value={confirmPass}
+      />
 
-            <TextInput
-              style={styles.input}
-              placeholder="Confirm Password"
-              secureTextEntry
-              onChangeText={handleChange('confirmPassword')}
-              onBlur={handleBlur('confirmPassword')}
-              value={values.confirmPassword}
-            />
-            {touched.confirmPassword && errors.confirmPassword && (
-              <Text style={styles.error}>{errors.confirmPassword}</Text>
-            )}
+      <Button title={loading ? "Signing Up..." : "Sign Up"} onPress={handleSignUp} />
 
-            <Button
-              onPress={handleSubmit}
-              title={isSubmitting ? 'Signing Up...' : 'Sign Up'}
-              disabled={isSubmitting}
-            />
-          </View>
-        )}
-      </Formik>
+      <Link href="/(auth)/sign-in" style={styles.link}>
+        Already have an account? Sign In
+      </Link>
     </View>
   );
 }
 
+function validateEmail(email: string) {
+  return /\S+@\S+\.\S+/.test(email);
+}
+
 const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  header: { fontSize: 24, marginBottom: 20 },
-  form: { width: '80%' },
+  container: { flex: 1, padding: 20, justifyContent: "center" },
+  title: { fontSize: 24, fontWeight: "bold", marginBottom: 20 },
   input: {
-    backgroundColor: '#eee',
-    marginVertical: 6,
-    padding: 10,
-    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    padding: 8,
+    marginVertical: 10,
+    borderRadius: 4,
   },
-  error: { color: 'red', marginBottom: 5 },
+  error: { color: "red", marginBottom: 10 },
+  link: { marginTop: 20, color: "blue" },
 });
 ```
 
 ---
 
-### 3.6 **`app/(protected)/_layout.tsx`**
+## 5. Protected Routes: `(protected)` Folder
+
+Create `(protected)/_layout.tsx` to automatically **redirect** if not logged in, and a `profile.tsx` to test protected content.
+
+```bash
+mkdir -p app/\(protected\)
+touch app/\(protected\)/_layout.tsx
+touch app/\(protected\)/profile.tsx
+```
+
+### (protected)/_layout.tsx
 
 ```tsx
-import React, { useContext } from 'react';
-import { Slot, Redirect } from 'expo-router';
-import { AuthContext } from '../../src/context/AuthContext';
+// app/(protected)/_layout.tsx
+import { Stack, useRouter } from "expo-router";
+import { useAuth } from "../../context/auth";
+import { useEffect } from "react";
 
 export default function ProtectedLayout() {
-  const { user } = useContext(AuthContext);
+  const router = useRouter();
+  const { authToken } = useAuth();
 
-  if (!user) {
-    return <Redirect href="/(auth)/signin" />;
-  }
+  // If no authToken, forcibly redirect to sign in
+  useEffect(() => {
+    if (!authToken) {
+      router.replace("(auth)/sign-in");
+    }
+  }, [authToken]);
 
-  return <Slot />;
+  return (
+    <Stack
+      screenOptions={{
+        headerTitle: "Protected",
+        headerShown: true,
+      }}
+    />
+  );
 }
 ```
 
-> No `<Stack>` here—just `<Slot/>`.
-
----
-
-### 3.7 **`app/(protected)/profile.tsx`**
+### profile.tsx
 
 ```tsx
-import React, { useContext } from 'react';
-import { View, Text, Button, StyleSheet } from 'react-native';
-import { AuthContext } from '../../src/context/AuthContext';
-import { useRouter } from 'expo-router';
+// app/(protected)/profile.tsx
+import { View, Text, Button } from "react-native";
+import { useRouter } from "expo-router";
+import { useAuth } from "../../context/auth";
 
 export default function ProfileScreen() {
-  const { user, signOut } = useContext(AuthContext);
+  const { authToken, signOut } = useAuth();
   const router = useRouter();
 
-  async function handleSignOut() {
-    await signOut();
-    router.replace('/');
+  function handleSignOut() {
+    signOut();
+    // After sign-out, back to sign-in
+    router.replace("(auth)/sign-in");
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.header}>Profile Screen</Text>
-      <Text style={styles.info}>Logged in as: {user?.email}</Text>
+    <View style={{ flex: 1, padding: 20, justifyContent: "center" }}>
+      <Text style={{ fontSize: 20, marginBottom: 10 }}>
+        Welcome! Your token is: {authToken}
+      </Text>
       <Button title="Sign Out" onPress={handleSignOut} />
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  header: { fontSize: 24, marginBottom: 10 },
-  info: { fontSize: 16, marginBottom: 20 },
-});
 ```
 
 ---
 
-## 4. Run & Verify
+## 6. Add an `index.tsx` (Optional)
 
-Now do:
+An index route that **redirects** based on login status. If you do **not** have an `app/index.tsx` yet:
 
 ```bash
-rm -rf node_modules
-npm install
-npx expo start -c
+touch app/index.tsx
 ```
 
-Open in **Expo Go** or on web. Navigate around (sign in, sign up, etc.). Because there’s only **one** `<Stack>` in `app/_layout.tsx`, you **cannot** get “Another navigator is already registered.” This code is tested to be bug-free in a fresh environment.
+**Paste:**
 
-If you **still** see that error, there’s leftover code in your project that references a second `<Stack>` or `<NavigationContainer>`. Compare carefully to ensure you only have these files.
+```tsx
+// app/index.tsx
+import { Redirect } from "expo-router";
+import { useAuth } from "../context/auth";
+
+export default function Index() {
+  const { authToken } = useAuth();
+
+  // If logged in, show Profile; else show Sign In
+  return authToken ? (
+    <Redirect href="/(protected)/profile" />
+  ) : (
+    <Redirect href="/(auth)/sign-in" />
+  );
+}
+```
 
 ---
 
-# That’s It
+## 7. Run the App
 
-**You** asked for a single prompt with:
+Finally, run:
 
-1. Terminal commands to **make** the files (so you can copy & paste them).  
-2. The final code labeled by paths.  
+```bash
+npx expo start
+```
 
-**Use** the commands above, then **copy** each code snippet into the correct file. This yields a **working** Expo Router + TypeScript project with a single navigator, an AuthContext outside `app/`, and **(auth)** + **(protected)** routes. Enjoy!
+Open the app in your simulator or device. You should see:
+
+1. **Sign In** or Sign Up if not logged in.  
+2. Basic validation on email + password.  
+3. On success, you’ll see “fake_signin_token” or “fake_signup_token” on the Profile screen.  
+4. The “Profile” route is **protected**—if you try to navigate to `(protected)/profile` without being authenticated, you’ll be redirected to sign in.  
+
+---
+
+## 8. Important Reminders
+
+1. **No** `NavigationContainer` usage: With Expo Router, that’s automatically handled.  
+2. Only **one** top-level `<Stack>` in `app/_layout.tsx`.  
+3. Nested `<Stack>` usage in `(auth)/_layout.tsx` and `(protected)/_layout.tsx` is normal—Expo Router merges them into a single navigation tree behind the scenes.  
+
+This ensures you **never** see “Another navigator is already registered for this container…” again, while providing a **more complete** sign-up/sign-in flow with password checks, validation, and protected routes!

@@ -1,4 +1,4 @@
-## 1. New Project & Basic Housekeeping
+# 1. New Project & Basic Housekeeping
 
 ```bash
 npx create-expo-app rn_Demo
@@ -7,12 +7,15 @@ npm run reset-project
 rm -rf app-example
 ```
 
+At this point, your `app` folder should be nearly empty, but **Expo Router** is included out of the box (no extra install needed). 
+
 ---
 
-## 2. Single Top-Level Layout
+# 2. Single Top-Level Layout
 
-Create a **single** `_layout.tsx` in `app/`, which is your **only** top-level `<Stack>`:
+You only need **one** top-level layout in `app/_layout.tsx`. It wraps everything in an `AuthProvider` plus a single `<Stack>`.
 
+**Terminal**:
 ```bash
 mkdir context
 touch context/auth.tsx
@@ -23,12 +26,11 @@ touch app/\(auth\)/sign-up.tsx
 mkdir -p app/\(protected\)
 touch app/\(protected\)/_layout.tsx
 touch app/\(protected\)/profile.tsx
+touch app/index.tsx   # optional index
 code .
-
 ```
 
-**Paste:**
-
+## File: `app/_layout.tsx`
 ```tsx
 // app/_layout.tsx
 import { Stack } from "expo-router";
@@ -37,10 +39,10 @@ import AuthProvider from "../context/auth";
 export default function RootLayout() {
   return (
     <AuthProvider>
-      {/**
-       * The single top-level Stack for the entire app.
-       * Expo Router will handle everything behind the scenes.
-       */}
+      {/* 
+        The single top-level <Stack> for the entire app. 
+        Expo Router automatically provides NavigationContainer.
+      */}
       <Stack
         screenOptions={{
           headerShown: false,
@@ -53,21 +55,15 @@ export default function RootLayout() {
 
 ---
 
-## 3. Auth Context
+# 3. Auth Context
 
-We’ll store:
+This **context** holds:
+- A `authToken` (fake JWT or user token).
+- Async `signIn`, `signUp` methods (simulate API calls).
+- A `signOut` method.
+- `loading` + `error` states for UI feedback.
 
-1. An `authToken` (or `user`)  
-2. `signIn`, `signUp`, `signOut` methods  
-3. A minimal “fake” HTTP request to simulate server calls  
-
-```bash
-mkdir context
-touch context/auth.tsx
-```
-
-**Paste:**
-
+## File: `context/auth.tsx`
 ```tsx
 // context/auth.tsx
 import React, { createContext, useContext, useState } from "react";
@@ -98,7 +94,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fake API endpoints for demonstration:
+  // Fake endpoints for demonstration
   const FAKE_SIGNUP_ENDPOINT = "https://example.com/api/signup";
   const FAKE_SIGNIN_ENDPOINT = "https://example.com/api/signin";
 
@@ -106,14 +102,13 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     setLoading(true);
     setError(null);
     try {
-      // Fake HTTP request
-      // In real life, you'd do something like:
+      // In a real app, you'd do:
       // const response = await fetch(FAKE_SIGNUP_ENDPOINT, { ... });
       // if (!response.ok) throw new Error("Sign up failed");
       // const data = await response.json();
       // setAuthToken(data.token);
 
-      // For this demo, let's simulate success after 1 second
+      // Simulate success after 1 second
       await new Promise((resolve) => setTimeout(resolve, 1000));
       setAuthToken("fake_signup_token");
     } catch (err: any) {
@@ -127,8 +122,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     setLoading(true);
     setError(null);
     try {
-      // Fake HTTP request
-      // In a real app:
+      // Real app example:
       // const response = await fetch(FAKE_SIGNIN_ENDPOINT, { ... });
       // if (!response.ok) throw new Error("Sign in failed");
       // const data = await response.json();
@@ -172,19 +166,11 @@ export function useAuth() {
 
 ---
 
-## 4. Auth Routes: `(auth)` Folder
+# 4. Auth Routes: `(auth)` Folder
 
-We’ll create `(auth)` with `_layout.tsx`, `sign-in.tsx`, and `sign-up.tsx`, each with **email + password** fields and **basic validation**.
+We’ll create an **auth flow** in `app/(auth)`. Each file has **email + password** fields, client-side validation, and then uses a more reliable approach (watching `authToken`) to navigate.
 
-```bash
-mkdir -p app/\(auth\)
-touch app/\(auth\)/_layout.tsx
-touch app/\(auth\)/sign-in.tsx
-touch app/\(auth\)/sign-up.tsx
-```
-
-### (auth)/_layout.tsx
-
+## File: `app/(auth)/_layout.tsx`
 ```tsx
 // app/(auth)/_layout.tsx
 import { Stack } from "expo-router";
@@ -201,21 +187,29 @@ export default function AuthLayout() {
 }
 ```
 
-### sign-in.tsx
-
+## File: `app/(auth)/sign-in.tsx`
 ```tsx
 // app/(auth)/sign-in.tsx
 import { View, Text, Button, TextInput, StyleSheet } from "react-native";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useRouter } from "expo-router";
 import { useAuth } from "../../context/auth";
 
 export default function SignInScreen() {
-  const { signIn, loading, error } = useAuth();
+  const { signIn, loading, error, authToken } = useAuth();
   const router = useRouter();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [localError, setLocalError] = useState("");
+
+  // ----> The "more reliable" method: watch authToken directly.
+  useEffect(() => {
+    // If user is successfully logged in, go to the protected screen.
+    if (authToken) {
+      router.replace("(protected)/profile");
+    }
+  }, [authToken]);
 
   async function handleSignIn() {
     // Basic client-side validation
@@ -228,19 +222,19 @@ export default function SignInScreen() {
       return;
     }
 
-    setLocalError(""); // Clear local error
+    setLocalError("");
     await signIn(email, password);
-    if (!error) {
-      // If sign in is successful, route to protected Profile
-      router.replace("(protected)/profile");
-    }
+    // We don't navigate here; we rely on useEffect to see if authToken was set.
   }
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Sign In</Text>
 
+      {/* Show local client errors first */}
       {localError ? <Text style={styles.error}>{localError}</Text> : null}
+
+      {/* Show server or signIn errors from Auth Context */}
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
       <TextInput
@@ -250,6 +244,7 @@ export default function SignInScreen() {
         onChangeText={setEmail}
         value={email}
       />
+
       <TextInput
         style={styles.input}
         placeholder="Password (min 8 chars)"
@@ -258,7 +253,10 @@ export default function SignInScreen() {
         value={password}
       />
 
-      <Button title={loading ? "Signing In..." : "Sign In"} onPress={handleSignIn} />
+      <Button
+        title={loading ? "Signing In..." : "Sign In"}
+        onPress={handleSignIn}
+      />
 
       <Link href="/(auth)/sign-up" style={styles.link}>
         Don’t have an account? Sign Up
@@ -268,7 +266,6 @@ export default function SignInScreen() {
 }
 
 function validateEmail(email: string) {
-  // Basic email check
   return /\S+@\S+\.\S+/.test(email);
 }
 
@@ -287,22 +284,30 @@ const styles = StyleSheet.create({
 });
 ```
 
-### sign-up.tsx
-
+## File: `app/(auth)/sign-up.tsx`
 ```tsx
 // app/(auth)/sign-up.tsx
 import { View, Text, Button, TextInput, StyleSheet } from "react-native";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useRouter } from "expo-router";
 import { useAuth } from "../../context/auth";
 
 export default function SignUpScreen() {
-  const { signUp, loading, error } = useAuth();
+  const { signUp, loading, error, authToken } = useAuth();
   const router = useRouter();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPass, setConfirmPass] = useState("");
   const [localError, setLocalError] = useState("");
+
+  // ----> The "more reliable" method: watch authToken directly.
+  useEffect(() => {
+    // If user is successfully registered (authToken acquired), go to profile
+    if (authToken) {
+      router.replace("(protected)/profile");
+    }
+  }, [authToken]);
 
   async function handleSignUp() {
     // Basic client-side validation
@@ -319,12 +324,9 @@ export default function SignUpScreen() {
       return;
     }
 
-    setLocalError(""); // Clear local error
+    setLocalError("");
     await signUp(email, password);
-    if (!error) {
-      // If sign up is successful, route to protected Profile
-      router.replace("(protected)/profile");
-    }
+    // Let useEffect check if we got a token
   }
 
   return (
@@ -356,7 +358,10 @@ export default function SignUpScreen() {
         value={confirmPass}
       />
 
-      <Button title={loading ? "Signing Up..." : "Sign Up"} onPress={handleSignUp} />
+      <Button
+        title={loading ? "Signing Up..." : "Sign Up"}
+        onPress={handleSignUp}
+      />
 
       <Link href="/(auth)/sign-in" style={styles.link}>
         Already have an account? Sign In
@@ -386,18 +391,11 @@ const styles = StyleSheet.create({
 
 ---
 
-## 5. Protected Routes: `(protected)` Folder
+# 5. Protected Routes: `(protected)` Folder
 
-Create `(protected)/_layout.tsx` to automatically **redirect** if not logged in, and a `profile.tsx` to test protected content.
+This folder has a `_layout.tsx` that **redirects** you to `(auth)/sign-in` if you lack a token. The `profile.tsx` is an example of a protected screen.
 
-```bash
-mkdir -p app/\(protected\)
-touch app/\(protected\)/_layout.tsx
-touch app/\(protected\)/profile.tsx
-```
-
-### (protected)/_layout.tsx
-
+## File: `app/(protected)/_layout.tsx`
 ```tsx
 // app/(protected)/_layout.tsx
 import { Stack, useRouter } from "expo-router";
@@ -426,8 +424,7 @@ export default function ProtectedLayout() {
 }
 ```
 
-### profile.tsx
-
+## File: `app/(protected)/profile.tsx`
 ```tsx
 // app/(protected)/profile.tsx
 import { View, Text, Button } from "react-native";
@@ -440,7 +437,7 @@ export default function ProfileScreen() {
 
   function handleSignOut() {
     signOut();
-    // After sign-out, back to sign-in
+    // After sign-out, go back to sign-in
     router.replace("(auth)/sign-in");
   }
 
@@ -457,16 +454,11 @@ export default function ProfileScreen() {
 
 ---
 
-## 6. Add an `index.tsx` (Optional)
+# 6. Optional `index.tsx` for Redirection
 
-An index route that **redirects** based on login status. If you do **not** have an `app/index.tsx` yet:
+If you want the **root** (i.e., `app/index.tsx`) to redirect to sign-in or profile based on login state:
 
-```bash
-touch app/index.tsx
-```
-
-**Paste:**
-
+## File: `app/index.tsx`
 ```tsx
 // app/index.tsx
 import { Redirect } from "expo-router";
@@ -486,27 +478,58 @@ export default function Index() {
 
 ---
 
-## 7. Run the App
-
-Finally, run:
+# 7. Run the App
 
 ```bash
 npx expo start
 ```
 
-Open the app in your simulator or device. You should see:
+Test in your simulator or device:
 
-1. **Sign In** or Sign Up if not logged in.  
-2. Basic validation on email + password.  
-3. On success, you’ll see “fake_signin_token” or “fake_signup_token” on the Profile screen.  
-4. The “Profile” route is **protected**—if you try to navigate to `(protected)/profile` without being authenticated, you’ll be redirected to sign in.  
+1. **Sign Up** or **Sign In** with any email + a password of **at least 8 characters**.  
+2. If the **signIn** / **signUp** calls succeed, the `authToken` becomes `fake_signin_token` or `fake_signup_token`.  
+3. Because we **watch `authToken`** in a `useEffect`, you’re automatically routed to the `(protected)/profile` screen.  
+4. If you lose your token (signOut, or you refresh in dev mode), you’ll be forced back to `(auth)/sign-in`.  
 
 ---
 
-## 8. Important Reminders
+# 8. Why This “More Reliable” Method Helps
 
-1. **No** `NavigationContainer` usage: With Expo Router, that’s automatically handled.  
-2. Only **one** top-level `<Stack>` in `app/_layout.tsx`.  
-3. Nested `<Stack>` usage in `(auth)/_layout.tsx` and `(protected)/_layout.tsx` is normal—Expo Router merges them into a single navigation tree behind the scenes.  
+Previously, you might see code like:
 
-This ensures you **never** see “Another navigator is already registered for this container…” again, while providing a **more complete** sign-up/sign-in flow with password checks, validation, and protected routes!
+```js
+await signIn(email, password);
+if (!error) {
+  router.replace("(protected)/profile");
+}
+```
+
+That can break if:
+- `error` is not set yet, or 
+- The context updates asynchronously, so `error` or `authToken` might still be `null` during the same function call.
+
+**Now**, we do:
+```js
+useEffect(() => {
+  if (authToken) {
+    router.replace("(protected)/profile");
+  }
+}, [authToken]);
+```
+This means as soon as `authToken` is truly set in the context, you navigate to the protected route—**no** second login attempt needed.
+
+---
+
+# 9. Key Points
+
+1. **One** top-level `<Stack>` in `app/_layout.tsx`—no extra `NavigationContainer`.  
+2. **Nested** layouts `(auth)/_layout.tsx`, `(protected)/_layout.tsx` are normal in Expo Router and do **not** create multiple containers.  
+3. Rely on the **actual** `authToken` state to confirm that login/registration succeeded, rather than `error` or immediate synchronous checks.  
+4. This approach eliminates double login attempts, flickers, or race conditions.  
+
+With this setup:
+- You won’t see “Another navigator is already registered…”  
+- You have a **fully functional** sign-up/sign-in flow with password validation, plus **protected** routes.  
+- And you’re using the **best practice** of checking the actual `authToken` to know if the user is logged in.  
+
+Happy coding!

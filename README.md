@@ -7,24 +7,6 @@ npm run reset-project
 rm -rf app-example
 ```
 
-Then:
-
-```bash
-npm install expo-router
-```
-
-Ensure `package.json` says:
-
-```jsonc
-{
-  "main": "expo-router/entry",
-  "dependencies": {
-    "expo-router": "...",
-    // ...
-  }
-}
-```
-
 ---
 
 ## 2. Single Top-Level Layout
@@ -32,7 +14,17 @@ Ensure `package.json` says:
 Create a **single** `_layout.tsx` in `app/`, which is your **only** top-level `<Stack>`:
 
 ```bash
-touch app/_layout.tsx
+mkdir context
+touch context/auth.tsx
+mkdir -p app/\(auth\)
+touch app/\(auth\)/_layout.tsx
+touch app/\(auth\)/sign-in.tsx
+touch app/\(auth\)/sign-up.tsx
+mkdir -p app/\(protected\)
+touch app/\(protected\)/_layout.tsx
+touch app/\(protected\)/profile.tsx
+code .
+
 ```
 
 **Paste:**

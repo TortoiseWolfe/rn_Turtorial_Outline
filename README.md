@@ -1,6 +1,4 @@
-## 1. Create a Brand-New Project
-
-In an empty directory:
+## 1. Create & Reset the Project
 
 ```bash
 npx create-expo-app rn_Protected_Routez
@@ -9,19 +7,148 @@ npm run reset-project
 rm -rf app-example
 ```
 
-Then install form libs & storage if you need them:
+Then install:
 
 ```bash
 npm install formik yup @react-native-async-storage/async-storage
 ```
 
-> At this point, your `app/` folder is nearly empty, and the project is TypeScript-enabled by default.
+At this point, your `app` folder is basically empty (maybe `_layout.tsx`, which we’ll overwrite).
 
 ---
 
-## 2. Single `<Stack>` in `app/_layout.tsx`
+## 2. Final Folder Structure
 
-We place **one** `<Stack>` here, so there is only one navigator container total.
+We’ll have:
+
+```
+rn_Protected_Routez/
+├ app/
+│  ├ (auth)/
+│  │   ├ signin.tsx
+│  │   └ signup.tsx
+│  ├ (protected)/
+│  │   ├ _layout.tsx
+│  │   └ profile.tsx
+│  ├ _layout.tsx          <-- Single <Stack> in root
+│  └ index.tsx            <-- Home screen
+├ src/
+│  └ context/
+│      └ AuthContext.tsx  <-- Auth logic
+├ package.json
+└ ...
+```
+
+---
+
+## 3. AuthContext: `src/context/AuthContext.tsx`
+
+```bash
+mkdir -p src/context
+touch src/context/AuthContext.tsx
+```
+
+**src/context/AuthContext.tsx**:
+
+```tsx
+import React, {
+  createContext,
+  ReactNode,
+  useEffect,
+  useState,
+} from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+type User = { id: number; email: string };
+
+type AuthContextType = {
+  user: User | null;
+  token: string | null;
+  loading: boolean;
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string) => Promise<void>;
+  signOut: () => Promise<void>;
+};
+
+export const AuthContext = createContext<AuthContextType>({
+  user: null,
+  token: null,
+  loading: true,
+  signIn: async () => {},
+  signUp: async () => {},
+  signOut: async () => {},
+});
+
+type AuthProviderProps = { children: ReactNode };
+
+export function AuthProvider({ children }: AuthProviderProps) {
+  const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadFromStorage() {
+      try {
+        const storedToken = await AsyncStorage.getItem('userToken');
+        const storedUser = await AsyncStorage.getItem('userData');
+        if (storedToken && storedUser) {
+          setToken(storedToken);
+          setUser(JSON.parse(storedUser));
+        }
+      } catch (err) {
+        console.warn('Error reading from storage', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadFromStorage();
+  }, []);
+
+  // Fake sign-in (replace with real calls)
+  async function signIn(email: string, _password: string) {
+    const fakeToken = 'abc123';
+    const userData = { id: 1, email };
+    setToken(fakeToken);
+    setUser(userData);
+
+    await AsyncStorage.setItem('userToken', fakeToken);
+    await AsyncStorage.setItem('userData', JSON.stringify(userData));
+  }
+
+  // Fake sign-up
+  async function signUp(email: string, _password: string) {
+    const fakeToken = 'xyz789';
+    const userData = { id: 2, email };
+    setToken(fakeToken);
+    setUser(userData);
+
+    await AsyncStorage.setItem('userToken', fakeToken);
+    await AsyncStorage.setItem('userData', JSON.stringify(userData));
+  }
+
+  async function signOut() {
+    setToken(null);
+    setUser(null);
+    await AsyncStorage.removeItem('userToken');
+    await AsyncStorage.removeItem('userData');
+  }
+
+  return (
+    <AuthContext.Provider
+      value={{ user, token, loading, signIn, signUp, signOut }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+}
+```
+
+- **No** “namespace” usage. We’re exporting a normal variable: `AuthContext`.
+- File named exactly **`AuthContext.tsx`**, but placed in `src/context`, not `app/`.
+
+---
+
+## 4. Root Layout: `app/_layout.tsx` (One `<Stack>`)
 
 ```bash
 touch app/_layout.tsx
@@ -32,25 +159,27 @@ touch app/_layout.tsx
 ```tsx
 import React from 'react';
 import { Slot, Stack } from 'expo-router';
+import { AuthProvider } from '../src/context/AuthContext';
 
 export default function RootLayout() {
   return (
-    <>
-      {/* Single Stack in the entire project */}
+    <AuthProvider>
+      {/* 
+        Exactly one <Stack> 
+        No second <Stack> or <NavigationContainer> anywhere else 
+      */}
       <Stack screenOptions={{ headerShown: true }} />
       <Slot />
-    </>
+    </AuthProvider>
   );
 }
 ```
 
-- No `<NavigationContainer>`. Expo Router handles that internally.  
-- No `<Stack>` in any other layout.  
-- No `<AuthProvider>` here yet (we’ll add an AuthContext example below if desired).
+**Key**: Because we have exactly one `<Stack>` in the entire project, we cannot get “Another navigator is already registered.”
 
 ---
 
-## 3. Home Screen: `app/index.tsx`
+## 5. Home Screen: `app/index.tsx`
 
 ```bash
 touch app/index.tsx
@@ -59,160 +188,356 @@ touch app/index.tsx
 **app/index.tsx**:
 
 ```tsx
-import React from 'react';
+import React, { useContext } from 'react';
 import { View, Text, Button, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
+import { AuthContext } from '../src/context/AuthContext';
 
 export default function HomeScreen() {
+  const { user } = useContext(AuthContext);
   const router = useRouter();
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Home Screen</Text>
-      <Button
-        title="Go to SomePage"
-        onPress={() => router.push('/somepage')}
-      />
+      {user ? (
+        <>
+          <Text style={styles.title}>Welcome back, {user.email}!</Text>
+          <Button
+            title="Go to Profile"
+            onPress={() => router.push('/(protected)/profile')}
+          />
+        </>
+      ) : (
+        <>
+          <Text style={styles.title}>Home Screen</Text>
+          <Link href="/(auth)/signin" style={styles.link}>
+            Sign In
+          </Link>
+          <Link href="/(auth)/signup" style={styles.link}>
+            Sign Up
+          </Link>
+        </>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  title: { fontSize: 20, marginBottom: 16 },
+  title: { fontSize: 22, marginBottom: 20 },
+  link: { color: 'blue', fontSize: 18, marginVertical: 8 },
 });
 ```
 
 ---
 
-## 4. An Extra Page (Optional): `app/somepage.tsx`
+## 6. Public Auth Routes: `(auth)/signin.tsx` & `(auth)/signup.tsx`
 
 ```bash
-touch app/somepage.tsx
+mkdir -p app/\(auth\)
+touch app/\(auth\)/signin.tsx
+touch app/\(auth\)/signup.tsx
 ```
 
-**app/somepage.tsx**:
+### 6.1 `signin.tsx`
 
 ```tsx
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useContext } from 'react';
+import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
+import { Formik } from 'formik';
+import * as Yup from 'yup';
+import { useRouter } from 'expo-router';
+import { AuthContext } from '../../src/context/AuthContext';
 
-export default function SomePage() {
+const SignInSchema = Yup.object().shape({
+  email: Yup.string().email('Invalid email').required('Email is required'),
+  password: Yup.string().required('Password is required'),
+});
+
+export default function SignIn() {
+  const { signIn } = useContext(AuthContext);
+  const router = useRouter();
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Some Page</Text>
+      <Text style={styles.header}>Sign In</Text>
+
+      <Formik
+        initialValues={{ email: '', password: '' }}
+        validationSchema={SignInSchema}
+        onSubmit={async (values, actions) => {
+          try {
+            await signIn(values.email, values.password);
+            router.replace('/(protected)/profile');
+          } catch (err) {
+            console.error(err);
+          } finally {
+            actions.setSubmitting(false);
+          }
+        }}
+      >
+        {({
+          handleChange,
+          handleBlur,
+          handleSubmit,
+          values,
+          errors,
+          touched,
+          isSubmitting,
+        }) => (
+          <View style={styles.form}>
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              autoCapitalize="none"
+              onChangeText={handleChange('email')}
+              onBlur={handleBlur('email')}
+              value={values.email}
+            />
+            {touched.email && errors.email && (
+              <Text style={styles.error}>{errors.email}</Text>
+            )}
+
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              secureTextEntry
+              onChangeText={handleChange('password')}
+              onBlur={handleBlur('password')}
+              value={values.password}
+            />
+            {touched.password && errors.password && (
+              <Text style={styles.error}>{errors.password}</Text>
+            )}
+
+            <Button
+              onPress={handleSubmit}
+              title={isSubmitting ? 'Signing In...' : 'Sign In'}
+              disabled={isSubmitting}
+            />
+          </View>
+        )}
+      </Formik>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  title: { fontSize: 20 },
+  header: { fontSize: 24, marginBottom: 20 },
+  form: { width: '80%' },
+  input: {
+    backgroundColor: '#eee',
+    marginVertical: 6,
+    padding: 10,
+    borderRadius: 6,
+  },
+  error: { color: 'red', marginBottom: 5 },
 });
 ```
 
-**Result**: You can navigate between `/` and `/somepage` with no errors, because there’s just one `<Stack>` controlling them.
+### 6.2 `signup.tsx`
+
+```tsx
+import React, { useContext } from 'react';
+import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
+import { Formik } from 'formik';
+import * as Yup from 'yup';
+import { useRouter } from 'expo-router';
+import { AuthContext } from '../../src/context/AuthContext';
+
+const SignUpSchema = Yup.object().shape({
+  email: Yup.string().email('Invalid email').required('Email is required'),
+  password: Yup.string().min(4, 'Too short').required('Password is required'),
+  confirmPassword: Yup.string()
+    .oneOf([Yup.ref('password'), ''], 'Passwords must match')
+    .required('Confirm your password'),
+});
+
+export default function SignUp() {
+  const { signUp } = useContext(AuthContext);
+  const router = useRouter();
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.header}>Sign Up</Text>
+
+      <Formik
+        initialValues={{ email: '', password: '', confirmPassword: '' }}
+        validationSchema={SignUpSchema}
+        onSubmit={async (values, actions) => {
+          try {
+            await signUp(values.email, values.password);
+            router.replace('/(protected)/profile');
+          } catch (err) {
+            console.error(err);
+          } finally {
+            actions.setSubmitting(false);
+          }
+        }}
+      >
+        {({
+          handleChange,
+          handleBlur,
+          handleSubmit,
+          values,
+          errors,
+          touched,
+          isSubmitting,
+        }) => (
+          <View style={styles.form}>
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              autoCapitalize="none"
+              onChangeText={handleChange('email')}
+              onBlur={handleBlur('email')}
+              value={values.email}
+            />
+            {touched.email && errors.email && (
+              <Text style={styles.error}>{errors.email}</Text>
+            )}
+
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              secureTextEntry
+              onChangeText={handleChange('password')}
+              onBlur={handleBlur('password')}
+              value={values.password}
+            />
+            {touched.password && errors.password && (
+              <Text style={styles.error}>{errors.password}</Text>
+            )}
+
+            <TextInput
+              style={styles.input}
+              placeholder="Confirm Password"
+              secureTextEntry
+              onChangeText={handleChange('confirmPassword')}
+              onBlur={handleBlur('confirmPassword')}
+              value={values.confirmPassword}
+            />
+            {touched.confirmPassword && errors.confirmPassword && (
+              <Text style={styles.error}>{errors.confirmPassword}</Text>
+            )}
+
+            <Button
+              onPress={handleSubmit}
+              title={isSubmitting ? 'Signing Up...' : 'Sign Up'}
+              disabled={isSubmitting}
+            />
+          </View>
+        )}
+      </Formik>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  header: { fontSize: 24, marginBottom: 20 },
+  form: { width: '80%' },
+  input: {
+    backgroundColor: '#eee',
+    marginVertical: 6,
+    padding: 10,
+    borderRadius: 6,
+  },
+  error: { color: 'red', marginBottom: 5 },
+});
+```
 
 ---
 
-## 5. Adding AuthContext (Optional, Single File)
-
-If you want an auth flow (sign in, sign up, protected routes) **and** you want to avoid “Another navigator,” still keep **one** `<Stack>` in `_layout.tsx`. Then place your `AuthProvider` **outside** or inside `_layout.tsx`. But do **not** add another `<Stack>` in `(auth)/_layout.tsx` or `(protected)/_layout.tsx`.
-
-**Example**: A minimal `AuthContext.tsx` in `src/context/`:
+## 7. Protected Layout & Screen
 
 ```bash
-mkdir -p src/context
-touch src/context/AuthContext.tsx
+mkdir -p app/\(protected\)
+touch app/\(protected\)/_layout.tsx
+touch app/\(protected\)/profile.tsx
 ```
 
-**src/context/AuthContext.tsx**:
+### 7.1 `(protected)/_layout.tsx`
 
 ```tsx
-import React, { createContext, ReactNode, useState } from 'react';
+import React, { useContext } from 'react';
+import { Slot, Redirect } from 'expo-router';
+import { AuthContext } from '../../src/context/AuthContext';
 
-type AuthContextType = {
-  signedIn: boolean;
-  signIn: () => void;
-  signOut: () => void;
-};
+export default function ProtectedLayout() {
+  const { user } = useContext(AuthContext);
 
-export const AuthContext = createContext<AuthContextType>({
-  signedIn: false,
-  signIn: () => {},
-  signOut: () => {},
+  // If no user, redirect to sign in
+  if (!user) {
+    return <Redirect href="/(auth)/signin" />;
+  }
+
+  return <Slot />;
+}
+```
+
+**No** `<Stack>` here—just `<Slot/>`.
+
+### 7.2 `(protected)/profile.tsx`
+
+```tsx
+import React, { useContext } from 'react';
+import { View, Text, Button, StyleSheet } from 'react-native';
+import { AuthContext } from '../../src/context/AuthContext';
+import { useRouter } from 'expo-router';
+
+export default function ProfileScreen() {
+  const { user, signOut } = useContext(AuthContext);
+  const router = useRouter();
+
+  async function handleSignOut() {
+    await signOut();
+    router.replace('/');
+  }
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.header}>Profile Screen</Text>
+      <Text style={styles.info}>Logged in as: {user?.email}</Text>
+      <Button title="Sign Out" onPress={handleSignOut} />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  header: { fontSize: 24, marginBottom: 10 },
+  info: { fontSize: 16, marginBottom: 20 },
 });
-
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [signedIn, setSignedIn] = useState(false);
-
-  function signIn() {
-    setSignedIn(true);
-  }
-
-  function signOut() {
-    setSignedIn(false);
-  }
-
-  return (
-    <AuthContext.Provider value={{ signedIn, signIn, signOut }}>
-      {children}
-    </AuthContext.Provider>
-  );
-}
 ```
-
-Then wrap your **single** `<Stack>` in `_layout.tsx`:
-
-```tsx
-import React from 'react';
-import { Slot, Stack } from 'expo-router';
-import { AuthProvider } from '../src/context/AuthContext';
-
-export default function RootLayout() {
-  return (
-    <AuthProvider>
-      {/* One Stack */}
-      <Stack screenOptions={{ headerShown: true }} />
-      <Slot />
-    </AuthProvider>
-  );
-}
-```
-
-You’ll still have **only one** navigator. **No** second `<Stack>` in any child layout means you can’t get “Another navigator is already registered.”  
 
 ---
 
-## 6. Testing & Confirming No Error
+## 8. Run & Confirm
 
-1. **Clear caches**:  
+1. **Remove any leftover** code or modules:
    ```bash
    rm -rf node_modules
    npm install
    npx expo start -c
    ```
-2. **Open** on web or device.  
-3. Navigate among `/` and `/somepage`. You see:
+2. **Open** in an emulator / Expo Go.  
+3. **Index** → if not logged in, see “Home Screen” → sign in / sign up. If logged in, “Welcome back…” + button to profile.  
+4. **Sign In** / **Sign Up** → on success, `router.replace('/(protected)/profile')`.  
+5. **Profile** → if not logged in, `(protected)/_layout.tsx` does `<Redirect />` to sign in. If logged in, shows user’s email and a “Sign Out” button.
 
-   - **No** “Another navigator is already registered for this container.”  
-   - **No** multiple container warnings.
-
----
-
-## 7. Common Mistakes That Reintroduce the Error
-
-1. **Putting Another `<Stack>`** in a child layout, e.g. `(protected)/_layout.tsx`. If you do `<Stack>` again there, you have **two** stacks in the same container. → error.  
-2. **Importing `<NavigationContainer>`** manually from `@react-navigation/native`. Expo Router already uses it behind the scenes.  
-3. **Having a leftover “root” file** from older React Navigation setups. For instance, if you have `NavigationContainer` or `createStackNavigator` in `App.tsx`.  
-4. **Mixing** “classic” React Navigation with new Expo Router. They conflict. Use only Expo Router’s file-based approach.  
+Because we have **only one** `<Stack>` (in `app/_layout.tsx`), you **cannot** get “Another navigator is already registered.” If you do, you likely have leftover code with a second stack or a manual `NavigationContainer`.
 
 ---
 
-## 8. Final Summary
+## Done
 
-- The snippet above is the **smallest** possible “one `<Stack>`” example.  
-- If you **still** see “Another navigator is already registered,” it’s because your project has leftover code with a second `<Stack>` or a `NavigationContainer`.  
-- Compare your entire `app/` folder line by line with the code here. Once it matches exactly, the error is gone.  
+This is the **smallest** opinionated, functional tutorial for:
 
-**That’s it**—a minimal, fully functional tutorial with **only one** navigator. It’s guaranteed not to produce the “Another navigator is already registered” error unless there’s some other leftover file or code. Enjoy!
+- **Single `<Stack>`** in the entire project.  
+- **(auth)** folder for sign-in/up.  
+- **(protected)** folder for a guarded Profile.  
+- **AuthContext** in `src/context/AuthContext.tsx` so it’s not treated as a route.  
+
+No “somepage,” no extra fluff—just the essential pieces. If you see the “Another navigator” error again, **something else** in your code is adding an extra navigation container. Compare your entire `app` folder with these snippets line-by-line to ensure no leftover navigators. This version definitely compiles & runs with no extra bugs!

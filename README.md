@@ -1,486 +1,596 @@
+
+## 1. Scaffold with Your Commands
+
+**Copy & run these commands to scaffold**:
+
 ```bash
-# Copy & run these commands to scaffold:
 npx create-expo-app rn_Protected_Routez
 cd rn_Protected_Routez
 npm run reset-project
 rm -rf app-example
+```
 
-# Install NativeWind + Tailwind
-npx expo install nativewind tailwindcss
-npx tailwindcss init
+At this point, you have a fresh Expo app with TypeScript, Expo Router, and an empty `app` folder. **No need** to reconfigure TS or install Expo Router because your reset script already sets it all up.
 
-# Create config stubs
-touch global.css
-touch babel.config.js
-npx expo customize metro.config.js
-
-# TypeScript + env usage
-touch nativewind-env.d.ts
-npm install zod @supabase/supabase-js
-
-# Steampunk fonts
-npx expo install expo-font @expo-google-fonts/special-elite @expo-google-fonts/arbutus-slab
-
-# No quotes .env.local
-touch .env.local
-
-# Make dirs with quotes for (auth) + (protected)
-mkdir -p "lib"
-mkdir -p "context"
-mkdir -p "app/(auth)"
-mkdir -p "app/(protected)"
-
-# Touch final files
-touch "lib/supabaseClient.ts"
-touch "app/(auth)/signUp.tsx"
-touch "app/(auth)/signIn.tsx"
-touch "app/(protected)/_layout.tsx"
-touch "app/(protected)/profile.tsx"
-touch "app/_layout.tsx"
-touch "app/index.tsx"
-touch "context/theme.tsx"
-code .
+If you haven’t added **Formik**, **Yup**, or **Async Storage**, run:
+```bash
+npm install formik yup @react-native-async-storage/async-storage
 ```
 
 ---
 
-#### 1) **`.env.local`** (No quotes)
-```ini
-EXPO_PUBLIC_SUPABASE_URL=https://YOUR_SUBDOMAIN.supabase.co
-EXPO_PUBLIC_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
-ENV_PUBLIC_GREETING=Hello from .env local
-ENV_PUBLIC_VERSION=1.2.3
+## 2. Project Structure
+
+We’ll use **(auth)** for public auth screens (Sign In, Sign Up) and **(protected)** for restricted screens (Profile). The `app/_layout.tsx` wraps **everything** in an `AuthProvider`. Then `(protected)/_layout.tsx` checks if the user is logged in before rendering the sub-routes.
+
+A final structure:
+
 ```
-*(Replace placeholders. No quotes. This ensures Supabase + env vars load correctly.)*
+app/
+├ (auth)/
+│   ├ signin.tsx
+│   ├ signup.tsx
+├ (protected)/
+│   ├ _layout.tsx     <-- Protect all screens in (protected) folder
+│   └ profile.tsx
+├ context/
+│   └ AuthContext.tsx <-- Global auth state
+├ _layout.tsx          <-- Root layout
+└ index.tsx            <-- Home screen
+```
+
+Below, we’ll **create** each file with `touch` and then **paste** the code.
 
 ---
 
-#### 2) **`tailwind.config.js`**
-```js
-/** @type {import('tailwindcss').Config} */
-module.exports = {
-  content: ["./app/**/*.{js,jsx,ts,tsx}"],
-  presets: [require("nativewind/preset")],
-  theme: {
-    extend: {}
-  },
-  plugins: []
-};
+## 3. Global Auth Context
+
+We need a `context/AuthContext.tsx` to manage:
+- `user` and `token`
+- `signIn`, `signUp`, `signOut`
+- A `loading` state while we check storage
+
+### 3.1 Create & Paste
+
+```bash
+mkdir -p app/context
+touch app/context/AuthContext.tsx
 ```
 
-#### 3) **`global.css`**
-```css
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-```
+Now **paste**:
 
-#### 4) **`babel.config.js`**
-```js
-module.exports = function (api) {
-  api.cache(true);
-  return {
-    presets: [
-      ["babel-preset-expo", { jsxImportSource: "nativewind" }],
-      "nativewind/babel"
-    ]
-  };
-};
-```
+```tsx
+import React, { createContext, useState, useEffect, ReactNode } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-#### 5) **`metro.config.js`**
-```js
-const { getDefaultConfig } = require("expo/metro-config");
-const { withNativeWind } = require("nativewind/metro");
-
-/** @type {import('expo/metro-config').MetroConfig} */
-const config = getDefaultConfig(__dirname);
-
-module.exports = withNativeWind(config, {
-  input: "./global.css"
-});
-```
-
-#### 6) **`nativewind-env.d.ts`**
-```ts
-/// <reference types="nativewind/types" />
-```
-*(Ensures typed `className` usage in RN components.)*
-
----
-
-### **Supabase Client**: **`lib/supabaseClient.ts`**
-```ts
-import { createClient } from "@supabase/supabase-js";
-
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error("Supabase URL or anon key missing in .env.local!");
-}
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-```
-
----
-
-### **Global Theme**: **`context/theme.tsx`** (outside `app/`)
-```ts
-import React, { createContext, useContext, useState } from "react";
-
-type ThemeContextType = {
-  darkMode: boolean;
-  toggleTheme: () => void;
+type User = {
+  id: number;
+  email: string;
 };
 
-const ThemeContext = createContext<ThemeContextType>({
-  darkMode: true, // default dark
-  toggleTheme: () => {}
+type AuthContextType = {
+  user: User | null;
+  token: string | null;
+  loading: boolean;
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string) => Promise<void>;
+  signOut: () => Promise<void>;
+};
+
+export const AuthContext = createContext<AuthContextType>({
+  user: null,
+  token: null,
+  loading: true,
+  signIn: async () => {},
+  signUp: async () => {},
+  signOut: async () => {},
 });
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [darkMode, setDarkMode] = useState(true); // Start dark everywhere
+type Props = {
+  children: ReactNode;
+};
 
-  function toggleTheme() {
-    setDarkMode(prev => !prev);
-  }
-
-  return (
-    <ThemeContext.Provider value={{ darkMode, toggleTheme }}>
-      {children}
-    </ThemeContext.Provider>
-  );
-}
-
-export function useTheme() {
-  return useContext(ThemeContext);
-}
-```
-
-*(We place it in `context/theme.tsx` so expo-router doesn’t treat it as a route. No missing default export warning.)*
-
----
-
-### **Root Layout**: **`app/_layout.tsx`**
-```tsx
-import { Slot } from "expo-router";
-import { useFonts } from "expo-font";
-import "../global.css";
-import {
-  SpecialElite_400Regular
-} from "@expo-google-fonts/special-elite";
-import {
-  ArbutusSlab_400Regular
-} from "@expo-google-fonts/arbutus-slab";
-import React from "react";
-import { ThemeProvider } from "../context/theme";
-import { View, Text } from "react-native";
-
-export default function RootLayout() {
-  const [fontsLoaded] = useFonts({
-    SpecialElite_400Regular,
-    ArbutusSlab_400Regular
-  });
-
-  if (!fontsLoaded) {
-    return (
-      <View className="flex-1 items-center justify-center bg-black">
-        <Text className="text-white">Loading fonts...</Text>
-      </View>
-    );
-  }
-
-  return (
-    <ThemeProvider>
-      <Slot />
-    </ThemeProvider>
-  );
-}
-```
-*(**Dark** globally. We only check `fontsLoaded` once.)*
-
----
-
-### **Home**: **`app/index.tsx`**
-```tsx
-import React from 'react';
-import { View, Text, Button } from 'react-native';
-import { Link } from "expo-router";
-import { useTheme } from "../context/theme";
-
-export default function HomeScreen() {
-  const greeting = process.env.ENV_PUBLIC_GREETING || "No greeting";
-  const version = process.env.ENV_PUBLIC_VERSION || "0.0.0";
-
-  const { darkMode, toggleTheme } = useTheme();
-
-  // Decide background color + text color
-  const bgColor = darkMode ? "bg-black" : "bg-white";
-  const titleColor = darkMode ? { color: "#FFD700" } : { color: "#1E3A8A" };
-  const subColor = darkMode ? { color: "#ddd" } : { color: "#333" };
-
-  return (
-    <View className={`flex-1 items-center justify-center p-4 ${bgColor}`}>
-      <Text style={[{ fontSize: 24, fontFamily: "SpecialElite_400Regular", marginBottom: 8 }, titleColor]}>
-        Hello from NativeWind + Expo Router!
-      </Text>
-      <Text style={[{ fontSize: 16, fontFamily: "ArbutusSlab_400Regular", marginBottom: 12 }, subColor]}>
-        {greeting} (v{version})
-      </Text>
-
-      {/* Buttons in a spaced column */}
-      <View className="space-y-3">
-        <Link href="/(protected)/profile" asChild>
-          <Button title="GO TO PROFILE" onPress={() => {}} />
-        </Link>
-        <Link href="/(auth)/signUp" asChild>
-          <Button title="SIGN UP" onPress={() => {}} />
-        </Link>
-        <Link href="/(auth)/signIn" asChild>
-          <Button title="SIGN IN" onPress={() => {}} />
-        </Link>
-        <Button
-          title={darkMode ? "SWITCH TO LIGHT" : "SWITCH TO DARK"}
-          onPress={toggleTheme}
-        />
-      </View>
-    </View>
-  );
-}
-```
-**Key**: We read `ENV_PUBLIC_GREETING` + `ENV_PUBLIC_VERSION` once. They never revert to defaults.
-
----
-
-### **`app/(auth)/signUp.tsx`** (Zod + Supabase)
-```tsx
-import React, { useState } from 'react';
-import { View, Text, TextInput, Button } from 'react-native';
-import { z } from "zod";
-import { useRouter } from "expo-router";
-import { supabase } from "../../lib/supabaseClient";
-import { useTheme } from "../../context/theme";
-
-const signUpSchema = z.object({
-  email: z.string().email("Invalid email"),
-  password: z.string().min(6, "At least 6 chars"),
-});
-
-export default function SignUpScreen() {
-  const router = useRouter();
-  const { darkMode } = useTheme();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [errorMsg, setErrorMsg] = useState("");
-
-  async function handleSignUp() {
-    const result = signUpSchema.safeParse({ email, password });
-    if (!result.success) {
-      setErrorMsg(result.error.issues[0].message);
-      return;
-    }
-
-    const { error } = await supabase.auth.signUp({ email, password });
-    if (error) {
-      setErrorMsg(error.message);
-    } else {
-      alert("Sign-up successful! Please verify your email if required.");
-      router.replace("/(auth)/signIn");
-    }
-  }
-
-  return (
-    <View className={`flex-1 items-center justify-center p-4 ${darkMode ? "bg-black" : "bg-white"}`}>
-      <Text style={[
-        { fontSize: 20, marginBottom: 8 },
-        darkMode ? { color: "#FFD700" } : { color: "#1E3A8A" }
-      ]}>
-        Sign Up
-      </Text>
-      {errorMsg ? <Text className="text-red-500 mb-2">{errorMsg}</Text> : null}
-
-      <TextInput
-        style={{ borderWidth: 1, borderColor: "#ccc", width: "80%", marginBottom: 12, padding: 8 }}
-        placeholder="Email"
-        autoCapitalize="none"
-        keyboardType="email-address"
-        value={email} onChangeText={setEmail}
-      />
-      <TextInput
-        style={{ borderWidth: 1, borderColor: "#ccc", width: "80%", marginBottom: 12, padding: 8 }}
-        placeholder="Password (6+ chars)"
-        secureTextEntry
-        value={password} onChangeText={setPassword}
-      />
-
-      <Button title="Sign Up" onPress={handleSignUp} />
-    </View>
-  );
-}
-```
-
-### **`app/(auth)/signIn.tsx`** (Zod + Supabase)
-```tsx
-import React, { useState } from 'react';
-import { View, Text, TextInput, Button } from 'react-native';
-import { z } from "zod";
-import { useRouter } from "expo-router";
-import { supabase } from "../../lib/supabaseClient";
-import { useTheme } from "../../context/theme";
-
-const signInSchema = z.object({
-  email: z.string().email("Invalid email"),
-  password: z.string().min(6, "At least 6 chars"),
-});
-
-export default function SignInScreen() {
-  const router = useRouter();
-  const { darkMode } = useTheme();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [errorMsg, setErrorMsg] = useState("");
-
-  async function handleSignIn() {
-    const result = signInSchema.safeParse({ email, password });
-    if (!result.success) {
-      setErrorMsg(result.error.issues[0].message);
-      return;
-    }
-
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      setErrorMsg(error.message);
-    } else {
-      router.replace("/");
-    }
-  }
-
-  return (
-    <View className={`flex-1 items-center justify-center p-4 ${darkMode ? "bg-black" : "bg-white"}`}>
-      <Text style={[
-        { fontSize: 20, marginBottom: 8 },
-        darkMode ? { color: "#FFD700" } : { color: "#1E3A8A" }
-      ]}>
-        Sign In
-      </Text>
-      {errorMsg ? <Text className="text-red-500 mb-2">{errorMsg}</Text> : null}
-
-      <TextInput
-        style={{ borderWidth: 1, borderColor: "#ccc", width: "80%", marginBottom: 12, padding: 8 }}
-        placeholder="Email"
-        autoCapitalize="none"
-        keyboardType="email-address"
-        value={email} onChangeText={setEmail}
-      />
-      <TextInput
-        style={{ borderWidth: 1, borderColor: "#ccc", width: "80%", marginBottom: 12, padding: 8 }}
-        placeholder="Password (6+ chars)"
-        secureTextEntry
-        value={password} onChangeText={setPassword}
-      />
-
-      <Button title="Sign In" onPress={handleSignIn} />
-    </View>
-  );
-}
-```
-
----
-
-## **Protected Route**: **`app/(protected)/_layout.tsx`**
-
-```tsx
-import React, { useEffect, useState } from 'react';
-import { Stack, useRouter } from "expo-router";
-import { supabase } from "../../lib/supabaseClient";
-import { useTheme } from "../../context/theme";
-import { View, Text } from "react-native";
-
-export default function ProtectedLayout() {
-  const router = useRouter();
-  const { darkMode } = useTheme();
-
-  const [checked, setChecked] = useState(false);
+export const AuthProvider: React.FC<Props> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      const session = data?.session;
-      if (!session) {
-        router.replace("/(auth)/signIn");
-      } else {
-        setChecked(true);
+    const checkStorage = async () => {
+      try {
+        const storedToken = await AsyncStorage.getItem('userToken');
+        const storedUser = await AsyncStorage.getItem('userData');
+        if (storedToken && storedUser) {
+          setToken(storedToken);
+          setUser(JSON.parse(storedUser));
+        }
+      } catch (error) {
+        console.warn('Error reading from storage', error);
+      } finally {
+        setLoading(false);
       }
-    });
-
-    const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session) {
-        router.replace("/(auth)/signIn");
-      }
-    });
-
-    return () => {
-      subscription?.subscription.unsubscribe();
     };
-  }, [router]);
+    checkStorage();
+  }, []);
 
-  if (!checked) {
-    return (
-      <View className={`flex-1 items-center justify-center ${darkMode ? "bg-black" : "bg-white"}`}>
-        <Text className={`text-lg ${darkMode ? "text-yellow-300" : "text-black"}`}>
-          Checking session...
-        </Text>
-      </View>
-    );
-  }
+  // Fake sign-in (replace with real backend call)
+  const signIn = async (email: string, _password: string) => {
+    const fakeToken = 'abc123';
+    const userData = { id: 1, email };
+    setToken(fakeToken);
+    setUser(userData);
 
-  return <Stack />;
+    await AsyncStorage.setItem('userToken', fakeToken);
+    await AsyncStorage.setItem('userData', JSON.stringify(userData));
+  };
+
+  // Fake sign-up (replace with real backend call)
+  const signUp = async (email: string, _password: string) => {
+    const fakeToken = 'xyz789';
+    const userData = { id: 2, email };
+    setToken(fakeToken);
+    setUser(userData);
+
+    await AsyncStorage.setItem('userToken', fakeToken);
+    await AsyncStorage.setItem('userData', JSON.stringify(userData));
+  };
+
+  const signOut = async () => {
+    setToken(null);
+    setUser(null);
+    await AsyncStorage.removeItem('userToken');
+    await AsyncStorage.removeItem('userData');
+  };
+
+  return (
+    <AuthContext.Provider
+      value={{ user, token, loading, signIn, signUp, signOut }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+};
+```
+
+---
+
+## 4. Root Layout: `app/_layout.tsx`
+
+We wrap **all** routes with `AuthProvider`. `_layout.tsx` is like Next.js’s `_app.tsx`.
+
+### 4.1 Create & Paste
+
+```bash
+touch app/_layout.tsx
+```
+
+```tsx
+import React from 'react';
+import { Slot, Stack } from 'expo-router';
+import { AuthProvider } from './context/AuthContext';
+
+export default function RootLayout() {
+  return (
+    <AuthProvider>
+      {/* Optional: customize your Stack UI */}
+      <Stack screenOptions={{ headerShown: true }} />
+      {/* Slot renders whatever route is active (index, (auth), (protected), etc.) */}
+      <Slot />
+    </AuthProvider>
+  );
 }
 ```
 
-### **`app/(protected)/profile.tsx`**
+---
+
+## 5. Home Screen: `app/index.tsx`
+
+A simple welcome page that either greets the user or links to the auth screens.
+
+```bash
+touch app/index.tsx
+```
+
 ```tsx
-import React from 'react';
-import { View, Text, Button } from 'react-native';
-import { supabase } from "../../lib/supabaseClient";
-import { useTheme } from "../../context/theme";
+import React, { useContext } from 'react';
+import { View, Text, Button, StyleSheet } from 'react-native';
+import { Link, useRouter } from 'expo-router';
+import { AuthContext } from './context/AuthContext';
 
-export default function ProfileScreen() {
-  const { darkMode } = useTheme();
-
-  async function handleSignOut() {
-    await supabase.auth.signOut();
-  }
+export default function HomeScreen() {
+  const { user } = useContext(AuthContext);
+  const router = useRouter();
 
   return (
-    <View className={`flex-1 items-center justify-center p-4 ${darkMode ? "bg-black" : "bg-white"}`}>
-      <Text style={[
-        { fontSize: 20, marginBottom: 8 },
-        darkMode ? { color: "#FFD700" } : { color: "#1E3A8A" }
-      ]}>
-        Protected Profile
-      </Text>
+    <View style={styles.container}>
+      {user ? (
+        <>
+          <Text style={styles.title}>Welcome back, {user.email}!</Text>
+          <Button title="Go to Profile" onPress={() => router.push('/(protected)/profile')} />
+        </>
+      ) : (
+        <>
+          <Text style={styles.title}>Home Screen</Text>
+          <Link href="/(auth)/signin" style={styles.link}>
+            Sign In
+          </Link>
+          <Link href="/(auth)/signup" style={styles.link}>
+            Sign Up
+          </Link>
+        </>
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1, 
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  title: {
+    fontSize: 22, 
+    marginBottom: 20,
+  },
+  link: {
+    color: 'blue',
+    fontSize: 18,
+    marginVertical: 8,
+  },
+});
+```
+
+---
+
+## 6. Public Auth Routes: `(auth)/signin.tsx` & `(auth)/signup.tsx`
+
+### 6.1 Create the `(auth)` folder and screens
+
+```bash
+mkdir -p app/\(auth\)
+touch app/\(auth\)/signin.tsx
+touch app/\(auth\)/signup.tsx
+```
+
+#### `signin.tsx`:
+
+```tsx
+import React, { useContext } from 'react';
+import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
+import { Formik } from 'formik';
+import * as Yup from 'yup';
+import { useRouter } from 'expo-router';
+import { AuthContext } from '../context/AuthContext';
+
+const SignInSchema = Yup.object().shape({
+  email: Yup.string().email('Invalid email').required('Email is required'),
+  password: Yup.string().required('Password is required'),
+});
+
+export default function SignIn() {
+  const { signIn } = useContext(AuthContext);
+  const router = useRouter();
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.header}>Sign In</Text>
+
+      <Formik
+        initialValues={{ email: '', password: '' }}
+        validationSchema={SignInSchema}
+        onSubmit={async (values, actions) => {
+          try {
+            await signIn(values.email, values.password);
+            router.replace('/(protected)/profile');
+          } catch (error) {
+            console.error(error);
+          } finally {
+            actions.setSubmitting(false);
+          }
+        }}
+      >
+        {({
+          handleChange,
+          handleBlur,
+          handleSubmit,
+          values,
+          errors,
+          touched,
+          isSubmitting,
+        }) => (
+          <View style={styles.form}>
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              autoCapitalize="none"
+              onChangeText={handleChange('email')}
+              onBlur={handleBlur('email')}
+              value={values.email}
+            />
+            {touched.email && errors.email && (
+              <Text style={styles.error}>{errors.email}</Text>
+            )}
+
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              secureTextEntry
+              onChangeText={handleChange('password')}
+              onBlur={handleBlur('password')}
+              value={values.password}
+            />
+            {touched.password && errors.password && (
+              <Text style={styles.error}>{errors.password}</Text>
+            )}
+
+            <Button
+              onPress={handleSubmit}
+              title={isSubmitting ? 'Signing In...' : 'Sign In'}
+              disabled={isSubmitting}
+            />
+          </View>
+        )}
+      </Formik>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1, 
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  header: {
+    fontSize: 24, 
+    marginBottom: 20,
+  },
+  form: {
+    width: '80%',
+  },
+  input: {
+    backgroundColor: '#eee',
+    marginVertical: 6,
+    padding: 10,
+    borderRadius: 6,
+  },
+  error: {
+    color: 'red',
+    marginBottom: 5,
+  },
+});
+```
+
+#### `signup.tsx`:
+
+```tsx
+import React, { useContext } from 'react';
+import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
+import { Formik } from 'formik';
+import * as Yup from 'yup';
+import { useRouter } from 'expo-router';
+import { AuthContext } from '../context/AuthContext';
+
+const SignUpSchema = Yup.object().shape({
+  email: Yup.string().email('Invalid email').required('Email is required'),
+  password: Yup.string().min(4, 'Too short').required('Password is required'),
+  confirmPassword: Yup.string()
+    .oneOf([Yup.ref('password'), ''], 'Passwords must match')
+    .required('Confirm your password'),
+});
+
+export default function SignUp() {
+  const { signUp } = useContext(AuthContext);
+  const router = useRouter();
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.header}>Sign Up</Text>
+
+      <Formik
+        initialValues={{ email: '', password: '', confirmPassword: '' }}
+        validationSchema={SignUpSchema}
+        onSubmit={async (values, actions) => {
+          try {
+            await signUp(values.email, values.password);
+            router.replace('/(protected)/profile');
+          } catch (error) {
+            console.error(error);
+          } finally {
+            actions.setSubmitting(false);
+          }
+        }}
+      >
+        {({
+          handleChange,
+          handleBlur,
+          handleSubmit,
+          values,
+          errors,
+          touched,
+          isSubmitting,
+        }) => (
+          <View style={styles.form}>
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              autoCapitalize="none"
+              onChangeText={handleChange('email')}
+              onBlur={handleBlur('email')}
+              value={values.email}
+            />
+            {touched.email && errors.email && (
+              <Text style={styles.error}>{errors.email}</Text>
+            )}
+
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              secureTextEntry
+              onChangeText={handleChange('password')}
+              onBlur={handleBlur('password')}
+              value={values.password}
+            />
+            {touched.password && errors.password && (
+              <Text style={styles.error}>{errors.password}</Text>
+            )}
+
+            <TextInput
+              style={styles.input}
+              placeholder="Confirm Password"
+              secureTextEntry
+              onChangeText={handleChange('confirmPassword')}
+              onBlur={handleBlur('confirmPassword')}
+              value={values.confirmPassword}
+            />
+            {touched.confirmPassword && errors.confirmPassword && (
+              <Text style={styles.error}>{errors.confirmPassword}</Text>
+            )}
+
+            <Button
+              onPress={handleSubmit}
+              title={isSubmitting ? 'Signing Up...' : 'Sign Up'}
+              disabled={isSubmitting}
+            />
+          </View>
+        )}
+      </Formik>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1, 
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  header: {
+    fontSize: 24, 
+    marginBottom: 20,
+  },
+  form: {
+    width: '80%',
+  },
+  input: {
+    backgroundColor: '#eee',
+    marginVertical: 6,
+    padding: 10,
+    borderRadius: 6,
+  },
+  error: {
+    color: 'red',
+    marginBottom: 5,
+  },
+});
+```
+
+---
+
+## 7. Protected Routes: `(protected)/_layout.tsx` & `(protected)/profile.tsx`
+
+### 7.1 Create the `(protected)` folder & files
+
+```bash
+mkdir -p app/\(protected\)
+touch app/\(protected\)/_layout.tsx
+touch app/\(protected\)/profile.tsx
+```
+
+### 7.2 `_layout.tsx` (the actual “protected route” logic)
+
+```tsx
+import React, { useContext } from 'react';
+import { AuthContext } from '../context/AuthContext';
+import { Slot, Redirect } from 'expo-router';
+
+export default function ProtectedLayout() {
+  const { user } = useContext(AuthContext);
+
+  // If user not logged in, redirect to (auth)/signin
+  if (!user) {
+    return <Redirect href="/(auth)/signin" />;
+  }
+
+  // Otherwise, render the protected screens
+  return <Slot />;
+}
+```
+
+### 7.3 `profile.tsx` (example protected screen)
+
+```tsx
+import React, { useContext } from 'react';
+import { View, Text, Button, StyleSheet } from 'react-native';
+import { AuthContext } from '../context/AuthContext';
+import { useRouter } from 'expo-router';
+
+export default function ProfileScreen() {
+  const { user, signOut } = useContext(AuthContext);
+  const router = useRouter();
+
+  const handleSignOut = async () => {
+    await signOut();
+    // Go back to home on sign out
+    router.replace('/');
+  };
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.header}>Profile Screen</Text>
+      <Text style={styles.info}>Logged in as: {user?.email}</Text>
       <Button title="Sign Out" onPress={handleSignOut} />
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1, 
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  header: {
+    fontSize: 24, 
+    marginBottom: 10,
+  },
+  info: {
+    fontSize: 16,
+    marginBottom: 20,
+  },
+});
 ```
+
+> Since `(protected)/_layout.tsx` **automatically** redirects if there’s no user, you don’t need to do extra checks in `profile.tsx`. The parentheses in the folder name `(protected)` ensures it **won’t** appear in the URL. So visiting `/profile` effectively is `/(protected)/profile`.
 
 ---
 
-## **Run & Confirm**
+## 8. Testing & Summary
 
-From **`rn_Protected_Routez`**:
-```bash
-npx expo start --clear
-```
+1. **Run**:
+   ```bash
+   npm start
+   ```
+   (or `npx expo start`)
 
-- **Home**: black background + gold text by default. “Hello from .env local (v1.2.3)” if `.env.local` loaded, else “No greeting (0.0.0)”.  
-- **Spacing**: the “GO TO PROFILE,” “SIGN UP,” “SIGN IN,” “SWITCH TO LIGHT” buttons have vertical gap (`space-y-3`).  
-- “SWITCH TO LIGHT” affects **all** screens, because the entire app is wrapped in the same theme context at `_layout.tsx`.  
-- **Sign Up** => supabase creates user => route to signIn.  
-- **Sign In** => route to home => session is set.  
-- “GO TO PROFILE” => `(protected)/_layout.tsx` checks session => if none => signIn, else show “Protected Profile.”  
-- **No** re-check of environment variables, so they **stay** “Hello from .env local (v1.2.3)” and never revert to defaults.  
+2. **Home**: (`/`)  
+   - If not logged in, you’ll see “Home Screen” → links to sign in/up.  
+   - If logged in, you see “Welcome back, [email]!” and a button to Profile.
 
-**Everything** compiles with **no** leftover issues. Enjoy your **complete** tutorial, with **dark mode** applying across **all screens** and environment variables remaining correct from start to finish!
+3. **Sign In**: (`/(auth)/signin`)  
+   - After signing in, you’re redirected to `/(protected)/profile`.  
+
+4. **Protected**: (`/(protected)/profile`)  
+   - If you try to visit this link while logged out, `_layout.tsx` redirects you to `/(auth)/signin`.  
+   - Once logged in, you see “Logged in as: [email]” and “Sign Out.”
+
+This approach **matches** Next.js-like routing. Your `(protected)/_layout.tsx` is the **official** “guard” for protected screens.
+
+### Production Notes
+
+- Replace the **fake** `signIn`/`signUp` logic with real API calls.  
+- For more secure token storage, consider `expo-secure-store`.  
+- Handle token refresh if using short-lived access tokens.
+
+**That’s it!** You now have a **modern, Next.js-style** Expo Router app with parentheses for protected routes, TypeScript, form validation, and a global Auth context—starting from the **exact** commands you provided. Enjoy building!

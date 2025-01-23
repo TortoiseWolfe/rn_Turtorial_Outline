@@ -6,7 +6,7 @@ Below is a **single, complete** tutorial that **combines** our earlier **Phase 1
 4. A **`profiles`** table in Supabase (with Row Level Security) so each user can only see/update **their own** row.  
 5. A **Profile** screen with the user’s display name + “Edit Profile” flow to update that data.
 
-> **Note**: The code below is a **full snapshot** of the final iteration. If you’ve already done Phase 1, you can merge these changes to add Phase 2 features (the `profiles` table, RLS, and edit profile screen). If you’re starting fresh, just copy/paste everything below, follow the Supabase steps, and you’ll have a working end-to-end app.
+> **Note**: The code below is a **full snapshot** of the final iteration.
 
 ---
 

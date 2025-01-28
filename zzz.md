@@ -1,4 +1,22 @@
+Below is a **complete**, **functional** tutorial that does the following:
+
+- Uses **Expo Router** + **Supabase** for Auth (Sign In, Sign Up, Sign Out).  
+- Stores sessions securely on iOS/Android with **Expo SecureStore**.  
+- **Falls back** to **`localStorage`** on the web, since `expo-secure-store` is not supported in browsers.  
+- Loads environment variables from **`.env.local`** (including `EXPO_PUBLIC_SUPABASE_URL` & `EXPO_PUBLIC_SUPABASE_ANON_KEY`).  
+- Shows how to create a `profiles` table and add Row-Level Security so each user can only see/update their own profile.  
+- Demonstrates a simple `(protected)/profile` screen and `(protected)/edit-profile` screen.  
+- Ensures **display name** is fetched and updated properly, avoiding the “(none)” issue (assuming you have a row in `profiles`).
+
+You’ll end up with an Expo Router app that compiles for **iOS**, **Android**, **and** can run on **web** (with the localStorage fallback).  
+
+> **Important**: If you’re testing on iOS/Android, `expo-secure-store` will store the session natively. If you’re testing on Web, the session will be stored in `localStorage`.  
+
+---
+
 # ScripitHammer
+
+## Table of Contents
 
 1. [Set Up Your Expo Project](#1-set-up-your-expo-project)  
 2. [Install Dependencies](#2-install-dependencies)  
@@ -9,7 +27,7 @@
    - [Enable RLS & Policies](#enable-rls--policies)  
 6. [Code: `supabaseClient.ts` (Connecting to Supabase)](#6-code-supabaseclientts-connecting-to-supabase)  
 7. [Code: `app/_layout.tsx` (Single Top-Level Layout)](#7-code-app_layouttsx-single-top-level-layout)  
-8. [Code: `context/auth.tsx` (Auth Context with SecureStore + Supabase)](#8-code-contextauthtsx-auth-context-with-securestore--supabase)  
+8. [Code: `context/auth.tsx` (Auth Context with SecureStore + Web Fallback)](#8-code-contextauthtsx-auth-context-with-securestore--web-fallback)  
 9. [Code: `(auth)` Folder (Sign In & Sign Up)](#9-code-auth-folder-sign-in--sign-up)  
    - [`(auth)/_layout.tsx`](#auth_layouttsx)  
    - [`(auth)/sign-in.tsx`](#authsign-intsx)  
@@ -39,7 +57,7 @@ You now have a blank Expo Router project (no leftover `NavigationContainer` call
 
 ## 2) Install Dependencies
 
-We need:
+You need **both** the Supabase client and SecureStore:
 
 ```bash
 npm install @supabase/supabase-js
@@ -47,7 +65,7 @@ npx expo install expo-secure-store
 npm install dotenv
 ```
 
-Expo’s bundler automatically picks up variables that start with **`EXPO_PUBLIC_`**, so no further custom configuration is needed beyond having your `.env.local`.  
+> `expo-secure-store` is not supported on web, so we’ll show a fallback in our code.
 
 ---
 
@@ -56,19 +74,26 @@ Expo’s bundler automatically picks up variables that start with **`EXPO_PUBLIC
 In the root of your project (same level as `package.json`), **create** a file named **`.env.local`** with the following:
 
 ```bash
-EXPO_PUBLIC_SUPABASE_URL=https://lll.supabase.co
-EXPO_PUBLIC_SUPABASE_ANON_KEY=...
+EXPO_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT_ID.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=YOUR_ANON_KEY
 ```
 
-(This is just an example key; use your real Supabase details.)
+Replace with your actual Supabase URL and anon key.
 
-> **Important**: Because this is a **public** anon key, it’s not as secret as a private key, but you still might not want it in public repos. For truly private secrets, use a server-side approach or other secure methods.  
+> **Note**: The **anon key** is not truly secret. You typically do not commit `.env.local` to public repos, but it’s not as sensitive as a private key.  
+
+Make sure `.env.local` is in your `.gitignore` if you don’t want it checked in:
+
+```bash
+# .gitignore
+.env.local
+```
 
 ---
 
 ## 4) File & Folder Structure
 
-We’ll create these folders & files:
+Create the following:
 
 ```bash
 mkdir context
@@ -101,7 +126,7 @@ code .
 
 ### Create or Confirm `profiles` Table
 
-In your Supabase project, run something like:
+In your Supabase project’s SQL editor:
 
 ```sql
 create table if not exists profiles (
@@ -117,24 +142,21 @@ create table if not exists profiles (
 1. Go to **Table Editor** -> `profiles`.  
 2. **Enable RLS**.  
 3. Add a **SELECT** policy:
-
-```sql
-create policy "Select own profile"
-on public.profiles
-for select
-using ( auth.uid() = user_id );
-```
-
+   ```sql
+   create policy "Select own profile"
+   on public.profiles
+   for select
+   using ( auth.uid() = user_id );
+   ```
 4. Add an **UPDATE** policy:
+   ```sql
+   create policy "Update own profile"
+   on public.profiles
+   for update
+   using ( auth.uid() = user_id );
+   ```
 
-```sql
-create policy "Update own profile"
-on public.profiles
-for update
-using ( auth.uid() = user_id );
-```
-
-This ensures each logged-in user can only see/update their own row in `profiles`.
+Now each user can only see or update **their own** row.
 
 ---
 
@@ -146,24 +168,21 @@ This ensures each logged-in user can only see/update their own row in `profiles`
 // supabaseClient.ts
 import { createClient } from "@supabase/supabase-js";
 
-// Because we used the prefix "EXPO_PUBLIC_", 
-// these are automatically available as process.env.<VAR_NAME>
-// in the Expo environment. 
+// Because we're using the prefix "EXPO_PUBLIC_",
+// these are automatically available at runtime via "process.env".
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 ```
 
-> Note the exclamation points `!` in TypeScript, which tell the compiler “trust me, these exist.”  
-
-Because these variables are prefixed with `EXPO_PUBLIC_`, **Expo** will include them at build time. If you used any other prefix, you’d have to configure bundler behavior.  
+> We use the `!` to tell TypeScript we’re sure these exist. If they’re undefined, you’ll get a runtime error.  
 
 ---
 
 ## 7) Code: `app/_layout.tsx` (Single Top-Level Layout)
 
-**File: `app/_layout.tsx`**
+**File**: `app/_layout.tsx`
 
 ```tsx
 // app/_layout.tsx
@@ -189,20 +208,16 @@ export default function RootLayout() {
 
 ---
 
-## 8) Code: `context/auth.tsx` (Auth Context with SecureStore + Supabase)
+## 8) Code: `context/auth.tsx` (Auth Context with SecureStore + Web Fallback)
 
-This handles:
+**Key Change**: We add a **web fallback** to `localStorage` so that if you run `expo start --web`, it won’t crash with `setValueWithKeyAsync is not a function`.
 
-- **Sign Up / Sign In** via Supabase.  
-- **Session** rehydration from **Expo SecureStore**.  
-- On mount, if we find an existing session, we set the user.  
-- We subscribe to Supabase `onAuthStateChange` to keep the local user in sync with server changes.  
-
-**File: `context/auth.tsx`**
+**File**: `context/auth.tsx`
 
 ```tsx
 // context/auth.tsx
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import { supabase } from "../supabaseClient";
 
@@ -226,18 +241,45 @@ const AuthContext = createContext<AuthContextProps>({
   signOut: async () => {},
 });
 
+// Helper functions to store session with fallback
+async function setItem(key: string, value: string) {
+  if (Platform.OS === "web") {
+    window.localStorage.setItem(key, value);
+  } else {
+    await SecureStore.setItemAsync(key, value);
+  }
+}
+
+async function getItem(key: string) {
+  if (Platform.OS === "web") {
+    const val = window.localStorage.getItem(key);
+    return val || null;
+  } else {
+    return await SecureStore.getItemAsync(key);
+  }
+}
+
+async function deleteItem(key: string) {
+  if (Platform.OS === "web") {
+    window.localStorage.removeItem(key);
+  } else {
+    await SecureStore.deleteItemAsync(key);
+  }
+}
+
 export default function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // On mount, rehydrate from SecureStore
+    // On mount, rehydrate from SecureStore (or localStorage on web)
     (async () => {
       try {
-        const sessionStr = await SecureStore.getItemAsync(SESSION_KEY);
+        const sessionStr = await getItem(SESSION_KEY);
         if (sessionStr) {
           const session = JSON.parse(sessionStr);
+          // Re-initialize Supabase with the existing session
           supabase.auth.setSession(session);
           setUser(session.user);
         }
@@ -254,10 +296,10 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       console.log("Supabase auth event:", event);
       if (session?.user) {
         setUser(session.user);
-        await SecureStore.setItemAsync(SESSION_KEY, JSON.stringify(session));
+        await setItem(SESSION_KEY, JSON.stringify(session));
       } else {
         setUser(null);
-        await SecureStore.deleteItemAsync(SESSION_KEY);
+        await deleteItem(SESSION_KEY);
       }
     });
 
@@ -329,6 +371,12 @@ export function useAuth() {
 }
 ```
 
+### Explanation
+
+- We detect `Platform.OS === "web"` to decide if we use `window.localStorage` or `expo-secure-store`.  
+- This prevents the runtime error “_ExpoSecureStore.default.setValueWithKeyAsync is not a function” on web.  
+- On mobile (iOS/Android), it securely stores the session in the device’s native keystore/keychain.
+
 ---
 
 ## 9) Code: `(auth)` Folder (Sign In & Sign Up)
@@ -387,7 +435,6 @@ export default function SignInScreen() {
 
     setLocalError("");
     await signIn(email, password);
-    // if signIn successful, user is set by onAuthStateChange
   }
 
   return (
@@ -481,7 +528,7 @@ export default function SignUpScreen() {
 
     setLocalError("");
     await signUp(email, password);
-    // if signUp is successful, user is set by onAuthStateChange
+    // If signUp is successful, user is set automatically
   }
 
   return (
@@ -545,10 +592,7 @@ const styles = StyleSheet.create({
 
 ## 10) Code: `(protected)` Folder (Protected Routes)
 
-We’ll see **two** screens:
-
-1. **profile.tsx**: Fetches data from the `profiles` table to display `display_name`.  
-2. **edit-profile.tsx**: Lets the user update their `display_name`.  
+We have two screens: `(protected)/profile` and `(protected)/edit-profile`.
 
 ### **File**: `app/(protected)/_layout.tsx`
 
@@ -563,7 +607,7 @@ export default function ProtectedLayout() {
   const navigationState = useRootNavigationState();
   const { user } = useAuth();
 
-  // If the router isn't ready, don't do anything
+  // If the router isn't ready, do nothing
   if (!navigationState?.key) {
     return null;
   }
@@ -611,7 +655,6 @@ export default function ProfileScreen() {
         .select("*")
         .eq("user_id", user.id)
         .single();
-
       if (error) {
         console.log("Error fetching profile:", error.message);
       } else {
@@ -692,7 +735,6 @@ export default function EditProfileScreen() {
         .select("*")
         .eq("user_id", user.id)
         .single();
-
       if (!error && data) {
         setDisplayName(data.display_name || "");
       }
@@ -769,7 +811,7 @@ const styles = StyleSheet.create({
 
 ## 11) Optional: `app/index.tsx` (Default Redirection)
 
-If you want `/` to redirect to `(auth)/sign-in` or `(protected)/profile`:
+If you want `/` to automatically redirect to either `(auth)/sign-in` or `(protected)/profile`:
 
 ```tsx
 // app/index.tsx
@@ -795,11 +837,18 @@ export default function Index() {
 npx expo start --clear
 ```
 
-1. **Sign Up**. If your Supabase project requires email confirmation, check your inbox.  
-2. **Sign In**. You’ll see `(protected)/profile`.  
-3. **`profiles`**: If you haven’t inserted a row automatically, you might see `"(none)"` for `display_name`. You can manually insert a row in the Supabase SQL editor or do it automatically after sign-up.  
-4. **Edit Display Name**: Try editing your display name in `(protected)/edit-profile`. It should update in your Supabase `profiles` table.  
-5. **Sign Out**—the SecureStore session is cleared, and you’re redirected to sign-in.  
+- **iOS/Android**: Press `i` or `a` in the terminal or scan the QR code.  
+- **Web**: Press `w` or open your browser to the provided URL.  
+
+### When you run it:
+
+1. **Sign Up**: If your Supabase project requires email confirmation, check your inbox.  
+2. **Sign In**: You should land on `(protected)/profile`.  
+3. **Profile**: If you haven’t inserted a row automatically, the query may show `"(none)"` for `display_name`. Insert a row manually or do it automatically at sign-up.  
+4. **Edit Display Name**: Update it in `(protected)/edit-profile.tsx`. Confirm the `profiles` table row changes.  
+5. **Sign Out**: The session is cleared from SecureStore (or localStorage on web), and you’re redirected to sign-in.
+
+If you see an error like `setValueWithKeyAsync is not a function` in a web environment, confirm you used the fallback code from above.  
 
 ---
 
@@ -807,16 +856,18 @@ npx expo start --clear
 
 You now have:
 
-1. **Real Supabase Auth** with session management in **Expo SecureStore**.  
-2. **(Protected)** routes in Expo Router (requires a valid `user`).  
-3. **`profiles`** table with **Row Level Security**—each user can see/update only their own row.  
-4. **Environment variables** in `.env.local` using `EXPO_PUBLIC_` prefixes.
+1. **Expo Router** + **Supabase** with:  
+   - Sign In / Sign Up  
+   - Secure session storage on mobile (Expo SecureStore)  
+   - Web fallback to `localStorage`  
+2. **(protected)** routes that only show after sign-in.  
+3. A **`profiles`** table with Row-Level Security.  
 
-### Next Steps
+**Next Steps**:
 
-1. **Automatically Create `profiles` Rows**: Either add code in `signUp(...)` or use a [Supabase DB Trigger](https://supabase.com/docs/guides/auth/managing-user-data#database-triggers) so every new user automatically gets a `profiles` row.  
-2. **Avatars**: Use Supabase Storage for profile pictures, referencing an image URL in `profiles.avatar_url`.  
-3. **Real-Time**: Subscribe to real-time changes with `supabase.channel("...")` so the user sees updates instantly.  
-4. **Social Features**: Create a “posts” table with RLS. Let users post, like, comment, etc.
+1. **Auto-Insert `profiles` Row**: Add code after `signUp` or use a [Supabase Trigger](https://supabase.com/docs/guides/auth/managing-user-data#database-triggers) to ensure a user’s row is created automatically.  
+2. **Avatars**: Store images in [Supabase Storage](https://supabase.com/docs/guides/storage) and reference them in `profiles`.  
+3. **Real-Time**: Use real-time channels to automatically update UI when data changes.  
+4. **Social Features**: Let users post, comment, like, etc.—with RLS-based security.  
 
-By combining these steps, you now have a robust, secure foundation for your Expo Router + Supabase app. Enjoy—and don’t forget to store your environment variables in `.env.local` safely!
+With this setup, you have a robust, cross-platform foundation for your **ScriptHammer** project. Enjoy building!

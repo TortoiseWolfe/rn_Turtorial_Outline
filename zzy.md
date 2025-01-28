@@ -24,7 +24,7 @@ By the end, you’ll have:
 
 ```bash
 npx create-expo-app ScriptHammer
-cd SctiptHammer
+cd ScriptHammer
 npm run reset-project
 rm -rf app-example
 ```

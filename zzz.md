@@ -61,19 +61,11 @@ Expo’s bundler automatically picks up variables that start with **`EXPO_PUBLIC
 In the root of your project (same level as `package.json`), **create** a file named **`.env.local`** with the following:
 
 ```bash
-EXPO_PUBLIC_SUPABASE_URL=https://iwqzvpelheajwgwywino.supabase.co
-EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+EXPO_PUBLIC_SUPABASE_URL=https://lll.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=...
 ```
 
 (This is just an example key; use your real Supabase details.)
-
-### 3.1) `.gitignore`
-
-Usually, you **do not** want to commit `.env.local` with real credentials to version control. So ensure your `.gitignore` includes:
-
-```
-.env.local
-```
 
 > **Important**: Because this is a **public** anon key, it’s not as secret as a private key, but you still might not want it in public repos. For truly private secrets, use a server-side approach or other secure methods.  
 

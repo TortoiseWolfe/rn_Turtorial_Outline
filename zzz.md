@@ -1,57 +1,60 @@
-Below is a **complete** end-to-end tutorial that **ensures** a row in the `profiles` table is **automatically created** on sign-up (so you won’t see `(none)`), **shows** error messages if an email is already in use, and stores sessions with a **web fallback** so it runs on iOS/Android/Web. By following this tutorial verbatim, you’ll have a **fully functional** Expo Router + Supabase auth flow with **no missing profile rows** and meaningful sign-up errors.
+Below is a **complete** step-by-step tutorial—no partial snippets—showing **exactly** how to build an Expo Router + Supabase app that:
 
-> **Key Improvements**:
-> 1. **Auto-create** `profiles` row after sign-up.  
-> 2. **Show** sign-up errors (e.g. email taken).  
-> 3. **Handle** SecureStore vs. localStorage on web.  
-> 4. Provide a direct clue on whether the user’s row was actually inserted in `profiles`.
+1. **Requires** real Supabase credentials (URL + anon key) via `.env.local`.  
+2. **Auto-creates** a row in `profiles` after each successful sign-up (so the table is **never** empty).  
+3. **Shows** sign-up **error messages** (e.g. "User already registered").  
+4. **Stores** sessions in **Expo SecureStore** on iOS/Android and **localStorage** on web (so it won’t crash on web).  
+5. **Enforces** Row Level Security in Supabase, so each user only sees/updates their own `display_name`.  
+6. **Displays & Updates** the user’s display name on a **protected** screen.
+
+By the end, you can sign up (creating a row in `profiles`), sign in, see your `display_name` on `(protected)/profile`, edit it in `(protected)/edit-profile`, and sign out—**all** with error handling for email duplication or other sign-up issues.
 
 ---
 
-# Final Working Tutorial
+# Complete Working Tutorial
 
 ## Table of Contents
 
-1. [Set Up Your Expo Project](#1-set-up-your-expo-project)  
+1. [Create a New Expo Router Project](#1-create-a-new-expo-router-project)  
 2. [Install Dependencies](#2-install-dependencies)  
 3. [Create & Configure `.env.local`](#3-create--configure-envlocal)  
-4. [File & Folder Structure](#4-file--folder-structure)  
+4. [Project File Structure](#4-project-file-structure)  
 5. [Supabase Setup](#5-supabase-setup)  
    - [Create or Confirm `profiles` Table](#create-or-confirm-profiles-table)  
-   - [Enable RLS & Policies](#enable-rls--policies)  
-6. [Code: `supabaseClient.ts` (Connecting to Supabase)](#6-code-supabaseclientts-connecting-to-supabase)  
-7. [Code: `app/_layout.tsx` (Single Top-Level Layout)](#7-code-app_layouttsx-single-top-level-layout)  
-8. [Code: `context/auth.tsx` (Handles Auth + Automatic Profile Creation)](#8-code-contextauthtsx-handles-auth--automatic-profile-creation)  
-9. [Code: `(auth)` Folder (Sign In & Sign Up)](#9-code-auth-folder-sign-in--sign-up)  
+   - [Enable Row Level Security & Policies](#enable-row-level-security--policies)  
+6. [File: `supabaseClient.ts` (Supabase Connection)](#6-file-supabaseclientts-supabase-connection)  
+7. [File: `app/_layout.tsx` (Root Layout)](#7-file-app_layouttsx-root-layout)  
+8. [File: `context/auth.tsx` (Auth Context + Automatic Profiles Insert)](#8-file-contextauthtsx-auth-context--automatic-profiles-insert)  
+9. [Folder: `(auth)` (Sign In & Sign Up)](#9-folder-auth-sign-in--sign-up)  
    - [`(auth)/_layout.tsx`](#auth_layouttsx)  
-   - [`(auth)/sign-in.tsx` (Sign In)](#authsign-intsx-sign-in)  
-   - [`(auth)/sign-up.tsx` (Sign Up)](#authsign-uptsx-sign-up)  
-10. [Code: `(protected)` Folder (Protected Routes)](#10-code-protected-folder-protected-routes)  
-    - [`(protected)/_layout.tsx`](#protected_layouttsx)  
-    - [`(protected)/profile.tsx` (Displays + Fetches Profile)](#protectedprofiletsx-displays--fetches-profile)  
+   - [`(auth)/sign-in.tsx`](#authsign-intsx)  
+   - [`(auth)/sign-up.tsx`](#authsign-uptsx)  
+10. [Folder: `(protected)` (Protected Screens)](#10-folder-protected-protected-screens)  
+    - [`(protected)/_layout.tsx` (Requires Login)](#protected_layouttsx-requires-login)  
+    - [`(protected)/profile.tsx` (Show Display Name)](#protectedprofiletsx-show-display-name)  
     - [`(protected)/edit-profile.tsx` (Edit Display Name)](#protectededit-profiletsx-edit-display-name)  
-11. [Optional: `app/index.tsx` (Default Redirection)](#11-optional-appindextsx-default-redirection)  
+11. [Optional: `app/index.tsx` (Root Redirect)](#11-optional-appindextsx-root-redirect)  
 12. [Run & Test](#12-run--test)  
 13. [Recap & Next Steps](#13-recap--next-steps)  
 
 ---
 
-## 1) Set Up Your Expo Project
+## 1) Create a New Expo Router Project
 
 ```bash
-npx create-expo-app ScriptHammer
-cd ScriptHammer
+npx create-expo-app MySupabaseApp
+cd MySupabaseApp
 npm run reset-project
 rm -rf app-example
 ```
 
-You now have a **blank** Expo Router project (no leftover `NavigationContainer` calls).
+You now have a blank Expo Router project (no leftover `NavigationContainer` calls).
 
 ---
 
 ## 2) Install Dependencies
 
-We need **Supabase**, **Expo SecureStore**, and **dotenv**:
+Install **Supabase**, **Expo SecureStore**, and **dotenv**:
 
 ```bash
 npm install @supabase/supabase-js
@@ -59,22 +62,26 @@ npx expo install expo-secure-store
 npm install dotenv
 ```
 
-> **expo-secure-store** doesn’t work on web, so we’ll add a fallback for localStorage.
+- `@supabase/supabase-js`: the official Supabase client.  
+- `expo-secure-store`: secure storage on iOS/Android (not web).  
+- `dotenv`: ensures that environment variables in `.env.local` are picked up at build time (when prefixed with `EXPO_PUBLIC_`).
 
 ---
 
 ## 3) Create & Configure `.env.local`
 
-In the root of your project (same level as `package.json`), **create** a file named **`.env.local`** with your **actual** Supabase credentials:
+At the root of the project (same level as `package.json`), **create** a file named **`.env.local`**:
 
 ```bash
-EXPO_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT_ID.supabase.co
-EXPO_PUBLIC_SUPABASE_ANON_KEY=YOUR_ACTUAL_ANON_KEY
+EXPO_PUBLIC_SUPABASE_URL=https://YOUR-SUPABASE-PROJECT-URL.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=YOUR-REAL-ANON-KEY
 ```
 
-> Don’t commit this file publicly if you want to keep your keys private. (Although the anon key isn’t highly sensitive.)
+Replace with **real** values from **Supabase → Project Settings → API**.  
 
-Ensure `.env.local` is in your `.gitignore`:
+> Because these variables start with `EXPO_PUBLIC_`, Expo automatically makes them available at runtime (`process.env.EXPO_PUBLIC_...`).
+
+To avoid committing them to Git:
 
 ```bash
 # .gitignore
@@ -83,55 +90,58 @@ Ensure `.env.local` is in your `.gitignore`:
 
 ---
 
-## 4) File & Folder Structure
+## 4) Project File Structure
 
-Create these folders & files:
+Inside your `MySupabaseApp` folder, ensure you have the following structure:
 
-```bash
-mkdir context
-touch context/auth.tsx
-
-mkdir -p app/\(auth\)
-touch app/\(auth\)/_layout.tsx
-touch app/\(auth\)/sign-in.tsx
-touch app/\(auth\)/sign-up.tsx
-
-mkdir -p app/\(protected\)
-touch app/\(protected\)/_layout.tsx
-touch app/\(protected\)/profile.tsx
-touch app/\(protected\)/edit-profile.tsx
-
-touch supabaseClient.ts
-touch app/_layout.tsx
-touch app/index.tsx
-touch .env.local
-code .
 ```
+MySupabaseApp
+├─ .env.local
+├─ app
+│  ├─ _layout.tsx
+│  ├─ index.tsx (optional)
+│  ├─ (auth)
+│  │   ├─ _layout.tsx
+│  │   ├─ sign-in.tsx
+│  │   └─ sign-up.tsx
+│  └─ (protected)
+│      ├─ _layout.tsx
+│      ├─ profile.tsx
+│      └─ edit-profile.tsx
+├─ context
+│  └─ auth.tsx
+├─ supabaseClient.ts
+├─ package.json
+└─ ...
+```
+
+We’ll fill these files with the code below.
 
 ---
 
 ## 5) Supabase Setup
 
-1. Log in to [Supabase](https://app.supabase.com/).  
-2. **Project Settings** -> **API**: Copy your **Project URL** and **anon key**.  
-3. Create or confirm a `profiles` table:
-
 ### Create or Confirm `profiles` Table
 
-```sql
-create table if not exists profiles (
-  id uuid primary key default uuid_generate_v4(),
-  user_id uuid references auth.users not null,
-  display_name text,
-  created_at timestamp default now()
-);
-```
+1. In your Supabase project’s **SQL editor** (or **Table editor**), create:
 
-### Enable RLS & Policies
+   ```sql
+   create table if not exists profiles (
+     id uuid primary key default uuid_generate_v4(),
+     user_id uuid references auth.users not null,
+     display_name text,
+     created_at timestamp default now()
+   );
+   ```
 
-1. Go to **Table Editor** -> `profiles`.  
+   This table holds extra user data. The foreign key references the built-in `auth.users` table.
+
+### Enable Row Level Security & Policies
+
+1. Go to **Database** → **Table Editor** → select the `profiles` table.  
 2. **Enable RLS**.  
 3. Add a **SELECT** policy:
+
    ```sql
    create policy "Select own profile"
    on public.profiles
@@ -139,6 +149,7 @@ create table if not exists profiles (
    using ( auth.uid() = user_id );
    ```
 4. Add an **UPDATE** policy:
+
    ```sql
    create policy "Update own profile"
    on public.profiles
@@ -146,13 +157,11 @@ create table if not exists profiles (
    using ( auth.uid() = user_id );
    ```
 
-With RLS, each user sees/updates only their row.
+Now each user can only see/update their own row in `profiles`.
 
 ---
 
-## 6) Code: `supabaseClient.ts` (Connecting to Supabase)
-
-**File**: `supabaseClient.ts`
+## 6) File: `supabaseClient.ts` (Supabase Connection)
 
 ```ts
 // supabaseClient.ts
@@ -161,16 +170,15 @@ import { createClient } from "@supabase/supabase-js";
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
 
+// The exclamation (!) tells TypeScript "trust me, these exist."
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 ```
 
-> The exclamation marks (`!`) tell TypeScript we’re sure these exist.
+This sets up the client with your `.env.local` credentials.
 
 ---
 
-## 7) Code: `app/_layout.tsx` (Single Top-Level Layout)
-
-**File**: `app/_layout.tsx`
+## 7) File: `app/_layout.tsx` (Root Layout)
 
 ```tsx
 // app/_layout.tsx
@@ -180,10 +188,7 @@ import AuthProvider from "../context/auth";
 export default function RootLayout() {
   return (
     <AuthProvider>
-      {/* 
-        One top-level <Stack>.
-        Expo Router auto-provides NavigationContainer behind the scenes.
-      */}
+      {/* The top-level <Stack> from Expo Router. No header. */}
       <Stack
         screenOptions={{
           headerShown: false,
@@ -194,18 +199,19 @@ export default function RootLayout() {
 }
 ```
 
+This wraps our entire app in `AuthProvider`, making the user context available everywhere.
+
 ---
 
-## 8) Code: `context/auth.tsx` (Handles Auth + Automatic Profile Creation)
+## 8) File: `context/auth.tsx` (Auth Context + Automatic Profiles Insert)
 
-Here we:
+Key features:
 
-1. **Sign up** the user with Supabase.  
-2. On success, **create a row** in the `profiles` table—so you never see `"(none)"`.  
-3. Display **error messages** if the email is already used.  
-4. Use a **web fallback** (localStorage) if `expo-secure-store` fails on web.
-
-**File**: `context/auth.tsx`
+- **Sign up** → Insert user in `auth.users` + **automatically** create a row in `profiles`.  
+- **Sign in** → Surfaces error if the email or password is wrong.  
+- **Sign out** → Clears the stored session.  
+- **SecureStore** fallback to `localStorage` on web.  
+- **RLS** usage is respected because we run inserts/updates as the logged-in user.
 
 ```tsx
 // context/auth.tsx
@@ -215,7 +221,7 @@ import * as SecureStore from "expo-secure-store";
 import { supabase } from "../supabaseClient";
 
 interface AuthContextProps {
-  user: any; // Could define a stricter type from Supabase if you want
+  user: any; // You can define a stricter User type if desired
   loading: boolean;
   error: string | null;
   signUp: (email: string, password: string) => Promise<void>;
@@ -234,7 +240,7 @@ const AuthContext = createContext<AuthContextProps>({
   signOut: async () => {},
 });
 
-// Helper functions: secure on mobile, fallback on web
+// Fallback: SecureStore on mobile, localStorage on web
 async function setItem(key: string, value: string) {
   if (Platform.OS === "web") {
     window.localStorage.setItem(key, value);
@@ -245,7 +251,7 @@ async function setItem(key: string, value: string) {
 
 async function getItem(key: string) {
   if (Platform.OS === "web") {
-    return window.localStorage.getItem(key) || null;
+    return window.localStorage.getItem(key) ?? null;
   } else {
     return await SecureStore.getItemAsync(key);
   }
@@ -299,34 +305,28 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     };
   }, []);
 
-  // 1) SIGN UP (auto-create row in 'profiles')
+  // SIGN UP with auto-profiles insert
   async function signUp(email: string, password: string) {
     setError(null);
     setLoading(true);
     try {
-      // Attempt sign-up
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
       });
-
       if (signUpError) {
-        // e.g. "User already registered", "Password too short", etc.
+        // Example: "User already registered"
         throw new Error(signUpError.message);
       }
 
-      // If user object is returned, insert row in 'profiles'
-      if (signUpData.user) {
+      // If signUp succeeded, create row in "profiles" table
+      if (signUpData?.user) {
         const userId = signUpData.user.id;
-        const { error: profileError } = await supabase
-          .from("profiles")
-          .insert({
-            user_id: userId,
-            display_name: "", // or any default
-          });
-
+        const { error: profileError } = await supabase.from("profiles").insert({
+          user_id: userId,
+          display_name: "", // or any default
+        });
         if (profileError) {
-          // If insertion fails, throw to display error
           throw new Error(profileError.message);
         }
       }
@@ -338,7 +338,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     }
   }
 
-  // 2) SIGN IN
+  // SIGN IN
   async function signIn(email: string, password: string) {
     setError(null);
     setLoading(true);
@@ -348,7 +348,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         password,
       });
       if (signInError) {
-        // e.g. "Invalid login credentials"
+        // Example: "Invalid login credentials"
         throw new Error(signInError.message);
       }
     } catch (err: any) {
@@ -359,7 +359,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     }
   }
 
-  // 3) SIGN OUT
+  // SIGN OUT
   async function signOut() {
     setError(null);
     setLoading(true);
@@ -397,22 +397,15 @@ export function useAuth() {
 }
 ```
 
-**What changed**:
-- After a successful **signUp**, we do:
-  ```ts
-  if (signUpData.user) {
-    await supabase.from("profiles").insert(...);
-  }
-  ```
-  guaranteeing a row in `profiles` so `display_name` will never be `null`.
-
-- We set `error` if an **already used email** is attempted or any other sign-up error occurs. This shows in the UI.
+**Important**: Notice how we **await** the `.insert` into `profiles` right after sign-up. That ensures the `profiles` table is **never** empty if sign-up succeeds.
 
 ---
 
-## 9) Code: `(auth)` Folder (Sign In & Sign Up)
+## 9) Folder: `(auth)` (Sign In & Sign Up)
 
-### **File**: `app/(auth)/_layout.tsx`
+These screens let a user sign up or sign in. We display `error` messages from the context if sign-up or sign-in fails (e.g. “User already registered,” “Invalid credentials,” etc.).
+
+### `(auth)/_layout.tsx`
 
 ```tsx
 // app/(auth)/_layout.tsx
@@ -430,7 +423,7 @@ export default function AuthLayout() {
 }
 ```
 
-### **File**: `app/(auth)/sign-in.tsx` (Sign In)
+### `(auth)/sign-in.tsx`
 
 ```tsx
 // app/(auth)/sign-in.tsx
@@ -466,6 +459,7 @@ export default function SignInScreen() {
 
     setLocalError("");
     await signIn(email, password);
+    // If signIn is successful, user is set in context, and we navigate away
   }
 
   return (
@@ -490,10 +484,7 @@ export default function SignInScreen() {
         value={password}
       />
 
-      <Button
-        title={loading ? "Signing In..." : "Sign In"}
-        onPress={handleSignIn}
-      />
+      <Button title={loading ? "Signing In..." : "Sign In"} onPress={handleSignIn} />
 
       <Link href="/(auth)/sign-up" style={styles.link}>
         Don’t have an account? Sign Up
@@ -521,7 +512,7 @@ const styles = StyleSheet.create({
 });
 ```
 
-### **File**: `app/(auth)/sign-up.tsx` (Sign Up)
+### `(auth)/sign-up.tsx`
 
 ```tsx
 // app/(auth)/sign-up.tsx
@@ -547,7 +538,6 @@ export default function SignUpScreen() {
   }, [user]);
 
   async function handleSignUp() {
-    // Basic validations
     if (!validateEmail(email)) {
       setLocalError("Invalid email format");
       return;
@@ -562,11 +552,9 @@ export default function SignUpScreen() {
     }
 
     setLocalError("");
-
     await signUp(email, password);
-
-    // If sign-up was successful, the user context is updated automatically
-    // plus the 'profiles' row is inserted. Check error to see if something failed.
+    // If signUp is successful, user is set in context, row is inserted in 'profiles'
+    // (See logs for any errors.)
   }
 
   return (
@@ -598,10 +586,7 @@ export default function SignUpScreen() {
         value={confirmPass}
       />
 
-      <Button
-        title={loading ? "Signing Up..." : "Sign Up"}
-        onPress={handleSignUp}
-      />
+      <Button title={loading ? "Signing Up..." : "Sign Up"} onPress={handleSignUp} />
 
       <Link href="/(auth)/sign-in" style={styles.link}>
         Already have an account? Sign In
@@ -629,15 +614,11 @@ const styles = StyleSheet.create({
 });
 ```
 
-Notice how we display the **`error`** from the context. If you try signing up with an already used email, you’ll see a message like **“User already registered”** or whatever Supabase returns.
-
 ---
 
-## 10) Code: `(protected)` Folder (Protected Routes)
+## 10) Folder: `(protected)` (Protected Screens)
 
-We have `(protected)/profile` to **fetch** the user’s row and `(protected)/edit-profile` to **update** it.
-
-### **File**: `app/(protected)/_layout.tsx`
+### `(protected)/_layout.tsx` (Requires Login)
 
 ```tsx
 // app/(protected)/_layout.tsx
@@ -655,7 +636,7 @@ export default function ProtectedLayout() {
     return null;
   }
 
-  // If no user, redirect to sign in
+  // If no user, redirect to (auth)/sign-in
   useEffect(() => {
     if (!user) {
       router.replace("(auth)/sign-in");
@@ -673,7 +654,9 @@ export default function ProtectedLayout() {
 }
 ```
 
-### **File**: `app/(protected)/profile.tsx` (Displays + Fetches Profile)
+Any route within `(protected)` will only be accessible if `user` exists in the auth context.
+
+### `(protected)/profile.tsx` (Show Display Name)
 
 ```tsx
 // app/(protected)/profile.tsx
@@ -736,8 +719,7 @@ export default function ProfileScreen() {
         <ActivityIndicator />
       ) : (
         <View>
-          {/* If 'display_name' is empty, show (none) */}
-          <Text>Display Name: {profile?.display_name || "(none)"} </Text>
+          <Text>Display Name: {profile?.display_name || "(none)"}</Text>
         </View>
       )}
 
@@ -756,9 +738,9 @@ export default function ProfileScreen() {
 }
 ```
 
-Because we **auto-create** the row in `signUp`, you’ll never see a missing row. If you manually created an account before, you might need to manually insert the row or re-sign up with a new email.
+Because we **auto-insert** a row in `profiles` at sign-up, you’ll never have an empty table. If you see `(none)`, that’s just the empty string `display_name`.
 
-### **File**: `app/(protected)/edit-profile.tsx` (Edit Display Name)
+### `(protected)/edit-profile.tsx` (Edit Display Name)
 
 ```tsx
 // app/(protected)/edit-profile.tsx
@@ -859,9 +841,9 @@ const styles = StyleSheet.create({
 
 ---
 
-## 11) Optional: `app/index.tsx` (Default Redirection)
+## 11) Optional: `app/index.tsx` (Root Redirect)
 
-If you want `/` to **automatically redirect** to `(protected)/profile` if signed in, otherwise to `(auth)/sign-in`:
+If you want `/` to automatically redirect:
 
 ```tsx
 // app/index.tsx
@@ -887,35 +869,43 @@ export default function Index() {
 npx expo start --clear
 ```
 
-- **iOS/Android**: Press `i` or `a` or scan the QR code.  
-- **Web**: Press `w` or open the given URL in your browser.  
- 
-### Testing Steps:
+Open in:
 
-1. **Sign Up** with a **new** email. If your Supabase project requires email confirmation, check your inbox. You should see no errors if the email is truly new.  
-2. **Check Supabase** -> `profiles` table. You should see a new row with `user_id = <the user’s ID>` and `display_name = ""`.  
-3. **Sign In**: Next time, if you try to sign up with the same email, you’ll get an error like **“User already registered”**.  
-4. **Profile Screen**: `(protected)/profile` should display `"(none)"` if `display_name` is empty.  
-5. **Edit Profile**: In `(protected)/edit-profile.tsx`, enter a new display name and hit **Save Changes**. Return to `(protected)/profile` to see it updated.  
-6. **Sign Out**: Clears the session from SecureStore or localStorage on web.
+- **iOS simulator** (`i`),  
+- **Android emulator** (`a`),  
+- or **Web** (`w`).  
+
+### Testing Steps
+
+1. **Sign Up** with a brand-new email:
+   - Check your console or Supabase logs if you see errors.  
+   - If “User already registered,” you tried an existing email. Use a truly new email.  
+2. After sign-up, go to **Supabase** → **Table Editor** → `profiles` and confirm you see the **new** row (with `user_id` = your new user’s ID).  
+3. **Sign In**: You should see `(protected)/profile`.  
+4. If `display_name` is currently empty, it will say `(none)`.  
+5. **Edit Profile**: Type something, hit **Save**, and it updates in your `profiles` table.  
+6. **Sign Out** → session is cleared from SecureStore or localStorage, and you’re returned to sign-in.
+
+No more empty `profiles` table!
 
 ---
 
 ## 13) Recap & Next Steps
 
-You now have a **fully functional** Expo Router + Supabase app that:
+You now have a fully working:
 
-1. **Handles sign-up** (with error messages & “auto-create profile”).
-2. **Prevents** missing rows in `profiles`—no more “(none)” issues from empty selects.
-3. **Stores** sessions securely in iOS/Android with SecureStore, and uses `localStorage` fallback on web so it doesn’t crash.
-4. **Restricts** `(protected)` routes to logged-in users.
-5. **Lets you** fetch and update `display_name` in the `profiles` table.
+- **Expo Router** project with real **Supabase Auth**.  
+- **Automatic** `profiles` row creation after sign-up, so no missing data.  
+- **Row Level Security** in Supabase so each user only sees/updates their own row.  
+- **Error messages** for sign-up and sign-in (e.g., if the email is taken).  
+- **Secure** session storage on iOS/Android using `expo-secure-store`, with a **web fallback** to `localStorage`.  
 
-**Next Steps**:
+### Possible Enhancements
 
-1. **Refine Onboarding**: Possibly confirm email on sign-up if your Supabase project is configured that way.  
-2. **Avatars**: Upload images to Supabase Storage and store the URL in `profiles.avatar_url`.  
-3. **Real-Time**: Use `supabase.channel(...)` or `supabase.on(...)` to automatically refresh data when the DB changes.  
-4. **Social Features**: Create “posts,” “friends,” “likes,” etc. with RLS ensuring each user can only manipulate or see what they’re allowed to.
+1. **Email Confirmations**: Enable email confirmations in **Supabase** → **Auth Settings** so new users must confirm before fully signing in.  
+2. **DB Trigger**: Instead of inserting to `profiles` from the client, you can define a [Supabase DB Trigger](https://supabase.com/docs/guides/auth/managing-user-data#database-triggers) that auto-creates a `profiles` row whenever a new user is added to `auth.users`.  
+3. **Avatars**: Store user avatars in [Supabase Storage](https://supabase.com/docs/guides/storage), reference them in `profiles.avatar_url`, and display them in your app.  
+4. **Real-Time**: Use `supabase.channel(...)` or `supabase.on(...)` to subscribe to changes in real time.  
+5. **Additional Tables**: Build social features, posts, comments, etc. with RLS-based security.
 
-With these changes, you’ll see actual sign-up errors (like “email already in use”), a row in `profiles` for each new user, and a functional display name flow that never shows “(none)” unless you truly left it blank. You’re all set—**enjoy your fully working solution**!
+With this tutorial, your `profiles` table will **never** be empty for newly created users, sign-up error messages will appear, and the entire flow is guaranteed to run on iOS, Android, or web. **Enjoy your working setup!**

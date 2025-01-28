@@ -1,24 +1,4 @@
-Below is a **single, complete** tutorial—updated to use **`.env.local`** and **Expo environment variables** named:
-
-```
-EXPO_PUBLIC_SUPABASE_URL
-EXPO_PUBLIC_SUPABASE_ANON_KEY
-```
-
-This tutorial **combines** our earlier **Phase 1** (basic Supabase auth, secure token storage, protected routes) and **Phase 2** (profiles table, row-level security, editing user data). Each “phase” is an **extension**, **not** a rewrite. By the end, you’ll have:
-
-1. **Sign-up & sign-in** with real Supabase credentials.  
-2. **Secure** token storage using **Expo SecureStore**.  
-3. **Protected** routes in Expo Router (`(protected)`) ensuring only logged-in users can access certain screens.  
-4. A **`profiles`** table in Supabase (with Row Level Security) so each user can only see/update **their own** row.  
-5. A **Profile** screen with the user’s display name + “Edit Profile” flow to update that data.  
-6. Environment variables in a **`.env.local`** file so you don’t hardcode your Supabase URL and anon key.
-
-> **Note**: The code below is a **full snapshot** of the final iteration.
-
----
-
-# Table of Contents
+# ScripitHammer
 
 1. [Set Up Your Expo Project](#1-set-up-your-expo-project)  
 2. [Install Dependencies](#2-install-dependencies)  

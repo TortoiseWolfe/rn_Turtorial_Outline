@@ -23,8 +23,8 @@ By the end, you’ll have:
 ## 1) Set Up Your Expo Project
 
 ```bash
-npx create-expo-app rn_SupabaseDemo
-cd rn_SupabaseDemo
+npx create-expo-app ScriptHammer
+cd SctiptHammer
 npm run reset-project
 rm -rf app-example
 ```

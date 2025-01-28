@@ -44,11 +44,6 @@ We need:
 ```bash
 npm install @supabase/supabase-js
 npx expo install expo-secure-store
-```
-
-Additionally, for environment variables:
-
-```bash
 npm install dotenv
 ```
 

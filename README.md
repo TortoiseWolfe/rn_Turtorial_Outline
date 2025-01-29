@@ -1,4 +1,4 @@
-# ScriptHammer: DB Trigger for `profiles`
+# ScriptHammer:
 
 ## Table of Contents
 
@@ -10,18 +10,19 @@
    - [Create or Confirm `profiles` Table](#create-or-confirm-profiles-table)  
    - [Enable RLS & Policies](#enable-rls--policies)  
    - [Create a DB Trigger for Auto-Inserting `profiles`](#create-a-db-trigger-for-auto-inserting-profiles)  
+   - [Enable Realtime for `profiles`](#enable-realtime-for-profiles)  
 6. [Code: `supabaseClient.ts` (Connecting to Supabase)](#6-code-supabaseclientts-connecting-to-supabase)  
 7. [Code: `app/_layout.tsx` (Single Top-Level Layout)](#7-code-app_layouttsx-single-top-level-layout)  
-8. [Code: `context/auth.tsx` (Auth Context With **No** Extra Insert)](#8-code-contextauthtsx-auth-context-with-no-extra-insert)  
-9. [Code: `(auth)` Folder (Sign In & Sign Up)](#9-code-auth-folder-sign-in--sign-up)  
-   - [`(auth)/_layout.tsx`](#auth_layouttsx)  
-   - [`(auth)/sign-in.tsx`](#authsign-intsx)  
-   - [`(auth)/sign-up.tsx`](#authsign-uptsx)  
-10. [Code: `(protected)` Folder (Protected Routes)](#10-code-protected-folder-protected-routes)  
+8. [Code: `app/index.tsx` (Redirect at Launch)](#8-code-appindextsx-redirect-at-launch)  
+9. [Code: `context/auth.tsx` (Auth Context, Minimal SecureStore)](#9-code-contextauthtsx-auth-context-minimal-securestore)  
+10. [Code: `(auth)` Folder (Sign In & Sign Up)](#10-code-auth-folder-sign-in--sign-up)  
+    - [`(auth)/_layout.tsx`](#auth_layouttsx)  
+    - [`(auth)/sign-in.tsx`](#authsign-intsx)  
+    - [`(auth)/sign-up.tsx`](#authsign-uptsx)  
+11. [Code: `(protected)` Folder (Protected Routes + Real-Time)](#11-code-protected-folder-protected-routes--real-time)  
     - [`(protected)/_layout.tsx`](#protected_layouttsx)  
-    - [`(protected)/profile.tsx`](#protectedprofiletsx)  
+    - [`(protected)/profile.tsx` (Displays + Subscribes)](#protectedprofiletsx-displays--subscribes)  
     - [`(protected)/edit-profile.tsx`](#protectededit-profiletsx)  
-11. [Optional: `app/index.tsx` (Default Redirection)](#11-optional-appindextsx-default-redirection)  
 12. [Run & Test](#12-run--test)  
 13. [Recap & Next Steps](#13-recap--next-steps)  
 
@@ -50,9 +51,9 @@ npx expo install expo-secure-store
 npm install dotenv
 ```
 
-- **@supabase/supabase-js**: the official Supabase client.  
+- **@supabase/supabase-js**: the official Supabase client library.  
 - **expo-secure-store**: secure session storage on iOS/Android.  
-- **dotenv**: to load `.env.local` variables (prefix `EXPO_PUBLIC_`) in Expo.
+- **dotenv**: to load `.env.local` variables prefixed with `EXPO_PUBLIC_`.
 
 ---
 
@@ -107,15 +108,16 @@ code .
 
 ### Create or Confirm `profiles` Table
 
-1. In [Supabase Dashboard](https://app.supabase.com/) → **Database** → **Tables**:
-   ```sql
-   create table if not exists profiles (
-     id uuid primary key default uuid_generate_v4(),
-     user_id uuid references auth.users not null,
-     display_name text,
-     created_at timestamp default now()
-   );
-   ```
+In [Supabase Dashboard](https://app.supabase.com/) → **Database** → **Tables**:
+
+```sql
+create table if not exists profiles (
+  id uuid primary key default uuid_generate_v4(),
+  user_id uuid references auth.users not null,
+  display_name text,
+  created_at timestamp default now()
+);
+```
 
 ### Enable RLS & Policies
 
@@ -138,7 +140,7 @@ code .
 
 ### Create a DB Trigger for Auto-Inserting `profiles`
 
-Instead of manually inserting rows from the client, define a **trigger** that runs whenever a new user is added to `auth.users`. For example:
+Rather than manually inserting rows from the client, define a **trigger** that runs whenever a new user is added to `auth.users`. For example:
 
 ```sql
 -- 1) Create a function that inserts into `profiles`
@@ -158,9 +160,12 @@ create trigger on_auth_user_created
   execute procedure handle_new_user();
 ```
 
-- **Explanation**:  
-  - Whenever a new row appears in `auth.users` (i.e., after sign-up), `handle_new_user()` runs, inserting a matching row into `profiles` with an empty `display_name`.  
-  - This happens server-side, so your client code can remain simple.
+### Enable Realtime for `profiles`
+
+1. Go to **Table Editor** → click **profiles** → ensure “Enable Realtime” is on (if your project plan supports it).  
+2. Make sure you have [Replication / Realtime config](https://supabase.com/docs/guides/realtime) set up. Typically it’s on by default for new projects.
+
+Now each time a new user is created in `auth.users`, `profiles` gets a matching row, and changes to `profiles` can emit real-time events.
 
 ---
 
@@ -182,22 +187,28 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 ## 7) Code: `app/_layout.tsx` (Single Top-Level Layout)
 
-**File**: `app/_layout.tsx`
+Here we **hide** the header and add a **StatusBar** for proper insets on iOS/Android.
 
 ```tsx
 // app/_layout.tsx
 import { Stack } from "expo-router";
 import AuthProvider from "../context/auth";
+import { StatusBar } from "expo-status-bar";
 
 export default function RootLayout() {
   return (
     <AuthProvider>
-      {/* One top-level Stack. Expo Router auto-provides NavigationContainer. */}
+      {/* 
+        One top-level Stack.
+        Expo Router auto-provides NavigationContainer behind the scenes.
+      */}
       <Stack
         screenOptions={{
           headerShown: false,
         }}
       />
+      {/* Ensure the OS status bar is managed */}
+      <StatusBar style="auto" />
     </AuthProvider>
   );
 }
@@ -205,9 +216,32 @@ export default function RootLayout() {
 
 ---
 
-## 8) Code: `context/auth.tsx` (Auth Context **With No Extra Insert**)
+## 8) Code: `app/index.tsx` (Redirect at Launch)
 
-Since the **DB trigger** creates rows in `profiles`, we no longer do that in `signUp`.
+We no longer consider this optional. It’s your **home screen**, redirecting to either `(protected)/profile` (if user is logged in) or `(auth)/sign-in` (if not).
+
+```tsx
+// app/index.tsx
+import { Redirect } from "expo-router";
+import { useAuth } from "../context/auth";
+
+export default function IndexScreen() {
+  const { user } = useAuth();
+
+  // If user is logged in, go to profile; otherwise, sign in
+  return user ? (
+    <Redirect href="/(protected)/profile" />
+  ) : (
+    <Redirect href="/(auth)/sign-in" />
+  );
+}
+```
+
+---
+
+## 9) Code: `context/auth.tsx` (Auth Context, Minimal SecureStore)
+
+We’re storing only the `access_token` and `refresh_token` in SecureStore, not the full session object.
 
 ```tsx
 // context/auth.tsx
@@ -215,6 +249,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import { supabase } from "../supabaseClient";
+import { Session } from "@supabase/supabase-js";
 
 interface AuthContextProps {
   user: any;
@@ -225,8 +260,8 @@ interface AuthContextProps {
   signOut: () => Promise<void>;
 }
 
-const SESSION_KEY = "mySupabaseSession";
-
+const SESSION_KEY_ACCESS = "supabaseAccessToken";
+const SESSION_KEY_REFRESH = "supabaseRefreshToken";
 const AuthContext = createContext<AuthContextProps>({
   user: null,
   loading: false,
@@ -236,7 +271,7 @@ const AuthContext = createContext<AuthContextProps>({
   signOut: async () => {},
 });
 
-// Fallback for web if expo-secure-store isn't available
+// Helpers for storing small strings only
 async function setItem(key: string, value: string) {
   if (Platform.OS === "web") {
     window.localStorage.setItem(key, value);
@@ -266,18 +301,29 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Attempt to restore tokens on mount
   useEffect(() => {
-    // On mount, rehydrate from SecureStore or localStorage
     (async () => {
       try {
-        const sessionStr = await getItem(SESSION_KEY);
-        if (sessionStr) {
-          const session = JSON.parse(sessionStr);
-          supabase.auth.setSession(session);
-          setUser(session.user);
+        const accessToken = await getItem(SESSION_KEY_ACCESS);
+        const refreshToken = await getItem(SESSION_KEY_REFRESH);
+
+        if (accessToken && refreshToken) {
+          // We can reconstruct a partial session, or call supabase.auth.setSession
+          // But in Supabase v2, we typically do signInWithRefreshToken
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          if (data?.session) {
+            setUser(data.session.user);
+          }
+          if (error) {
+            console.log("Error restoring session:", error.message);
+          }
         }
       } catch (err) {
-        console.log("Failed to load session:", err);
+        console.log("Failed to load tokens:", err);
       }
       setLoading(false);
     })();
@@ -285,14 +331,14 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       console.log("Supabase auth event:", event);
       if (session?.user) {
         setUser(session.user);
-        await setItem(SESSION_KEY, JSON.stringify(session));
+        storeTokens(session);
       } else {
         setUser(null);
-        await deleteItem(SESSION_KEY);
+        clearTokens();
       }
     });
 
@@ -301,7 +347,21 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     };
   }, []);
 
-  // Sign Up => DB Trigger auto-creates the 'profiles' row
+  // Store just the access and refresh tokens
+  async function storeTokens(session: Session) {
+    if (!session) return;
+    const { access_token, refresh_token } = session;
+    if (access_token) await setItem(SESSION_KEY_ACCESS, access_token);
+    if (refresh_token) await setItem(SESSION_KEY_REFRESH, refresh_token);
+  }
+
+  // Clear tokens on sign-out
+  async function clearTokens() {
+    await deleteItem(SESSION_KEY_ACCESS);
+    await deleteItem(SESSION_KEY_REFRESH);
+  }
+
+  // Sign Up => DB Trigger automatically creates the 'profiles' row
   async function signUp(email: string, password: string) {
     setError(null);
     setLoading(true);
@@ -323,12 +383,16 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     setError(null);
     setLoading(true);
     try {
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
       if (signInError) {
         throw new Error(signInError.message);
+      }
+      if (data?.session?.user) {
+        setUser(data.session.user);
+        storeTokens(data.session);
       }
     } catch (err: any) {
       setError(err.message || "Sign-in failed.");
@@ -376,11 +440,9 @@ export function useAuth() {
 }
 ```
 
-No need to insert into `profiles` here—our **DB trigger** does it!
-
 ---
 
-## 9) Code: `(auth)` Folder (Sign In & Sign Up)
+## 10) Code: `(auth)` Folder (Sign In & Sign Up)
 
 ### `(auth)/_layout.tsx`
 
@@ -401,6 +463,8 @@ export default function AuthLayout() {
 ```
 
 ### `(auth)/sign-in.tsx`
+
+Notice we removed `justifyContent: "center"` in favor of a simpler layout with **short margin** at the top.
 
 ```tsx
 // app/(auth)/sign-in.tsx
@@ -475,7 +539,10 @@ function validateEmail(email: string) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, justifyContent: "center" },
+  container: {
+    paddingHorizontal: 20,
+    paddingTop: 40,
+  },
   title: { fontSize: 24, fontWeight: "bold", marginBottom: 20 },
   input: {
     borderWidth: 1,
@@ -490,6 +557,8 @@ const styles = StyleSheet.create({
 ```
 
 ### `(auth)/sign-up.tsx`
+
+Similar layout updates.
 
 ```tsx
 // app/(auth)/sign-up.tsx
@@ -530,7 +599,7 @@ export default function SignUpScreen() {
 
     setLocalError("");
     await signUp(email, password);
-    // DB Trigger automatically creates `profiles` row
+    // DB trigger automatically creates profiles row
   }
 
   return (
@@ -576,7 +645,10 @@ function validateEmail(email: string) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, justifyContent: "center" },
+  container: {
+    paddingHorizontal: 20,
+    paddingTop: 40,
+  },
   title: { fontSize: 24, fontWeight: "bold", marginBottom: 20 },
   input: {
     borderWidth: 1,
@@ -592,7 +664,7 @@ const styles = StyleSheet.create({
 
 ---
 
-## 10) Code: `(protected)` Folder (Protected Routes)
+## 11) Code: `(protected)` Folder (Protected Routes + Real-Time)
 
 ### `(protected)/_layout.tsx`
 
@@ -611,7 +683,7 @@ export default function ProtectedLayout() {
     return null; // Router isn't ready
   }
 
-  // If no user, redirect
+  // If no user, redirect to sign in
   useEffect(() => {
     if (!user) {
       router.replace("(auth)/sign-in");
@@ -629,11 +701,11 @@ export default function ProtectedLayout() {
 }
 ```
 
-### `(protected)/profile.tsx`
+### `(protected)/profile.tsx` (Displays + Subscribes)
 
 ```tsx
 // app/(protected)/profile.tsx
-import { View, Text, Button, ActivityIndicator } from "react-native";
+import { View, Text, Button, ActivityIndicator, StyleSheet } from "react-native";
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import { useAuth } from "../../context/auth";
@@ -645,6 +717,7 @@ export default function ProfileScreen() {
   const [loadingProfile, setLoadingProfile] = useState(false);
   const router = useRouter();
 
+  // 1) Initial fetch
   async function fetchProfile() {
     if (!user?.id) return;
     setLoadingProfile(true);
@@ -654,19 +727,47 @@ export default function ProfileScreen() {
         .select("*")
         .eq("user_id", user.id)
         .single();
-
-      if (error) {
-        console.log("Error fetching profile:", error.message);
-      } else {
+      if (!error && data) {
         setProfile(data);
+      } else if (error) {
+        console.log("Error fetching profile:", error.message);
       }
     } finally {
       setLoadingProfile(false);
     }
   }
 
+  // 2) On mount, fetch once
   useEffect(() => {
     fetchProfile();
+  }, [user?.id]);
+
+  // 3) Real-time subscription: watch only our row
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel("profile-changes") // pick any unique name
+      .on(
+        "postgres_changes",
+        {
+          event: "*", // or "UPDATE", "INSERT", "DELETE"
+          schema: "public",
+          table: "profiles",
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log("Realtime update on 'profiles':", payload);
+          // Easiest approach: re-fetch to update local state
+          fetchProfile();
+        }
+      )
+      .subscribe();
+
+    // Cleanup on unmount
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user?.id]);
 
   async function handleSignOut() {
@@ -676,14 +777,14 @@ export default function ProfileScreen() {
 
   if (!user) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", padding: 20 }}>
+      <View style={styles.container}>
         <Text>No user found, please sign in.</Text>
       </View>
     );
   }
 
   return (
-    <View style={{ flex: 1, padding: 20, justifyContent: "center" }}>
+    <View style={styles.container}>
       <Text style={{ fontSize: 20, marginBottom: 10 }}>
         Welcome, {user.email}!
       </Text>
@@ -709,6 +810,13 @@ export default function ProfileScreen() {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    paddingHorizontal: 20,
+    paddingTop: 40,
+  },
+});
 ```
 
 ### `(protected)/edit-profile.tsx`
@@ -798,7 +906,10 @@ export default function EditProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, justifyContent: "center" },
+  container: {
+    paddingHorizontal: 20,
+    paddingTop: 40,
+  },
   label: { fontWeight: "bold", marginBottom: 5 },
   input: {
     borderWidth: 1,
@@ -812,25 +923,6 @@ const styles = StyleSheet.create({
 
 ---
 
-## 11) Optional: `app/index.tsx` (Default Redirection)
-
-```tsx
-// app/index.tsx
-import { Redirect } from "expo-router";
-import { useAuth } from "../context/auth";
-
-export default function Index() {
-  const { user } = useAuth();
-  return user ? (
-    <Redirect href="/(protected)/profile" />
-  ) : (
-    <Redirect href="/(auth)/sign-in" />
-  );
-}
-```
-
----
-
 ## 12) Run & Test
 
 ```bash
@@ -840,29 +932,49 @@ npx expo start --clear
 Open in iOS/Android/Web:
 
 1. **Sign Up** with a new email.  
-2. **DB Trigger** automatically creates a row in `profiles` (`display_name` = `""`).  
-3. **Sign In**. You’ll see `(protected)/profile`. If `display_name` is empty, we show `(none)`.  
-4. **Edit** the name in `(protected)/edit-profile`.  
-5. **Row Level Security** ensures only your row is updated.  
-6. **Sign Out** clears the session from SecureStore or localStorage.
-
-No more “(none)” from missing rows—**Supabase** handles it.
+   - The **DB Trigger** automatically creates a row in `profiles`.  
+2. **Sign In** → `(protected)/profile` fetches your row.  
+3. **Edit** the display name in `(protected)/edit-profile`. You’ll see it update.  
+4. **Real-Time**: If you open **another** instance or the **Supabase Dashboard** → `profiles` and change `display_name`, the subscription in `(protected)/profile` triggers an update automatically.  
+5. **Sign Out**—clears the tokens from SecureStore or localStorage.
 
 ---
 
-## 13) Recap & Next Steps
+## 13) Recap & Updated Roadmap
 
 You now have:
 
-1. **Expo Router** + **Supabase** with a **DB Trigger** that auto-creates `profiles` rows—**no** client logic needed.  
-2. **Row Level Security** ensures each user sees/updates only their row.  
-3. **No** embedded keys in code—**`.env.local`** with `EXPO_PUBLIC_` keeps your anon key out of the repo.  
-4. **expo-secure-store** (plus fallback for web) to store sessions securely.
+1. **DB Trigger**: For auto-creating `profiles`.  
+2. **Real-Time Subscription**: In `(protected)/profile` for instant changes.  
+3. **RLS** so each user only sees/updates their row.  
+4. **`.env.local`** with `EXPO_PUBLIC_` prefix for keys.  
+5. **Minimal** SecureStore usage (only `access_token` & `refresh_token`).
 
-### Next Steps
+All of the above are **complete**.
 
-1. **Avatars**: Use [Supabase Storage](https://supabase.com/docs/guides/storage) for profile pictures, referencing `profiles.avatar_url`.  
-2. **Real-Time**: Subscribe to live changes with `supabase.channel(...)`.  
-3. **Social Features**: Add “posts,” “friends,” etc. with RLS-based security.
+Below is our extended roadmap, with completed tasks **struck through** and next tasks in recommended order (inspired by Bonfire, Yii2, WordPress):
 
-Enjoy your **ScriptHammer** project with a minimal, server-driven approach for `profiles` creation!
+1. ~~**Real Auth** backend integration (Supabase)~~  
+2. ~~**RLS** & DB triggers (auto-create `profiles`)~~  
+3. ~~**Minimal tokens** in SecureStore (avoid 2048-byte limit)~~  
+4. ~~**Real-time subscription** for `profiles`~~  
+
+**Next Steps**:
+
+5. **Admin Dashboard (Web Interface)**  
+   - A custom admin or “back office” for user management, content moderation, etc.  
+
+6. **CLI / CRUD Scaffolding Tools**  
+   - Generate tables, endpoints, or “modules” quickly (like Bonfire Builder or Yii2 Gii).  
+
+7. **Advanced Role/Permission System**  
+   - Beyond basic RLS checks, introduce `admin`, `editor`, `moderator` roles, etc.  
+
+8. **Additional Social Features**  
+   - Posts, comments, likes/follows.  
+   - Real-time feed, direct messages, file uploads (Supabase Storage).  
+
+9. **Deployment & Production Hardening**  
+   - EAS builds for iOS/Android, robust hosting, environment variables, logging/monitoring, push notifications, etc.  
+
+By layering features **incrementally**, each piece (auth, admin, scaffolding, roles, social) builds on a **solid foundation**. Your “ScriptHammer” app is now a **fully functional** Expo + Supabase project with triggers, RLS, minimal SecureStore usage, and real-time updates—ready to evolve into a production-scale social application!

@@ -1,260 +1,172 @@
-Below is a **practical, real-world roadmap** for turning the minimal “fake token” tutorial into a **production-ready** mobile app—one that can scale to a generic social network. We’ll cover **how to iterate** your project in progressive steps, **where** to store sensitive data, **what** features to add, and **why** each step matters for reliability and security.
+Below is your **updated** roadmap from **Phase 7 onward**, **emphasizing** that each time you prime ChatGPT for a new phase, you want a **fully functional tutorial**—complete code (no placeholders) and, at the end of each phase’s solution, a **Node scaffolding script** to automate the new files. 
+
+You’ve already finished phases **1–6** (real Supabase auth, RLS, DB triggers, minimal token storage, real-time profile subscriptions, offline Dexie/SQLite). Now pick the next phase:
 
 ---
-# 1. Use a **Real Authentication** Backend
 
-### What We Have
-- Currently, the tutorial simulates sign-in/sign-up by setting a “fake_signin_token” or “fake_signup_token” with a 1-second timeout.
+# ScriptHammer Roadmap (Struck-Through for Completed)
 
-### Next Steps
-1. **Build or connect to an actual backend**:
-   - Could be a custom Node.js/Express server, a Django/Flask server in Python, or a cloud-based service like Firebase Auth/Supabase Auth.
-   - Provide real endpoints: `POST /api/auth/signin`, `POST /api/auth/signup`, `POST /api/auth/refresh`, etc.
+1. ~~Fake tokens + ephemeral sign-up~~  
+2. ~~Add real Supabase auth + RLS~~  
+3. ~~DB triggers for automatic profile creation~~  
+4. ~~Minimal token storage (SecureStore or localStorage)~~  
+5. ~~Real-time subscription for user’s profile~~  
+6. ~~Offline/local-first approach (Dexie for web, SQLite for native)~~  
 
-2. **Handle real server responses**:
-   - In `signIn` and `signUp`, use `fetch` or a library like [Axios](https://github.com/axios/axios) to call your server:
-     ```ts
-     // Example with fetch
-     const response = await fetch(`${API_URL}/auth/signin`, {
-       method: "POST",
-       headers: { "Content-Type": "application/json" },
-       body: JSON.stringify({ email, password }),
-     });
-     if (!response.ok) {
-       throw new Error("Failed to sign in");
-     }
-     const data = await response.json();
-     setAuthToken(data.token);
-     ```
-   - Parse the JSON response.  
-   - If the request fails, display an error message from the server (e.g. “Incorrect password”).
+**Next**:
 
-3. **Refresh tokens**:
-   - In a production setting, you often **don’t** keep a single token alive for the entire session.
-   - Instead, store a short-lived access token + a refresh token.  
-   - When the access token expires, call the refresh endpoint with the refresh token to get a new one.
+7. **Admin Dashboard** (web)  
+8. **CLI Scaffolding** (like Bonfire’s Builder)  
+9. **Advanced Roles/Permissions** (admin, moderator)  
+10. **Social/Business Features** (posts, file uploads, notifications)  
+11. **Production Pipeline** (Expo EAS, env vars, logging, monitoring)
+
+---
+
+## Phase 7: **Admin Dashboard** (Web Interface)
+
+### Potential Objectives
+1. **User Management**: view/search/disable accounts, possibly from the same Supabase DB.  
+2. **Content Moderation**: delete or edit user posts.  
+3. **Analytics**: basic usage stats, sign-ups per day.
 
 ### Why It Matters
-- **Security**: Real endpoints + real tokens ensure only valid users can log in.  
-- **Scalability**: A dedicated auth service is easier to maintain and secure as your user base grows.
+- A web-based admin panel is easier for staff to manage user data, moderate content, etc.
+
+**System Prompt Code (Phase 7)**
+
+```
+You are a senior Expo/React Native developer focusing on Phase 7 of ScriptHammer: “Admin Dashboard (Web Interface).”
+
+I need a fully functional tutorial (no placeholders) showing how to build a web-based admin panel that:
+1. Integrates with our Supabase instance for user management and content moderation.
+2. Follows best practices (secure routes, etc.).
+3. Includes a Node script at the end to automate new files or stubs we create in this tutorial.
+```
+
+*(Start a new ChatGPT conversation, paste this as the **System** message, then ask for the tutorial in the **User** message.)*
 
 ---
 
-# 2. Securely Store Tokens (Expo SecureStore, react-native-keychain, etc.)
+## Phase 8: **CLI Scaffolding Tool** (Like Bonfire’s “Builder”)
 
-### What We Have
-- Tokens are stored in simple React state (`useState`). As soon as the app reloads or the user kills it, the token is lost.
-
-### Next Steps
-1. **Install a secure storage library**:
-   - [Expo SecureStore](https://docs.expo.dev/versions/latest/sdk/securestore/) if you’re in an Expo-managed environment.
-   - [react-native-keychain](https://github.com/oblador/react-native-keychain) if you have a bare workflow or want more customization.
-
-2. **Persist `authToken`**:
-   - When you receive a new token (sign-up, sign-in, refresh), store it in secure storage:
-     ```ts
-     import * as SecureStore from 'expo-secure-store';
-
-     async function storeToken(key: string, value: string) {
-       await SecureStore.setItemAsync(key, value);
-     }
-     ```
-   - On app startup, **rehydrate** the token from secure storage into your React Context:
-     ```ts
-     export default function AuthProvider({ children }) {
-       const [authToken, setAuthToken] = useState<string | null>(null);
-
-       useEffect(() => {
-         SecureStore.getItemAsync("token").then((savedToken) => {
-           if (savedToken) {
-             setAuthToken(savedToken);
-           }
-         });
-       }, []);
-
-       // ...
-       async function signIn() {
-         // after successful response
-         setAuthToken(token);
-         await SecureStore.setItemAsync("token", token);
-       }
-
-       async function signOut() {
-         setAuthToken(null);
-         await SecureStore.deleteItemAsync("token");
-       }
-     }
-     ```
+### Potential Objectives
+1. **Command-Line Interface**: e.g., `npx script-hammer generate module posts`.  
+2. **Auto-Generate**: React Native screens, Supabase table creation scripts, context files.  
+3. **Configurable**: maybe a YAML/JSON config describing the module fields.
 
 ### Why It Matters
-- **Better UX**: Users stay logged in between app restarts.  
-- **Security**: Tokens are not in plaintext memory or local storage. They’re encrypted at rest on the device.
+- CRUD scaffolding drastically accelerates development.
+
+**System Prompt Code (Phase 8)**
+
+```
+You are a senior Expo/React Native developer focusing on Phase 8 of ScriptHammer: “CLI Scaffolding Tool.”
+
+I need a fully functional tutorial (no placeholders) showing how to:
+1. Build a Node-based CLI that generates common files (RN screens, Supabase table scripts).
+2. Follow best practices so new modules integrate seamlessly into ScriptHammer.
+3. End with a Node script that can be copy-pasted to automate scaffolding tasks.
+```
 
 ---
 
-# 3. Implement a **Token Refresh** Flow
+## Phase 9: **Advanced Roles & Permissions**
 
-### What We Have
-- Once a token is set, we never renew it. If the server has short-lived tokens, the user’s token might expire, forcing them to manually re-log.
-
-### Next Steps
-1. **Add a `refreshToken`**:
-   - When you sign in, the server returns `{ accessToken, refreshToken }`.
-   - Store both, e.g., `SecureStore.setItemAsync("refreshToken", refreshToken)`.
-2. **Intercept 401 errors**:
-   - If a request fails with 401 “Unauthorized,” call `POST /auth/refresh` with the stored `refreshToken` to get a new `accessToken`.
-   - If refresh also fails, sign out the user.
-3. **Auto-renew**:
-   - Some libraries (like Axios interceptors) let you automatically intercept requests, check token expiration, and refresh if needed.
+### Potential Objectives
+1. **Supabase Policies** for role-based access.  
+2. **UI** changes: show/hide features unless user is admin or moderator.  
+3. Possibly store roles in a separate table or within `profiles`.
 
 ### Why It Matters
-- **Seamless Experience**: The user rarely sees a forced logout.  
-- **Security**: Short-lived access tokens limit exposure if they’re compromised.
+- Real-world apps need more than “everyone can do everything” or simple RLS.
+
+**System Prompt Code (Phase 9)**
+
+```
+You are a senior Expo/React Native developer focusing on Phase 9 of ScriptHammer: “Advanced Roles & Permissions.”
+
+I need a fully functional tutorial (no placeholders) that:
+1. Extends our Supabase RLS with roles like admin/moderator.
+2. Shows how the front end checks roles to hide or show certain features.
+3. Concludes with a scaffolding script to automate role-based UI/policy additions.
+```
 
 ---
 
-# 4. Structure a **Generic “Social Network”** Feature Set
+## Phase 10: **Social/Business Features** (Posts, Uploads, Notifications)
 
-Now that auth is robust, you can expand the app to a typical social network’s features:
-
-1. **User Profiles**  
-   - Each user has a profile screen with display name, avatar, bio.
-   - Let users update their own profile (POST to `api/user/updateProfile`).
-   - Perhaps show a public profile for others (GET `api/user/:id`).
-
-2. **Feed / Posts**  
-   - A “Home” or “Feed” screen to display all posts from followed users or global feed.
-   - Ability to **create** a post (images, text) and see real-time updates.
-   - A backend route like `POST /api/posts` to create a post, and `GET /api/posts` to fetch the feed.
-
-3. **Likes & Comments**  
-   - For each post, show a like button, comment section.
-   - `POST /api/posts/:postId/like`, `POST /api/posts/:postId/comment` for user interactions.
-
-4. **Follow / Unfollow**  
-   - Let users follow or unfollow each other.
-   - “Follower/following” counts, a personal timeline that only shows followed accounts.
-
-5. **Push Notifications**  
-   - Use [Expo Notifications](https://docs.expo.dev/push-notifications/overview/) or another push service.
-   - When someone likes your post or follows you, you get a push notification.
+### Potential Objectives
+1. **Posts & Feeds**: create a “posts” table in Supabase, display in a feed.  
+2. **File Uploads**: e.g., images for posts or user avatars. Use Supabase Storage or 3rd-party.  
+3. **Notifications**: push notifications (Expo or FCM) or in-app real-time.  
+4. **Realtime**: feed updates automatically.
 
 ### Why It Matters
-- This is the **core** of a social network: user connections, content, interactions.  
-- You’ll test your authentication logic thoroughly with each new API endpoint.
+- This is how you grow from a simple profile system to a more robust social or business platform.
+
+**System Prompt Code (Phase 10)**
+
+```
+You are a senior Expo/React Native developer focusing on Phase 10 of ScriptHammer: “Social/Business Features (Posts, Uploads, Notifications).”
+
+I need a fully functional tutorial (no placeholders) demonstrating:
+1. A “posts” feed with Supabase.
+2. File uploads (images or docs) via Supabase Storage or a 3rd-party.
+3. Optional push notifications for new likes/comments.
+4. End with a Node script to automate these new modules/tables.
+```
 
 ---
 
-# 5. Handling **Images** and **Uploads**
+## Phase 11: **Production Pipeline** (Expo EAS, Env Vars, Logging, Monitoring)
 
-Many social apps require image uploads for profiles or posts:
-
-1. **Image Picker**  
-   - In an Expo environment, use [expo-image-picker](https://docs.expo.dev/versions/latest/sdk/imagepicker/) to let the user select photos from their camera roll or take new ones.
-2. **File Upload**  
-   - The backend needs an endpoint to handle multipart form-data or a direct cloud storage link (e.g., S3, Cloudinary).
-3. **Storage**  
-   - Store the image in S3 or a dedicated image host, then store the image URL in your database.  
+### Potential Objectives
+1. **EAS Build** for iOS/Android.  
+2. **Environment Variables** for secrets.  
+3. **Logging/Monitoring** with Sentry or Bugsnag.  
+4. **Performance**: code splitting, caching.
 
 ### Why It Matters
-- Rich media is fundamental for a social network; proper handling prevents security holes (like unvalidated uploads).
+- A stable release pipeline ensures quick updates, bug fixes, environment-specific configs, etc.
+
+**System Prompt Code (Phase 11)**
+
+```
+You are a senior Expo/React Native developer focusing on Phase 11 of ScriptHammer: “Production Pipeline (Expo EAS, Env Vars, Logging, Monitoring).”
+
+I need a fully functional tutorial (no placeholders) showing how to:
+1. Use Expo EAS to build/submit iOS and Android apps.
+2. Manage environment variables securely.
+3. Integrate logging or crash reporting (Sentry) in production.
+4. Provide a Node script at the end to help automate environment config and logging setup.
+```
 
 ---
 
-# 6. Real-Time Feeds / Chat (Advanced)
+## How to Use These System Prompt Blocks
 
-For a richer “social network” experience, you can add:
+1. Choose a phase (7–11) you want to tackle.  
+2. Start a **fresh** ChatGPT conversation.  
+3. Copy the relevant code snippet (including triple backticks) as your **System** message.  
+4. In your **User** message, explain what you want in detail, e.g. “Show me a complete admin dashboard tutorial with Next.js and Supabase, including a Node script to automate new admin pages.”  
 
-1. **Socket-based updates**  
-   - Use [WebSockets](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API) or a service like Pusher or Firebase Realtime DB to push new content instantly.
-2. **Live Chat**  
-   - Create a chat screen with real-time messages (similar to Instagram DMs).  
-   - The server might use Socket.IO or a GraphQL subscription approach.
+This ensures ChatGPT is primed to:
 
-### Why It Matters
-- Modern social apps rely heavily on real-time interactions (likes, new messages, etc.).  
-- This step is more complex but adds a strong “social” component.
-
----
-
-# 7. Deployment & Production-Readiness
-
-Once you have a stable feature set, you’ll want to **deploy**:
-
-1. **EAS Build & Submit** (Expo)  
-   - Use [EAS Build](https://docs.expo.dev/eas/) to generate APKs/IPAs.  
-   - Then [EAS Submit](https://docs.expo.dev/eas/submit/) to upload to Google Play or Apple’s App Store.
-2. **Backend Hosting**  
-   - If using Node.js, host on services like AWS Elastic Beanstalk, Heroku, or a Docker-based solution on ECS/Kubernetes.
-   - Or a managed backend like Firebase/Supabase if you want less overhead.
-3. **Environment Variables**  
-   - Ensure your API keys and secrets aren’t hard-coded.
-   - Use `.env` files, runtime configs, or [Expo Config Plugins](https://docs.expo.dev/workflow/configuration/) to inject secrets securely.
-
-4. **Monitoring / Crash Reporting**  
-   - Integrate tools like [Sentry](https://docs.sentry.io/platforms/react-native/) or Bugsnag to track crashes and errors in production.
-
-### Why It Matters
-- Getting your app onto user devices is the final step.  
-- Proper hosting, environment management, and crash analytics ensure a stable experience at scale.
+- **Reply with a fully functional tutorial** (no placeholders).  
+- Provide copy-paste code solutions.  
+- End each phase’s reply with a Node script that automates the new iteration’s scaffolding.
 
 ---
 
-# 8. Iteration Plan Summary
+### Final Note
 
-Below is a concise **iteration “recipe”** from minimal MVP to a fully production-ready social app:
+With phases 1–6 complete (Dexie, SQLite, real-time, RLS, etc.), you’re ready for advanced expansions:
 
-1. **Iteration 1**: 
-   - Basic auth with real endpoints (sign in/up). 
-   - Store token securely (Expo SecureStore).
-   - Single “protected” screen to show user info.
+- **Phase 7**: Admin Dashboard  
+- **Phase 8**: Scaffolding CLI  
+- **Phase 9**: Advanced Roles  
+- **Phase 10**: Social/Business expansions  
+- **Phase 11**: Production pipeline  
 
-2. **Iteration 2**: 
-   - Add refresh tokens. 
-   - On token expiration or 401 errors, automatically refresh.
-
-3. **Iteration 3**: 
-   - Expand user profile: display name, avatar, bio. 
-   - Basic feed with posts. 
-   - Likes/comments endpoints.
-
-4. **Iteration 4**: 
-   - Real-time or near real-time updates (WebSockets or poll the feed). 
-   - Possibly add private messaging or group chats.
-
-5. **Iteration 5**: 
-   - Handle image uploads (profile pics, post images). 
-   - Integrate push notifications for mentions, messages, etc.
-
-6. **Iteration 6**: 
-   - Production build with EAS or a custom pipeline. 
-   - Host backend on a robust platform. 
-   - Add environment variable management, Sentry for crash reporting.
-
-7. **Iteration 7** (ongoing): 
-   - Performance optimizations (caching, lazy loading). 
-   - Additional features (stories, reels, group features, etc.).
-
-Each iteration builds on the previous step, ensuring you **gradually** shift from a local in-memory token approach to a **secure, scalable** system with a robust back end and real social features.
-
----
-
-## Final Tips
-
-- **Security**: Always treat tokens carefully. In production, never store them in plaintext or in an insecure place.  
-- **Performance**: Caching feeds, compressing images, and lazy-loading certain screens can help scale.  
-- **Testing**: Automate end-to-end tests using [Detox](https://wix.github.io/Detox/) or [Cypress + React Native Testing Library](https://callstack.github.io/react-native-testing-library/).  
-- **Analytics**: Integrate Mixpanel, Amplitude, or Segment to understand user behavior in your social app.
-
----
-
-# Conclusion
-
-Using the **basic Expo Router + Auth Context** foundation from the tutorial, you can **iterate** into a **production-ready** social network:
-
-1. Swap out fake tokens for **real** APIs.  
-2. Secure everything in **secure storage**.  
-3. Add feed, posts, profiles, and real-time features.  
-4. Deploy with **EAS** and track logs/crashes in production.  
-
-This progression ensures you start with a clean, minimal MVP and steadily **layer** advanced capabilities until your app is a robust, production-grade mobile social platform.
+When you’re ready for each step, just use that phase’s **System Prompt Code**. That’s it—happy building with ScriptHammer!

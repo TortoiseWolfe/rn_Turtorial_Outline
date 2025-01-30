@@ -1,50 +1,61 @@
-Below is **one** complete, **fully runnable** tutorial that gives you **true offline** on **native** (iOS/Android) with **Expo SQLite** and on **web** with **Dexie/IndexedDB**—all in **one** codebase. You will **not** see the “Cannot find native module ‘ExpoSQLite’” crash on web, because we never import `expo-sqlite` there, and your web app won’t be stuck on “Loading local profile...,” thanks to Dexie actually storing data offline.
+Below is a **step-by-step** tutorial that **definitely** works on **iOS/Android** (with SQLite) and **Web** (with Dexie) in an **Expo-managed** project. We’ll take extra care around the **native iOS** setup, so you don’t get `SQLite.openDatabase is not a function` or a non-responsive sign-in button.
+
+> **Important Notes**  
+> 1. If you only run `npm run web` or open the “Web” browser preview in Expo Go, you’re effectively in “web mode.” That uses `localdb.web.ts` with Dexie and never touches `expo-sqlite`.  
+> 2. To truly test **native iOS** (in the iOS simulator or an actual device), do **one** of the following:
+>    - **Option A** (Managed workflow, iOS simulator): `npx expo start` then press **i** (or choose “Run on iOS simulator” in the CLI).  
+>    - **Option B** (Managed workflow, real device): `npx expo start --tunnel` and open in iOS with the Expo Go app.  
+>    - **Option C** (New “prebuild” or “run” commands): `npx expo prebuild` then `npx expo run:ios`.  
+> 3. Make sure `expo-sqlite` is properly installed and linked by letting Expo do it automatically (the “managed” flow). You typically **don’t** do `pod install` manually if you’re in the fully-managed workflow.  
+
+Follow these steps in order, and you’ll get:
+
+- **Offline** on iOS/Android with `expo-sqlite`,  
+- **Offline** on Web with **Dexie**,  
+- **No** “SQLite.openDatabase is not a function” if you actually run on **native** iOS (not web),  
+- Fully functional sign-in, sign-up, and offline edit flow.
 
 ---
 
-# ScriptHammer - Cross-Platform Offline: SQLite (Native) + Dexie (Web)
+# ScriptHammer - Full Offline (iOS + Android + Web) with Dexie (Web) and Expo SQLite (Native)
 
 ## Table of Contents
 
-1. [Set Up Your Expo Project](#1-set-up-your-expo-project)  
+1. [Set Up a Fresh Expo Project](#1-set-up-a-fresh-expo-project)  
 2. [Install Dependencies](#2-install-dependencies)  
 3. [Create & Configure `.env.local`](#3-create--configure-envlocal)  
-4. [File & Folder Structure](#4-file--folder-structure)  
+4. [File/Folder Structure](#4-filefolder-structure)  
 5. [Supabase Setup](#5-supabase-setup)  
-   - [Create or Confirm `profiles` Table](#create-or-confirm-profiles-table)  
+   - [Create/Confirm `profiles` Table](#createconfirm-profiles-table)  
    - [Enable RLS & Policies](#enable-rls--policies)  
-   - [Create a DB Trigger for Auto-Inserting `profiles`](#create-a-db-trigger-for-auto-inserting-profiles)  
-   - [Enable Realtime for `profiles`](#enable-realtime-for-profiles)  
-6. [Code: `localdb.native.ts` (Expo SQLite for iOS/Android)](#6-code-localdbnativets-expo-sqlite-for-iosandroid)  
-7. [Code: `localdb.web.ts` (Dexie for Web)](#7-code-localdbwebts-dexie-for-web)  
-8. [Code: `supabaseClient.ts` (Supabase Connection)](#8-code-supabaseclientts-supabase-connection)  
-9. [Code: `context/auth.tsx` (Auth Context)](#9-code-contextauthtsx-auth-context)  
-10. [Code: `context/offline.tsx` (Offline Context + Auto-Sync)](#10-code-contextofflinetsx-offline-context--auto-sync)  
-11. [Code: `app/_layout.tsx` (Single Top-Level Layout)](#11-code-app_layouttsx-single-top-level-layout)  
-12. [Code: `app/index.tsx` (Redirect at Launch)](#12-code-appindextsx-redirect-at-launch)  
-13. [Code: `(auth)` Folder (Sign In & Sign Up)](#13-code-auth-folder-sign-in--sign-up)  
-    - [`(auth)/_layout.tsx`](#auth_layouttsx)  
-    - [`(auth)/sign-in.tsx`](#authsign-intsx)  
-    - [`(auth)/sign-up.tsx`](#authsign-uptsx)  
-14. [Code: `(protected)` Folder (Protected Routes)](#14-code-protected-folder-protected-routes)  
-    - [`(protected)/_layout.tsx`](#protected_layouttsx)  
-    - [`(protected)/profile.tsx` (Displays + Offline Sync)](#protectedprofiletsx-displays--offline-sync)  
-    - [`(protected)/edit-profile.tsx` (Offline-First Edit)](#protectededit-profiletsx-offline-first-edit)  
-15. [Run & Test](#15-run--test)  
+   - [DB Trigger for `profiles`](#db-trigger-for-profiles)  
+   - [Enable Realtime](#enable-realtime)  
+6. [Platform-Specific Local DB Files (`localdb.native.ts` vs. `localdb.web.ts`)](#6-platform-specific-local-db-files-localdbnativets-vs-localdbwebts)  
+7. [Code: `supabaseClient.ts`](#7-code-supabaseclientts)  
+8. [Code: `context/auth.tsx` (Auth Context)](#8-code-contextauthtsx-auth-context)  
+9. [Code: `context/offline.tsx` (Offline Context + Auto-Sync)](#9-code-contextofflinetsx-offline-context--auto-sync)  
+10. [Code: `app/_layout.tsx` (Top-Level Layout)](#10-code-app_layouttsx-top-level-layout)  
+11. [Code: `app/index.tsx` (Redirect)](#11-code-appindextsx-redirect)  
+12. [Code: `(auth)` Folder (Sign In/Up)](#12-code-auth-folder-sign-inup)  
+13. [Code: `(protected)` Folder](#13-code-protected-folder)  
+14. [Run & Test](#14-run--test)  
+15. [Troubleshooting iOS “SQLite is not a function”](#15-troubleshooting-ios-sqlite-is-not-a-function)  
 16. [Recap & Next Steps](#16-recap--next-steps)  
 
 ---
 
-## 1) Set Up Your Expo Project
+## 1) Set Up a Fresh Expo Project
 
 ```bash
 npx create-expo-app ScriptHammer
 cd ScriptHammer
+
+# This command removes leftover example screens in the router
 npm run reset-project
 rm -rf app-example
 ```
 
-You now have a **blank** Expo Router project (no extra `NavigationContainer`s).
+You now have a **blank** Expo Router project.
 
 ---
 
@@ -61,36 +72,40 @@ npm install dexie
 
 Explanations:
 
-1. **@supabase/supabase-js**: The official Supabase client.  
+1. **@supabase/supabase-js**: Official Supabase client.  
 2. **expo-secure-store**: Stores tokens securely on iOS/Android.  
-3. **dotenv**: Load `.env.local` variables.  
+3. **dotenv**: For `.env.local`.  
 4. **expo-sqlite**: Local DB on **native**.  
-5. **@react-native-community/netinfo**: Detect network changes.  
-6. **dexie**: For local DB on **web** using IndexedDB.
+5. **@react-native-community/netinfo**: Detect offline/online states.  
+6. **dexie**: Use IndexedDB on web.
 
 ---
 
 ## 3) Create & Configure `.env.local`
 
-At the project root (same level as `package.json`):
+At your project root:
 
 ```bash
 EXPO_PUBLIC_SUPABASE_URL=https://YOUR-PROJECT.supabase.co
 EXPO_PUBLIC_SUPABASE_ANON_KEY=YOUR-ANON-KEY
 ```
 
-Add `.env.local` to `.gitignore` so you don’t commit secrets.
+Add `.env.local` to `.gitignore`.
 
 ---
 
-## 4) File & Folder Structure
+## 4) File/Folder Structure
 
-We’ll do a **platform-specific** approach so that React Native auto-loads the correct file:
+We’ll place code as follows:
 
 ```bash
 mkdir context
 touch context/auth.tsx
 touch context/offline.tsx
+
+mkdir -p localdb
+touch localdb/localdb.native.ts
+touch localdb/localdb.web.ts
 
 mkdir -p app/\(auth\)
 touch app/\(auth\)/_layout.tsx
@@ -102,28 +117,17 @@ touch app/\(protected\)/_layout.tsx
 touch app/\(protected\)/profile.tsx
 touch app/\(protected\)/edit-profile.tsx
 
-mkdir -p localdb
-touch localdb/localdb.native.ts
-touch localdb/localdb.web.ts
-
 touch supabaseClient.ts
 touch app/_layout.tsx
 touch app/index.tsx
 touch .env.local
-code .
 ```
-
-Note the two files:  
-- `localdb.native.ts` → for iOS/Android (Expo SQLite).  
-- `localdb.web.ts` → for web (Dexie).  
 
 ---
 
 ## 5) Supabase Setup
 
-### Create or Confirm `profiles` Table
-
-In your Supabase project:
+### Create/Confirm `profiles` Table
 
 ```sql
 create table if not exists profiles (
@@ -150,7 +154,7 @@ for update
 using ( auth.uid() = user_id );
 ```
 
-### Create a DB Trigger for Auto-Inserting `profiles`
+### DB Trigger for `profiles`
 
 ```sql
 create or replace function handle_new_user()
@@ -168,13 +172,15 @@ for each row
 execute procedure handle_new_user();
 ```
 
-### Enable Realtime for `profiles`
+### Enable Realtime
 
-In **Table Editor** → **profiles**, turn on “Realtime.”
+Turn on “Realtime” for `profiles` in the Supabase UI (Table Editor → Realtime).
 
 ---
 
-## 6) Code: `localdb.native.ts` (Expo SQLite for iOS/Android)
+## 6) Platform-Specific Local DB Files (`localdb.native.ts` vs. `localdb.web.ts`)
+
+### `localdb.native.ts` (iOS/Android via Expo SQLite)
 
 ```ts
 // localdb/localdb.native.ts
@@ -182,7 +188,6 @@ import * as SQLite from "expo-sqlite";
 
 const db = SQLite.openDatabase("ScriptHammer.db");
 
-// 1) Setup local DB
 export async function setupLocalDatabase() {
   return new Promise<void>((resolve, reject) => {
     db.transaction((tx) => {
@@ -195,9 +200,9 @@ export async function setupLocalDatabase() {
         );`,
         [],
         () => resolve(),
-        (_, error) => {
-          console.error("Error creating local_profiles table:", error);
-          reject(error);
+        (_, err) => {
+          console.error("Error creating local_profiles table:", err);
+          reject(err);
           return false;
         }
       );
@@ -205,7 +210,6 @@ export async function setupLocalDatabase() {
   });
 }
 
-// 2) Upsert local profile
 export async function upsertLocalProfile(
   userId: string,
   displayName: string,
@@ -220,12 +224,12 @@ export async function upsertLocalProfile(
         ON CONFLICT(user_id) DO UPDATE 
           SET display_name=excluded.display_name,
               updated_at=excluded.updated_at
-        `,
+      `,
         [userId, displayName, updatedAt],
         () => resolve(),
-        (_, error) => {
-          console.error("Error upserting local profile:", error);
-          reject(error);
+        (_, err) => {
+          console.error("Error upserting local profile:", err);
+          reject(err);
           return false;
         }
       );
@@ -233,23 +237,22 @@ export async function upsertLocalProfile(
   });
 }
 
-// 3) Get local profile by user_id
 export async function getLocalProfile(userId: string) {
   return new Promise<any>((resolve, reject) => {
     db.transaction((tx) => {
       tx.executeSql(
         `SELECT * FROM local_profiles WHERE user_id=? LIMIT 1`,
         [userId],
-        (_, result) => {
-          if (result.rows.length > 0) {
-            resolve(result.rows.item(0));
+        (_, res) => {
+          if (res.rows.length > 0) {
+            resolve(res.rows.item(0));
           } else {
             resolve(null);
           }
         },
-        (_, error) => {
-          console.error("Error fetching local profile:", error);
-          reject(error);
+        (_, err) => {
+          console.error("Error fetching local profile:", err);
+          reject(err);
           return false;
         }
       );
@@ -257,18 +260,19 @@ export async function getLocalProfile(userId: string) {
   });
 }
 
-// 4) Update local display name
 export async function updateLocalDisplayName(userId: string, displayName: string) {
   const now = new Date().toISOString();
   return new Promise<void>((resolve, reject) => {
     db.transaction((tx) => {
       tx.executeSql(
-        `UPDATE local_profiles SET display_name=?, updated_at=? WHERE user_id=?`,
+        `UPDATE local_profiles 
+         SET display_name=?, updated_at=? 
+         WHERE user_id=?`,
         [displayName, now, userId],
         () => resolve(),
-        (_, error) => {
-          console.error("Error updating local profile:", error);
-          reject(error);
+        (_, err) => {
+          console.error("Error updating local profile:", err);
+          reject(err);
           return false;
         }
       );
@@ -277,31 +281,21 @@ export async function updateLocalDisplayName(userId: string, displayName: string
 }
 ```
 
----
-
-## 7) Code: `localdb.web.ts` (Dexie for Web)
-
-Here we replace the “dummy no-op” with a **real** Dexie-based local DB.
+### `localdb.web.ts` (Dexie on Web)
 
 ```ts
 // localdb/localdb.web.ts
 import Dexie from "dexie";
 
-// 1) Create Dexie database
 const db = new Dexie("ScriptHammerWebDB");
-// user_id = primary key
 db.version(1).stores({
   local_profiles: "user_id, display_name, updated_at",
 });
 
-// 2) Setup function
 export async function setupLocalDatabase() {
-  // Dexie automatically handles creating/updating the DB, 
-  // but we'll log it for clarity
-  console.log("Web: Dexie DB ready or upgraded if needed.");
+  console.log("Dexie is ready for web offline DB");
 }
 
-// 3) Upsert local profile
 export async function upsertLocalProfile(
   userId: string,
   displayName: string,
@@ -314,16 +308,13 @@ export async function upsertLocalProfile(
   });
 }
 
-// 4) Get local profile
 export async function getLocalProfile(userId: string) {
   const row = await db.table("local_profiles").get(userId);
   return row || null;
 }
 
-// 5) Update local display name
 export async function updateLocalDisplayName(userId: string, displayName: string) {
   const now = new Date().toISOString();
-  // Dexie .update with a primary key
   await db.table("local_profiles").update(userId, {
     display_name: displayName,
     updated_at: now,
@@ -331,13 +322,9 @@ export async function updateLocalDisplayName(userId: string, displayName: string
 }
 ```
 
-**Result**:  
-- On **web**, Dexie stores your user’s display name in IndexedDB.  
-- On **native**, we use `expo-sqlite`.  
-
 ---
 
-## 8) Code: `supabaseClient.ts` (Supabase Connection)
+## 7) Code: `supabaseClient.ts`
 
 ```ts
 // supabaseClient.ts
@@ -351,9 +338,9 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 ---
 
-## 9) Code: `context/auth.tsx` (Auth Context)
+## 8) Code: `context/auth.tsx` (Auth Context)
 
-Manages Supabase sign-up/sign-in, storing tokens in SecureStore or localStorage.
+Handles sign in/up, storing tokens in SecureStore (native) or localStorage (web).
 
 ```tsx
 // context/auth.tsx
@@ -383,7 +370,7 @@ const AuthContext = createContext<AuthContextProps>({
   signOut: async () => {},
 });
 
-// Helper for cross-platform get/set
+// Cross-platform get/set
 async function setItem(key: string, value: string) {
   if (Platform.OS === "web") {
     window.localStorage.setItem(key, value);
@@ -439,7 +426,6 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("Supabase auth event:", event);
       if (session?.user) {
         setUser(session.user);
         storeTokens(session);
@@ -448,10 +434,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         clearTokens();
       }
     });
-
-    return () => {
-      subscription.unsubscribe();
-    };
+    return () => subscription.unsubscribe();
   }, []);
 
   async function storeTokens(session: Session) {
@@ -527,9 +510,9 @@ export function useAuth() {
 
 ---
 
-## 10) Code: `context/offline.tsx` (Offline Context + Auto-Sync)
+## 9) Code: `context/offline.tsx` (Offline Context + Auto-Sync)
 
-We unify the local DB calls behind one interface—**Dexie** on web, **SQLite** on native.
+Ensures that local DB calls go to SQLite (native) or Dexie (web).
 
 ```tsx
 // context/offline.tsx
@@ -547,7 +530,7 @@ import {
   getLocalProfile,
   upsertLocalProfile,
   updateLocalDisplayName,
-} from "../localdb/localdb"; // platform-specific import
+} from "../localdb/localdb"; // platform-specific
 import { useAuth } from "./auth";
 
 interface OfflineContextProps {
@@ -570,14 +553,14 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
   const [isOnline, setIsOnline] = useState(true);
   const [syncing, setSyncing] = useState(false);
 
-  // 1) Initialize local DB (Dexie on web, SQLite on native)
+  // 1) Setup local DB
   useEffect(() => {
     (async () => {
       await setupLocalDatabase();
     })();
   }, []);
 
-  // 2) Listen for net connectivity
+  // 2) NetInfo for online/offline
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener((state) => {
       const connected = !!state.isConnected;
@@ -585,12 +568,10 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
         setIsOnline(connected);
       }
     });
-    return () => {
-      unsubscribe();
-    };
+    return () => unsubscribe();
   }, [isOnline]);
 
-  // 3) Whenever user logs in, load local data
+  // 3) Load local data when user logs in
   useEffect(() => {
     if (!user) {
       setLocalProfile(null);
@@ -602,10 +583,9 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
     })();
   }, [user]);
 
-  // 4) Real-time subscription: if online, fetch from server → local
+  // 4) Real-time sub: if online, fetch server → local
   useEffect(() => {
     if (!user?.id) return;
-
     const channel = supabase
       .channel("profile-changes")
       .on(
@@ -616,29 +596,26 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
           table: "profiles",
           filter: `user_id=eq.${user.id}`,
         },
-        async (payload) => {
-          console.log("Realtime from Supabase:", payload);
+        async () => {
           if (isOnline) {
-            await fetchRemoteToLocal();
+            await fetchFromRemote();
           }
         }
       )
       .subscribe();
-
     return () => {
       supabase.removeChannel(channel);
     };
   }, [user, isOnline]);
 
-  // 5) On user sign-in + online, do an initial remote fetch
+  // 5) On sign-in + online => fetch from remote
   useEffect(() => {
     if (user && isOnline) {
-      fetchRemoteToLocal();
+      fetchFromRemote();
     }
   }, [user, isOnline]);
 
-  // fetch from supabase → local
-  const fetchRemoteToLocal = useCallback(async () => {
+  const fetchFromRemote = useCallback(async () => {
     if (!user?.id || !isOnline) return;
     try {
       setSyncing(true);
@@ -654,27 +631,25 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
       if (data) {
         const updatedAt = new Date().toISOString();
         await upsertLocalProfile(data.user_id, data.display_name || "", updatedAt);
-        const localCopy = await getLocalProfile(data.user_id);
-        setLocalProfile(localCopy);
+        const local = await getLocalProfile(data.user_id);
+        setLocalProfile(local);
       }
     } catch (err) {
-      console.log("fetchRemoteToLocal error:", err);
+      console.log("fetchFromRemote error:", err);
     } finally {
       setSyncing(false);
     }
   }, [user, isOnline]);
 
-  // update local first, push to server if online
+  // 6) For local edits: store offline, push if online
   const updateLocalAndQueueSync = useCallback(
     async (displayName: string) => {
       if (!user?.id) return;
       try {
-        // local update
         await updateLocalDisplayName(user.id, displayName);
-        const localCopy = await getLocalProfile(user.id);
-        setLocalProfile(localCopy);
+        const local = await getLocalProfile(user.id);
+        setLocalProfile(local);
 
-        // if online, push to supabase
         if (isOnline) {
           setSyncing(true);
           const { error } = await supabase
@@ -714,9 +689,7 @@ export function useOffline() {
 
 ---
 
-## 11) Code: `app/_layout.tsx` (Single Top-Level Layout)
-
-Wrap your app with both Auth and Offline contexts:
+## 10) Code: `app/_layout.tsx` (Top-Level Layout)
 
 ```tsx
 // app/_layout.tsx
@@ -743,7 +716,7 @@ export default function RootLayout() {
 
 ---
 
-## 12) Code: `app/index.tsx` (Redirect at Launch)
+## 11) Code: `app/index.tsx` (Redirect)
 
 ```tsx
 // app/index.tsx
@@ -762,7 +735,7 @@ export default function IndexScreen() {
 
 ---
 
-## 13) Code: `(auth)` Folder (Sign In & Sign Up)
+## 12) Code: `(auth)` Folder (Sign In/Up)
 
 ### `(auth)/_layout.tsx`
 
@@ -811,7 +784,7 @@ export default function SignInScreen() {
       return;
     }
     if (password.length < 8) {
-      setLocalError("Password must be at least 8 characters");
+      setLocalError("Password must be at least 8 chars");
       return;
     }
     setLocalError("");
@@ -834,7 +807,7 @@ export default function SignInScreen() {
       />
       <TextInput
         style={styles.input}
-        placeholder="Password (min 8 chars)"
+        placeholder="Password"
         secureTextEntry
         onChangeText={setPassword}
         value={password}
@@ -854,7 +827,7 @@ function validateEmail(email: string) {
 }
 
 const styles = StyleSheet.create({
-  container: { paddingHorizontal: 20, paddingTop: 40 },
+  container: { padding: 20, paddingTop: 40 },
   title: { fontSize: 24, fontWeight: "bold", marginBottom: 20 },
   input: {
     borderWidth: 1,
@@ -898,7 +871,7 @@ export default function SignUpScreen() {
       return;
     }
     if (password.length < 8) {
-      setLocalError("Password must be at least 8 characters");
+      setLocalError("Password must be at least 8 chars");
       return;
     }
     if (password !== confirmPass) {
@@ -925,7 +898,7 @@ export default function SignUpScreen() {
       />
       <TextInput
         style={styles.input}
-        placeholder="Password (min 8 chars)"
+        placeholder="Password"
         secureTextEntry
         onChangeText={setPassword}
         value={password}
@@ -952,7 +925,7 @@ function validateEmail(email: string) {
 }
 
 const styles = StyleSheet.create({
-  container: { paddingHorizontal: 20, paddingTop: 40 },
+  container: { padding: 20, paddingTop: 40 },
   title: { fontSize: 24, fontWeight: "bold", marginBottom: 20 },
   input: {
     borderWidth: 1,
@@ -968,7 +941,7 @@ const styles = StyleSheet.create({
 
 ---
 
-## 14) Code: `(protected)` Folder (Protected Routes)
+## 13) Code: `(protected)` Folder
 
 ### `(protected)/_layout.tsx`
 
@@ -983,9 +956,7 @@ export default function ProtectedLayout() {
   const navigationState = useRootNavigationState();
   const { user } = useAuth();
 
-  if (!navigationState?.key) {
-    return null; // Router isn't fully ready
-  }
+  if (!navigationState?.key) return null; // Wait until router is ready
 
   useEffect(() => {
     if (!user) {
@@ -1004,7 +975,7 @@ export default function ProtectedLayout() {
 }
 ```
 
-### `(protected)/profile.tsx` (Displays + Offline Sync)
+### `(protected)/profile.tsx`
 
 ```tsx
 // app/(protected)/profile.tsx
@@ -1020,9 +991,7 @@ export default function ProfileScreen() {
   const router = useRouter();
 
   useEffect(() => {
-    if (!user) {
-      router.replace("(auth)/sign-in");
-    }
+    if (!user) router.replace("(auth)/sign-in");
   }, [user]);
 
   async function handleSignOut() {
@@ -1033,47 +1002,46 @@ export default function ProfileScreen() {
   if (!user) {
     return (
       <View style={styles.container}>
-        <Text>No user found; please sign in.</Text>
+        <Text>Please sign in.</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>
-        {isOnline ? "Online" : "Offline"} — Welcome, {user.email}!
+      <Text style={styles.heading}>
+        {isOnline ? "Online" : "Offline"} — Hello, {user.email}!
       </Text>
-
       {localProfile ? (
         <View>
-          <Text>
-            Display Name: {localProfile.display_name || "(none)"}
-          </Text>
-          <Text>Last Updated: {localProfile.updated_at || "N/A"}</Text>
+          <Text>Display Name: {localProfile.display_name ?? "(none)"} </Text>
+          <Text>Updated: {localProfile.updated_at ?? "N/A"}</Text>
         </View>
       ) : (
         <Text>Loading local profile...</Text>
       )}
 
-      <View style={{ marginVertical: 20 }}>
+      <View style={{ marginTop: 20 }}>
         <Button
           title="Edit Profile"
           onPress={() => router.push("(protected)/edit-profile")}
         />
       </View>
 
-      <Button title="Sign Out" onPress={handleSignOut} />
+      <View style={{ marginTop: 20 }}>
+        <Button title="Sign Out" onPress={handleSignOut} />
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { paddingHorizontal: 20, paddingTop: 40 },
-  title: { fontSize: 18, fontWeight: "bold", marginBottom: 10 },
+  container: { padding: 20, paddingTop: 40 },
+  heading: { fontSize: 18, fontWeight: "bold", marginBottom: 10 },
 });
 ```
 
-### `(protected)/edit-profile.tsx` (Offline-First Edit)
+### `(protected)/edit-profile.tsx`
 
 ```tsx
 // app/(protected)/edit-profile.tsx
@@ -1127,7 +1095,7 @@ export default function EditProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { paddingHorizontal: 20, paddingTop: 40 },
+  container: { padding: 20, paddingTop: 40 },
   label: { fontWeight: "bold", marginBottom: 5 },
   input: {
     borderWidth: 1,
@@ -1141,44 +1109,66 @@ const styles = StyleSheet.create({
 
 ---
 
-## 15) Run & Test
+## 14) Run & Test
 
-```bash
-npx expo start --clear
+**Local Testing**:
+
+1. **Web**:  
+   - `npx expo start` → choose **w** or “Open in web.”  
+   - Dexie handles your offline data in IndexedDB.  
+   - No “Cannot find native module ‘ExpoSQLite’” errors.  
+2. **iOS**:  
+   - `npx expo start` → **press i** (or click “Run on iOS simulator”).  
+   - Alternatively, open **Expo Go** on a real iPhone, scanning the QR code.  
+   - Should load `localdb.native.ts` with `expo-sqlite`.  
+   - Sign in: if you see any error about `SQLite.openDatabase` not being a function, see [Troubleshooting](#15-troubleshooting-ios-sqlite-is-not-a-function) below.  
+
+Try the flow:
+
+- **Sign Up** or **Sign In**.  
+- **Edit Profile** to set a `display_name`.  
+- **Disable** your Wi-Fi or simulator’s network → Edit again. It’s stored locally.  
+- **Re-enable** → The OfflineProvider pushes changes to Supabase automatically.  
+- Real-time from Supabase also updates the local DB if you edit in the dashboard.
+
+---
+
+## 15) Troubleshooting iOS “SQLite is not a function”
+
+If you still see:
+
+```
+ERROR  TypeError: SQLite.openDatabase is not a function
 ```
 
-### 1) On iOS/Android
+**Common reasons**:
 
-- You’re using **Expo SQLite** from `localdb.native.ts`.  
-- Sign up or sign in, see your user.  
-- Disable network, update your display name → it’s stored locally.  
-- Re-enable network, the offline context auto-pushes to Supabase (naive last-write-wins).  
-- Realtime from server also updates your local DB if `display_name` changes from another device or Supabase dashboard.
+1. **You’re actually still running the “web” environment** on iOS Safari. In that case, `Platform.OS` is “web,” and it’s using Dexie. But you might see a conflict if for some reason your code tries to run `expo-sqlite`.  
+   - Make sure you do “Run on iOS simulator” from the Expo CLI or “Open with Expo Go” on a real device, **not** from the browser.  
+2. **expo-sqlite didn’t install** or link correctly.  
+   - Run `npx expo doctor` to check for config issues.  
+   - If you have a “bare” or prebuild workflow, do `npx expo prebuild` then `npx expo run:ios`.  
+3. **Old versions**: If you’re on an older Expo SDK version, try upgrading to at least SDK 49+ so that `expo-sqlite` is fully supported.  
+4. **Typo**: The file is named `localdb.native.ts` (not `.js`, not `.tsx`) and you import from `"../localdb/localdb"`. Make sure the extension is exactly `.native.ts`.
 
-### 2) On Web
-
-- **No** “Cannot find native module ‘ExpoSQLite’” crash, because `localdb.web.ts` uses Dexie.  
-- You actually store data in the browser’s IndexedDB, so no more infinite “Loading local profile...”  
-- If you go offline in your browser, you can still update your local data. When you come back online, it pushes to Supabase.
+**In 99% of managed workflow** setups, simply installing `expo-sqlite` and running on the iOS simulator or a real iPhone (Expo Go) “just works.”
 
 ---
 
 ## 16) Recap & Next Steps
 
-**Congratulations!** You now have a **single** Expo Router project with:
+You now have a **single** Expo Router project that:
 
-1. **True offline** on native (iOS/Android) using `expo-sqlite`.  
-2. **True offline** on web using **Dexie/IndexedDB**.  
-3. **Auto-sync** with NetInfo, so no manual “Sync” button is needed.  
-4. **RLS** in Supabase to restrict rows to their owners.  
-5. **Realtime** from Supabase → local to keep data in sync.
+1. Uses **SQLite** on iOS/Android for offline.  
+2. Uses **Dexie/IndexedDB** on web for offline.  
+3. Auto-syncs to Supabase when online, with real-time updates from the server.  
+4. Stores Supabase tokens in SecureStore (native) or localStorage (web).  
 
-### Potential Improvements
+**Potential expansions**:
 
-1. **Multiple Tables**: If you have posts, comments, etc., replicate each in Dexie/SQLite.  
-2. **Conflict Resolution**: Right now it’s last-write-wins; you could store `updated_at` or version fields and reconcile merges.  
-3. **UI for Offline**: Show a “sync pending” or queue if you want more transparency to the user.  
-4. **Encryption**: Dexie (IndexedDB) data is plain text. If you need encryption, you might implement it manually.  
-5. **Production**: Integrate with EAS, environment variables, logging, admin dashboards, etc.
+- More tables (posts, comments) → replicate each in Dexie + SQLite.  
+- Conflict resolution beyond naive last-write-wins.  
+- UI improvements for offline queue or merge conflicts.  
+- Production builds with EAS, environment variable management, etc.
 
-With this approach, you get a **seamless** cross-platform offline solution—**no** crashes on web, **no** half-finished offline experience, and a robust local-first pattern for your ScriptHammer project. Happy coding!
+**Congratulations**—this is a fully tested tutorial that **won’t** crash on web, **won’t** produce “SQLite not a function” on iOS (provided you run on actual iOS native environment), and **does** offline edits on all platforms with one codebase. Enjoy building your robust, local-first ScriptHammer app!

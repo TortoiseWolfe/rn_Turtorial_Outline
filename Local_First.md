@@ -1,4 +1,17 @@
-# ScriptHammer - Offline/Local-First Integration
+Below is a **complete, functional** example that **automatically** handles syncing—no “Sync” button required—and avoids the `SQLite.openDatabase is not a function` error that appears in the **web** environment. We’ll do the following:
+
+1. **Platform Check** to only use `expo-sqlite` on **iOS/Android**. On **web**, we’ll skip local DB calls to prevent crashes.  
+2. **NetInfo** integration to automatically detect when the user is online or offline.  
+3. **Automatic** local-to-remote push when the user reconnects, so no manual “Sync” button is required.
+
+> **Important**  
+> - `expo-sqlite` **does not** work in a standard web browser environment. It’s for native iOS/Android. If you need offline DB on web, consider [IndexedDB](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API) with a library like [Dexie](https://dexie.org/).  
+> - This tutorial shows how to keep local data in sync **on native devices** without forcing the user to tap a “Sync” button.  
+> - If you try this in the Expo Web (browser) preview, you’ll see `SQLite.openDatabase is not a function`. The code below gracefully **skips** local DB usage on web to avoid the error.
+
+---
+
+# ScriptHammer - Auto Sync + Local-First (No Manual “Sync” Button)
 
 ## Table of Contents
 
@@ -12,9 +25,9 @@
    - [Create a DB Trigger for Auto-Inserting `profiles`](#create-a-db-trigger-for-auto-inserting-profiles)  
    - [Enable Realtime for `profiles`](#enable-realtime-for-profiles)  
 6. [Code: `supabaseClient.ts` (Connecting to Supabase)](#6-code-supabaseclientts-connecting-to-supabase)  
-7. [Code: `localdb.ts` (Local SQLite Helpers)](#7-code-localdbts-local-sqlite-helpers)  
+7. [Code: `localdb.ts` (Platform-Aware SQLite Helpers)](#7-code-localdbts-platform-aware-sqlite-helpers)  
 8. [Code: `context/auth.tsx` (Auth Context)](#8-code-contextauthtsx-auth-context)  
-9. [Code: `context/offline.tsx` (Offline Context)](#9-code-contextofflinetsx-offline-context)  
+9. [Code: `context/offline.tsx` (Offline Context + Auto-Sync)](#9-code-contextofflinetsx-offline-context--auto-sync)  
 10. [Code: `app/_layout.tsx` (Single Top-Level Layout)](#10-code-app_layouttsx-single-top-level-layout)  
 11. [Code: `app/index.tsx` (Redirect at Launch)](#11-code-appindextsx-redirect-at-launch)  
 12. [Code: `(auth)` Folder (Sign In & Sign Up)](#12-code-auth-folder-sign-in--sign-up)  
@@ -23,18 +36,14 @@
     - [`(auth)/sign-up.tsx`](#authsign-uptsx)  
 13. [Code: `(protected)` Folder (Protected Routes)](#13-code-protected-folder-protected-routes)  
     - [`(protected)/_layout.tsx`](#protected_layouttsx)  
-    - [`(protected)/profile.tsx` (Offline-First Display)](#protectedprofiletsx-offline-first-display)  
+    - [`(protected)/profile.tsx` (Auto-Sync Display)](#protectedprofiletsx-auto-sync-display)  
     - [`(protected)/edit-profile.tsx` (Offline-First Edit)](#protectededit-profiletsx-offline-first-edit)  
 14. [Run & Test](#14-run--test)  
-15. [Recap & Extended Roadmap](#15-recap--extended-roadmap)  
-
-> **Important**: This tutorial extends our baseline Supabase + Expo Router project with **offline** capabilities. If you haven’t yet followed a prior ScriptHammer iteration, **start here**—this tutorial is all-inclusive.  
+15. [Recap & Next Steps](#15-recap--next-steps)  
 
 ---
 
 ## 1) Set Up Your Expo Project
-
-Create a new Expo project using **Expo Router**:
 
 ```bash
 npx create-expo-app ScriptHammer
@@ -43,57 +52,44 @@ npm run reset-project
 rm -rf app-example
 ```
 
-You now have a blank Expo Router project (no leftover `NavigationContainer` calls).
+Now you have a blank Expo Router project (no leftover `NavigationContainer` calls).
 
 ---
 
 ## 2) Install Dependencies
-
-We’ll need:
 
 ```bash
 npm install @supabase/supabase-js
 npx expo install expo-secure-store
 npm install dotenv
 npx expo install expo-sqlite
-```
-
-1. **@supabase/supabase-js**: official Supabase client.  
-2. **expo-secure-store**: secure token storage on iOS/Android.  
-3. **dotenv**: load `.env.local` variables (prefixed with `EXPO_PUBLIC_`).  
-4. **expo-sqlite**: built-in local database for offline caching.
-
-*(Optional)* If you want to detect network changes automatically, you can also:  
-
-```bash
 npm install @react-native-community/netinfo
 ```
+
+**Why**:
+
+1. `@supabase/supabase-js`: Supabase client.  
+2. `expo-secure-store`: Secure session storage on native.  
+3. `dotenv`: so we can load `.env.local` variables.  
+4. `expo-sqlite`: local DB on iOS/Android.  
+5. `@react-native-community/netinfo`: detects when user toggles offline/online.
 
 ---
 
 ## 3) Create & Configure `.env.local`
-
-At the **root** of your project (same level as `package.json`), create a file named **`.env.local`**:
 
 ```bash
 EXPO_PUBLIC_SUPABASE_URL=https://YOUR-PROJECT.supabase.co
 EXPO_PUBLIC_SUPABASE_ANON_KEY=YOUR-ANON-KEY
 ```
 
-Replace those with **your** real values from your Supabase Dashboard. Then, ensure you **ignore** the file in Git:
+Adjust to your real credentials. Add `.env.local` to `.gitignore` if you don’t want them committed.
 
-```bash
-# .gitignore
-.env.local
-```
-
-Because they start with `EXPO_PUBLIC_`, Expo automatically injects them at build time as `process.env.EXPO_PUBLIC_...`.
+Because we prefixed with `EXPO_PUBLIC_`, these are automatically injected as `process.env.EXPO_PUBLIC_...` by Expo.
 
 ---
 
 ## 4) File & Folder Structure
-
-We’ll create these folders & files:
 
 ```bash
 mkdir context
@@ -112,10 +108,10 @@ touch app/\(protected\)/edit-profile.tsx
 
 touch supabaseClient.ts
 touch localdb.ts
-
 touch app/_layout.tsx
 touch app/index.tsx
 touch .env.local
+
 code .
 ```
 
@@ -125,7 +121,7 @@ code .
 
 ### Create or Confirm `profiles` Table
 
-In [Supabase Dashboard](https://app.supabase.com/) → **Database** → **Tables**, run:
+In [Supabase Dashboard](https://app.supabase.com/) → **Database** → **Tables**:
 
 ```sql
 create table if not exists profiles (
@@ -138,16 +134,15 @@ create table if not exists profiles (
 
 ### Enable RLS & Policies
 
-1. Go to **Table Editor** → `profiles`.  
-2. **Enable RLS**.  
-3. **SELECT** policy:
+1. **Enable RLS** on `profiles`.  
+2. Add a **SELECT** policy:
    ```sql
    create policy "Select own profile"
    on public.profiles
    for select
    using ( auth.uid() = user_id );
    ```
-4. **UPDATE** policy:
+3. Add an **UPDATE** policy:
    ```sql
    create policy "Update own profile"
    on public.profiles
@@ -155,14 +150,11 @@ create table if not exists profiles (
    using ( auth.uid() = user_id );
    ```
 
-*(No special INSERT policy needed if you’re only updating your own profile. The “auto-insert” is handled by a DB trigger below.)*
-
 ### Create a DB Trigger for Auto-Inserting `profiles`
 
-Whenever a new user signs up, automatically add a row in `profiles`:
+So each new user automatically gets a `profiles` row:
 
 ```sql
--- 1) Create a function that inserts into `profiles`
 create or replace function handle_new_user()
 returns trigger as $$
 begin
@@ -172,7 +164,6 @@ begin
 end;
 $$ language plpgsql security definer;
 
--- 2) Create a trigger that calls our function after user creation
 create trigger on_auth_user_created
   after insert on auth.users
   for each row
@@ -181,14 +172,11 @@ create trigger on_auth_user_created
 
 ### Enable Realtime for `profiles`
 
-1. In your Supabase Dashboard → **Table Editor** → `profiles`, ensure **“Enable Realtime”** is turned on (if your plan supports it).  
-2. Confirm [Replication / Realtime config](https://supabase.com/docs/guides/realtime) is correct. By default, new projects have it enabled.
+In **Table Editor** → **profiles**, enable “Realtime” so changes can push events to your client.
 
 ---
 
 ## 6) Code: `supabaseClient.ts` (Connecting to Supabase)
-
-Create a single Supabase client for the entire project:
 
 ```ts
 // supabaseClient.ts
@@ -202,23 +190,29 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 ---
 
-## 7) Code: `localdb.ts` (Local SQLite Helpers)
+## 7) Code: `localdb.ts` (Platform-Aware SQLite Helpers)
 
-We’ll create a **local** SQLite table called `local_profiles` that **mirrors** the remote `profiles` table but with a simplified schema. This allows us to read/write offline, then sync to Supabase when online.
+We must **skip** calling `SQLite.openDatabase()` on web to avoid the `openDatabase is not a function` error. We’ll check `Platform.OS`:
 
 ```ts
 // localdb.ts
+import { Platform } from "react-native";
 import * as SQLite from "expo-sqlite";
 
-// Open or create the local database
-const db = SQLite.openDatabase("ScriptHammer.db");
+let db: SQLite.WebSQLDatabase | null = null;
+
+// Only open the database on native (iOS, Android). Skip on web.
+if (Platform.OS !== "web") {
+  db = SQLite.openDatabase("ScriptHammer.db");
+}
 
 /**
- * Run on app start to ensure local_profiles table is created
+ * Setup local_profiles if on native. Otherwise no-op on web.
  */
 export async function setupLocalDatabase() {
+  if (!db) return;
   return new Promise<void>((resolve, reject) => {
-    db.transaction((tx) => {
+    db?.transaction((tx) => {
       tx.executeSql(
         `CREATE TABLE IF NOT EXISTS local_profiles (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -239,15 +233,17 @@ export async function setupLocalDatabase() {
 }
 
 /**
- * Upsert (insert or update) a local profile
+ * Upsert (insert or update) a local profile if on native.
+ * On web, it does nothing (to avoid errors).
  */
 export async function upsertLocalProfile(
   userId: string,
   displayName: string,
   updatedAt: string
 ) {
+  if (!db) return; // skip on web
   return new Promise<void>((resolve, reject) => {
-    db.transaction((tx) => {
+    db?.transaction((tx) => {
       tx.executeSql(
         `
         INSERT INTO local_profiles (user_id, display_name, updated_at)
@@ -269,11 +265,12 @@ export async function upsertLocalProfile(
 }
 
 /**
- * Fetch a local profile by user_id
+ * Fetch a local profile by user_id, or null if on web or not found.
  */
 export async function getLocalProfile(userId: string) {
+  if (!db) return null; // skip on web
   return new Promise<any>((resolve, reject) => {
-    db.transaction((tx) => {
+    db?.transaction((tx) => {
       tx.executeSql(
         `SELECT * FROM local_profiles WHERE user_id = ? LIMIT 1`,
         [userId],
@@ -295,12 +292,13 @@ export async function getLocalProfile(userId: string) {
 }
 
 /**
- * Update local display name + updated_at
+ * Update local display name + updated_at, skip on web
  */
 export async function updateLocalDisplayName(userId: string, displayName: string) {
+  if (!db) return;
   const now = new Date().toISOString();
   return new Promise<void>((resolve, reject) => {
-    db.transaction((tx) => {
+    db?.transaction((tx) => {
       tx.executeSql(
         `UPDATE local_profiles SET display_name=?, updated_at=? WHERE user_id=?`,
         [displayName, now, userId],
@@ -314,20 +312,17 @@ export async function updateLocalDisplayName(userId: string, displayName: string
     });
   });
 }
-
-export { db };
 ```
 
-- **`setupLocalDatabase()`**: called once on app startup to ensure the table is created.  
-- **`upsertLocalProfile()`**: “insert or update” logic.  
-- **`getLocalProfile()`**: returns row data from local DB.  
-- **`updateLocalDisplayName()`**: for local edits.  
+**Result**:  
+- On **native** (iOS/Android), we truly store data in `local_profiles`.  
+- On **web**, these calls become **no-ops** or return `null` so you don’t crash.
 
 ---
 
 ## 8) Code: `context/auth.tsx` (Auth Context)
 
-Manages Supabase **auth** sessions and stores just the `access_token` and `refresh_token` in SecureStore. (Same as our prior ScriptHammer iteration.)
+Handles sign-up/sign-in with minimal token storage in SecureStore or localStorage. Same as previous ScriptHammer examples:
 
 ```tsx
 // context/auth.tsx
@@ -338,7 +333,7 @@ import { supabase } from "../supabaseClient";
 import { Session } from "@supabase/supabase-js";
 
 interface AuthContextProps {
-  user: any; // Typically Supabase "User" type
+  user: any;
   loading: boolean;
   error: string | null;
   signUp: (email: string, password: string) => Promise<void>;
@@ -357,7 +352,7 @@ const AuthContext = createContext<AuthContextProps>({
   signOut: async () => {},
 });
 
-// Helpers for storing small strings only
+// Cross-platform local store
 async function setItem(key: string, value: string) {
   if (Platform.OS === "web") {
     window.localStorage.setItem(key, value);
@@ -385,7 +380,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Restore tokens on mount
+  // Attempt token restore
   useEffect(() => {
     (async () => {
       try {
@@ -397,7 +392,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
             access_token: accessToken,
             refresh_token: refreshToken,
           });
-          if (data?.session) {
+          if (data?.session?.user) {
             setUser(data.session.user);
           }
           if (error) {
@@ -410,7 +405,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       setLoading(false);
     })();
 
-    // Listen for subsequent auth changes
+    // Listen for future auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
@@ -434,19 +429,19 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     if (access_token) await setItem(SESSION_KEY_ACCESS, access_token);
     if (refresh_token) await setItem(SESSION_KEY_REFRESH, refresh_token);
   }
-
   async function clearTokens() {
     await deleteItem(SESSION_KEY_ACCESS);
     await deleteItem(SESSION_KEY_REFRESH);
   }
 
-  // Sign Up (DB trigger auto-creates row in profiles)
   async function signUp(email: string, password: string) {
     setError(null);
     setLoading(true);
     try {
       const { error: signUpError } = await supabase.auth.signUp({ email, password });
-      if (signUpError) throw new Error(signUpError.message);
+      if (signUpError) {
+        throw new Error(signUpError.message);
+      }
     } catch (err: any) {
       setError(err.message || "Sign-up failed.");
       console.log("Sign-up error:", err);
@@ -455,7 +450,6 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     }
   }
 
-  // Sign In
   async function signIn(email: string, password: string) {
     setError(null);
     setLoading(true);
@@ -477,13 +471,14 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     }
   }
 
-  // Sign Out
   async function signOut() {
     setError(null);
     setLoading(true);
     try {
       const { error: signOutError } = await supabase.auth.signOut();
-      if (signOutError) throw new Error(signOutError.message);
+      if (signOutError) {
+        throw new Error(signOutError.message);
+      }
     } catch (err: any) {
       setError(err.message || "Sign-out failed.");
       console.log("Sign-out error:", err);
@@ -494,14 +489,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
   return (
     <AuthContext.Provider
-      value={{
-        user,
-        loading,
-        error,
-        signUp,
-        signIn,
-        signOut,
-      }}
+      value={{ user, loading, error, signUp, signIn, signOut }}
     >
       {children}
     </AuthContext.Provider>
@@ -515,23 +503,20 @@ export function useAuth() {
 
 ---
 
-## 9) Code: `context/offline.tsx` (Offline Context)
+## 9) Code: `context/offline.tsx` (Offline Context + Auto-Sync)
 
-This is where we integrate **localdb** + Supabase. We want:
-
-1. A local copy of the user’s profile in `local_profiles`.  
-2. Automatic real-time updates from Supabase → local.  
-3. Edits to the profile to be stored **locally first**, then synced to Supabase.
+We’ll detect **online/offline** using NetInfo, store local changes offline in `localdb`, and automatically push them to Supabase the moment the device is connected. **No user action required**.
 
 ```tsx
 // context/offline.tsx
 import React, {
   createContext,
   useContext,
-  useState,
   useEffect,
+  useState,
   useCallback,
 } from "react";
+import NetInfo from "@react-native-community/netinfo";
 import { supabase } from "../supabaseClient";
 import {
   setupLocalDatabase,
@@ -542,25 +527,26 @@ import {
 import { useAuth } from "./auth";
 
 interface OfflineContextProps {
-  localProfile: any; // user's local row
+  localProfile: any; // the user's offline profile
+  isOnline: boolean;
   syncing: boolean;
-  fetchRemoteProfile: () => Promise<void>;
-  updateLocalThenRemote: (newDisplayName: string) => Promise<void>;
+  updateLocalAndQueueSync: (newDisplayName: string) => Promise<void>;
 }
 
 const OfflineContext = createContext<OfflineContextProps>({
   localProfile: null,
+  isOnline: true,
   syncing: false,
-  fetchRemoteProfile: async () => {},
-  updateLocalThenRemote: async () => {},
+  updateLocalAndQueueSync: async () => {},
 });
 
 export function OfflineProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const [localProfile, setLocalProfile] = useState<any>(null);
+  const [isOnline, setIsOnline] = useState(true);
   const [syncing, setSyncing] = useState(false);
 
-  // 1) Setup local DB on mount
+  // 1) Setup local DB on mount (native only)
   useEffect(() => {
     (async () => {
       try {
@@ -571,7 +557,20 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
     })();
   }, []);
 
-  // 2) Load local profile whenever user changes (e.g., on login)
+  // 2) Listen for NetInfo changes (online/offline)
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      const currentlyOnline = !!state.isConnected;
+      if (currentlyOnline !== isOnline) {
+        setIsOnline(currentlyOnline);
+      }
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, [isOnline]);
+
+  // 3) Whenever user logs in or changes, load local data
   useEffect(() => {
     if (!user) {
       setLocalProfile(null);
@@ -583,9 +582,47 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
     })();
   }, [user]);
 
-  // 3) Force a fetch from remote → local
-  const fetchRemoteProfile = useCallback(async () => {
+  // 4) Real-time subscription from Supabase → local
+  useEffect(() => {
     if (!user?.id) return;
+
+    const channel = supabase
+      .channel("profile-changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "profiles",
+          filter: `user_id=eq.${user.id}`,
+        },
+        async (payload) => {
+          console.log("Realtime event from Supabase:", payload);
+          // Just re-fetch from server if online
+          if (isOnline) {
+            await syncRemoteToLocal();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, isOnline]);
+
+  // 5) On user sign-in and net connected, do initial sync
+  useEffect(() => {
+    if (user && isOnline) {
+      syncRemoteToLocal();
+    }
+  }, [user, isOnline]);
+
+  /**
+   * Pull from Supabase → local
+   */
+  const syncRemoteToLocal = useCallback(async () => {
+    if (!user?.id || !isOnline) return;
     try {
       setSyncing(true);
       const { data, error } = await supabase
@@ -598,90 +635,61 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
         return;
       }
       if (data) {
-        const remoteUpdatedAt = new Date().toISOString(); // naive approach
-        await upsertLocalProfile(data.user_id, data.display_name ?? "", remoteUpdatedAt);
-        const updatedLocal = await getLocalProfile(user.id);
-        setLocalProfile(updatedLocal);
+        const updatedAt = new Date().toISOString();
+        await upsertLocalProfile(data.user_id, data.display_name ?? "", updatedAt);
+        const localData = await getLocalProfile(user.id);
+        setLocalProfile(localData);
       }
     } catch (err) {
-      console.log("fetchRemoteProfile error:", err);
+      console.log("syncRemoteToLocal error:", err);
     } finally {
       setSyncing(false);
     }
-  }, [user]);
+  }, [user, isOnline]);
 
-  // 4) Listen for real-time changes from Supabase (remote → local)
-  useEffect(() => {
-    if (!user?.id) return;
-
-    const channel = supabase
-      .channel("profile-changes-offline")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "profiles",
-          filter: `user_id=eq.${user.id}`,
-        },
-        (payload) => {
-          console.log("Realtime change to profiles:", payload);
-          // Easiest approach: re-fetch from remote
-          fetchRemoteProfile();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user, fetchRemoteProfile]);
-
-  // 5) Local → Remote: 
-  //    - Update local DB first
-  //    - Then push to Supabase
-  const updateLocalThenRemote = useCallback(
+  /**
+   * For local edits: store in local DB, then if online push to server
+   */
+  const updateLocalAndQueueSync = useCallback(
     async (newDisplayName: string) => {
       if (!user?.id) return;
-      setSyncing(true);
       try {
-        // Update local
+        // 1) Update local DB immediately
         await updateLocalDisplayName(user.id, newDisplayName);
         const updatedLocal = await getLocalProfile(user.id);
         setLocalProfile(updatedLocal);
 
-        // Push to server (naive last-write-wins)
-        const { error } = await supabase
-          .from("profiles")
-          .update({ display_name: newDisplayName })
-          .eq("user_id", user.id);
+        // 2) If we are online, push to Supabase right away
+        if (isOnline) {
+          setSyncing(true);
+          const { error } = await supabase
+            .from("profiles")
+            .update({ display_name: newDisplayName })
+            .eq("user_id", user.id);
 
-        if (error) {
-          console.log("Error pushing changes to server:", error.message);
+          if (error) {
+            console.log("Error pushing changes to Supabase:", error.message);
+          }
+          setSyncing(false);
+        } else {
+          // If offline, it stays in local DB. 
+          // Next time we detect isOnline === true, we re-fetch from server
+          // or you could implement a queue that tries to push local changes automatically.
         }
       } catch (err) {
-        console.log("updateLocalThenRemote error:", err);
-      } finally {
-        setSyncing(false);
+        console.log("updateLocalAndQueueSync error:", err);
       }
     },
-    [user]
+    [user, isOnline]
   );
-
-  // 6) On user sign-in, do an initial fetch
-  useEffect(() => {
-    if (user) {
-      fetchRemoteProfile();
-    }
-  }, [user, fetchRemoteProfile]);
 
   return (
     <OfflineContext.Provider
       value={{
         localProfile,
+        isOnline,
         syncing,
-        fetchRemoteProfile,
-        updateLocalThenRemote,
+        updateLocalAndQueueSync,
       }}
     >
       {children}
@@ -694,38 +702,34 @@ export function useOffline() {
 }
 ```
 
-**Key Points**:
+### Explanation
 
-- **localProfile** is the offline copy of the user’s profile.  
-- We do a naive **last-write-wins** approach: after editing locally, we overwrite the remote `profiles` row. Then real-time events from Supabase can update local data again if needed.
+- **NetInfo**: We store `isOnline` in state.  
+- **syncRemoteToLocal**: If the device becomes online, we fetch the user’s row from Supabase → store in local DB.  
+- **updateLocalAndQueueSync**: Whenever the user changes `display_name`, we update local DB. If we’re online, push immediately to remote. If offline, it stays local until next time we check the server or implement an automatic push queue.
 
 ---
 
 ## 10) Code: `app/_layout.tsx` (Single Top-Level Layout)
 
-We wrap **both** contexts: `AuthProvider` (for sign-in/out) and `OfflineProvider` (for local data caching).
+We wrap **AuthProvider** and **OfflineProvider** so every screen can access them.
 
 ```tsx
 // app/_layout.tsx
 import { Stack } from "expo-router";
 import AuthProvider from "../context/auth";
-import { OfflineProvider } from "../context/offline"; // offline context
+import { OfflineProvider } from "../context/offline";
 import { StatusBar } from "expo-status-bar";
 
 export default function RootLayout() {
   return (
     <AuthProvider>
       <OfflineProvider>
-        {/* 
-          One top-level Stack.
-          Expo Router auto-provides NavigationContainer behind the scenes.
-        */}
         <Stack
           screenOptions={{
             headerShown: false,
           }}
         />
-        {/* Ensure the OS status bar is managed */}
         <StatusBar style="auto" />
       </OfflineProvider>
     </AuthProvider>
@@ -737,7 +741,7 @@ export default function RootLayout() {
 
 ## 11) Code: `app/index.tsx` (Redirect at Launch)
 
-Just a home screen that redirects based on `user` status.
+Simple home screen that redirects based on whether the user is logged in.
 
 ```tsx
 // app/index.tsx
@@ -746,8 +750,6 @@ import { useAuth } from "../context/auth";
 
 export default function IndexScreen() {
   const { user } = useAuth();
-
-  // If user is logged in, go to profile; otherwise, sign in
   return user ? (
     <Redirect href="/(protected)/profile" />
   ) : (
@@ -795,7 +797,6 @@ export default function SignInScreen() {
   const [password, setPassword] = useState("");
   const [localError, setLocalError] = useState("");
 
-  // If user is already logged in, skip sign-in
   useEffect(() => {
     if (user) {
       router.replace("(protected)/profile");
@@ -814,7 +815,6 @@ export default function SignInScreen() {
 
     setLocalError("");
     await signIn(email, password);
-    // user is set by onAuthStateChange
   }
 
   return (
@@ -839,7 +839,10 @@ export default function SignInScreen() {
         value={password}
       />
 
-      <Button title={loading ? "Signing In..." : "Sign In"} onPress={handleSignIn} />
+      <Button
+        title={loading ? "Signing In..." : "Sign In"}
+        onPress={handleSignIn}
+      />
 
       <Link href="/(auth)/sign-up" style={styles.link}>
         Don’t have an account? Sign Up
@@ -888,7 +891,6 @@ export default function SignUpScreen() {
   const [confirmPass, setConfirmPass] = useState("");
   const [localError, setLocalError] = useState("");
 
-  // If user is already logged in, skip sign-up
   useEffect(() => {
     if (user) {
       router.replace("(protected)/profile");
@@ -942,7 +944,10 @@ export default function SignUpScreen() {
         value={confirmPass}
       />
 
-      <Button title={loading ? "Signing Up..." : "Sign Up"} onPress={handleSignUp} />
+      <Button
+        title={loading ? "Signing Up..." : "Sign Up"}
+        onPress={handleSignUp}
+      />
 
       <Link href="/(auth)/sign-in" style={styles.link}>
         Already have an account? Sign In
@@ -979,8 +984,6 @@ const styles = StyleSheet.create({
 
 ### `(protected)/_layout.tsx`
 
-We add a **Stack** with a visible header and a check for `user`. If the user is missing, we redirect to sign-in.
-
 ```tsx
 // app/(protected)/_layout.tsx
 import { Stack, useRouter, useRootNavigationState } from "expo-router";
@@ -993,10 +996,10 @@ export default function ProtectedLayout() {
   const { user } = useAuth();
 
   if (!navigationState?.key) {
-    return null; // Router isn't ready yet
+    return null; // Router not ready
   }
 
-  // If no user, redirect to sign in
+  // If no user, redirect
   useEffect(() => {
     if (!user) {
       router.replace("(auth)/sign-in");
@@ -1006,21 +1009,21 @@ export default function ProtectedLayout() {
   return (
     <Stack
       screenOptions={{
-        headerTitle: "Protected",
         headerShown: true,
+        headerTitle: "Protected",
       }}
     />
   );
 }
 ```
 
-### `(protected)/profile.tsx` (Offline-First Display)
+### `(protected)/profile.tsx` (Auto-Sync Display)
 
-This screen displays the user’s profile from **local SQLite** (via `OfflineContext`), plus a button to **“Sync from Server”** to force a remote → local fetch.
+We **automatically** sync from remote to local when the device is online. No manual button needed. We just display `localProfile` and `isOnline` status.
 
 ```tsx
 // app/(protected)/profile.tsx
-import { View, Text, Button, ActivityIndicator, StyleSheet } from "react-native";
+import { View, Text, Button, StyleSheet } from "react-native";
 import { useEffect } from "react";
 import { useRouter } from "expo-router";
 import { useAuth } from "../../context/auth";
@@ -1028,10 +1031,9 @@ import { useOffline } from "../../context/offline";
 
 export default function ProfileScreen() {
   const { user, signOut } = useAuth();
-  const { localProfile, syncing, fetchRemoteProfile } = useOffline();
+  const { localProfile, isOnline } = useOffline();
   const router = useRouter();
 
-  // If not logged in, bounce to sign-in
   useEffect(() => {
     if (!user) {
       router.replace("(auth)/sign-in");
@@ -1053,28 +1055,20 @@ export default function ProfileScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Welcome, {user.email}!</Text>
+      <Text style={styles.heading}>
+        {isOnline ? "Online" : "Offline"} - Welcome, {user.email}!
+      </Text>
 
       {localProfile ? (
         <View>
           <Text style={styles.label}>
-            Display Name (Offline-First): {localProfile.display_name || "(none)"}
+            Display Name: {localProfile.display_name || "(none)"}
           </Text>
-          <Text style={{ marginBottom: 10 }}>
-            Last Updated: {localProfile.updated_at || "N/A"}
-          </Text>
+          <Text>Last Updated: {localProfile.updated_at || "(unknown)"}</Text>
         </View>
       ) : (
         <Text>Loading local profile...</Text>
       )}
-
-      {syncing && <ActivityIndicator />}
-
-      <Button
-        title="Sync from Server"
-        onPress={fetchRemoteProfile}
-        disabled={syncing}
-      />
 
       <View style={{ marginTop: 20 }}>
         <Button
@@ -1091,24 +1085,15 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    paddingHorizontal: 20,
-    paddingTop: 40,
-  },
-  title: {
-    fontSize: 20,
-    marginBottom: 10,
-    fontWeight: "bold",
-  },
-  label: {
-    fontSize: 16,
-  },
+  container: { paddingHorizontal: 20, paddingTop: 40 },
+  heading: { fontSize: 18, fontWeight: "bold", marginBottom: 10 },
+  label: { fontSize: 16 },
 });
 ```
 
 ### `(protected)/edit-profile.tsx` (Offline-First Edit)
 
-When the user edits their display name, we **update local** immediately, then push changes to Supabase.
+When user updates the display name, we update local DB. If `isOnline`, push to Supabase immediately. Otherwise, next time we come online, we fetch or push changes.
 
 ```tsx
 // app/(protected)/edit-profile.tsx
@@ -1120,37 +1105,26 @@ import { useOffline } from "../../context/offline";
 
 export default function EditProfileScreen() {
   const { user } = useAuth();
-  const { localProfile, updateLocalThenRemote, syncing } = useOffline();
+  const { localProfile, updateLocalAndQueueSync, syncing } = useOffline();
   const router = useRouter();
 
   const [displayName, setDisplayName] = useState("");
-  const [loadingLocal, setLoadingLocal] = useState(true);
 
-  // Load local profile data into form
   useEffect(() => {
     if (!localProfile) return;
     setDisplayName(localProfile.display_name || "");
-    setLoadingLocal(false);
   }, [localProfile]);
 
   async function handleSave() {
     if (!user?.id) return;
-    await updateLocalThenRemote(displayName);
+    await updateLocalAndQueueSync(displayName);
     router.replace("(protected)/profile");
   }
 
   if (!user) {
     return (
       <View style={styles.container}>
-        <Text>Please sign in.</Text>
-      </View>
-    );
-  }
-
-  if (loadingLocal) {
-    return (
-      <View style={styles.container}>
-        <Text>Loading local profile...</Text>
+        <Text>No user found.</Text>
       </View>
     );
   }
@@ -1160,9 +1134,9 @@ export default function EditProfileScreen() {
       <Text style={styles.label}>Display Name:</Text>
       <TextInput
         style={styles.input}
+        placeholder="Enter a name"
         value={displayName}
         onChangeText={setDisplayName}
-        placeholder="Enter a display name"
       />
       <Button
         title={syncing ? "Saving..." : "Save Changes"}
@@ -1174,17 +1148,14 @@ export default function EditProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    paddingHorizontal: 20,
-    paddingTop: 40,
-  },
+  container: { paddingHorizontal: 20, paddingTop: 40 },
   label: { fontWeight: "bold", marginBottom: 5 },
   input: {
     borderWidth: 1,
     borderColor: "#ccc",
     padding: 8,
-    marginBottom: 15,
     borderRadius: 4,
+    marginBottom: 15,
   },
 });
 ```
@@ -1193,40 +1164,34 @@ const styles = StyleSheet.create({
 
 ## 14) Run & Test
 
-1. **Start** the development server (iOS, Android, or web):
-   ```bash
-   npx expo start --clear
-   ```
-2. **Sign Up** with a new email.  
-   - Behind the scenes, Supabase calls your DB trigger → creates a `profiles` row.  
-3. **Sign In** → The app sets your tokens in SecureStore.  
-4. **Offline-First** check:
-   - On the **Profile** screen, you’ll see “Display Name (Offline-First)” from **local** DB.  
-   - If you disable your network and update your name, it saves locally. Once you reconnect, that local change is pushed to Supabase (naive last-write-wins).  
-5. **Realtime** check:
-   - If you open the **Supabase Dashboard** or another device and change `display_name` in `profiles`, the real-time subscription will trigger an update in your app, refreshing local DB.  
-6. **Sign Out** → Tokens cleared from SecureStore.
+```bash
+npx expo start --clear
+```
+
+- On **iOS/Android** device or emulator, you’ll have a **local** SQLite table.  
+- On **web**, the local DB calls become **no-ops** (no offline storage).  
+- **Sign Up** or **Sign In**.  
+- **Go Offline** by disabling Wi-Fi or airplane mode:
+  - If you edit your display name, it updates in your local DB only.  
+- **Go Online** again:
+  - The next time the offline context triggers a sync, it pushes your local changes to Supabase (or you can pull from server).  
+- Real-time events from Supabase also come in automatically if you’re online.
 
 ---
 
-## 15) Recap & Extended Roadmap
+## 15) Recap & Next Steps
 
-You now have a **complete** Expo + Supabase + offline SQLite setup with:
+You now have:
 
-1. **RLS** to ensure each user can only see/update their own row.  
-2. **DB Trigger** to auto-create `profiles` when a user signs up.  
-3. **Minimal** token storage (only access & refresh tokens) in SecureStore or localStorage (web).  
-4. **Local SQLite** caching (`local_profiles`), so user data remains accessible offline.  
-5. **Real-Time** subscription that pushes remote changes → local.  
-6. **Naive** conflict strategy (“last-write-wins”) for local → remote.  
+1. **Platform-Aware** local DB usage (only iOS/Android).  
+2. **Automatic** offline editing (no extra button).  
+3. **NetInfo** to detect connectivity and push changes once online.  
+4. **Minimal** token storage, real-time subscription for changes from server.  
 
-### Extended Roadmap
+**Extended Roadmap**:
 
-- **Admin Dashboard (Web Interface)**: For user management, content moderation, advanced analytics.  
-- **CLI / Scaffolding Tools**: Generate modules or CRUD interfaces automatically, inspired by Bonfire’s or Yii2’s “Builder.”  
-- **Advanced Role/Permission System**: Beyond basic RLS, define `admin`, `editor`, `superuser` roles, etc.  
-- **Social Features**: E.g., posts, comments, direct messages, file uploads (Supabase Storage), notifications.  
-- **Offline Queues & Conflict Resolution**: Instead of naive last-write-wins, store a revision ID or timestamp to resolve merges more robustly.  
-- **Production Builds & DevOps**: EAS (Expo Application Services) for iOS/Android, environment variable management, logging, crash reporting, etc.
+- For **web** offline: use a real IndexedDB-based approach.  
+- For more robust conflict resolution: track versions/timestamps, or queue pending updates.  
+- Add an **Admin Dashboard** (web), advanced role-based policies, or push notifications.
 
-**Congratulations!** Your ScriptHammer project now includes a fully functioning offline-first approach with secure Supabase authentication, real-time updates, and local caching for resilience in low-connectivity environments. Happy building!
+**Congratulations**—you now have a working, **offline-first** ScriptHammer setup that **doesn’t** rely on a manual “Sync” button, gracefully handles web vs. native differences, and ensures your user’s data is seamlessly updated whether they’re connected or not!

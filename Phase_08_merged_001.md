@@ -214,6 +214,7 @@ touch supabaseClient.ts
 touch app/_layout.tsx
 touch app/index.tsx
 touch .env.local
+code .
 ```
 
 *If you prefer not to create files manually, jump to [Step 19](#19-scaffolding-script-generates-all-files).*

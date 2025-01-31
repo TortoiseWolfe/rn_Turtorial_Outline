@@ -1607,22 +1607,23 @@ If you want to skip Steps 5–16, copy no code manually, and have one script tha
  * scaffold-ScriptHammer-Admin.js
  *
  * A Node.js script that overwrites/creates all files from the
- * “ScriptHammer + Admin Dashboard” single-tutorial approach.
+ * "ScriptHammer + Admin Dashboard" single-tutorial approach
+ * (Dexie on Web, SQLite + SecureStore on Native, plus integrated admin).
  *
  * USAGE:
  *   npm run scaffold-ScriptHammer-Admin
  *
  * WARNING:
- *   - Overwrites existing files with the same paths.
- *   - Make sure you commit or backup your work first.
+ *   - Overwrites existing files if paths match.
+ *   - Make sure you commit or backup first.
  */
 
 const fs = require("fs");
 const path = require("path");
 const readline = require("readline");
 
-// Below is the FULL array of files from Steps 6–16 in the final tutorial,
-// EXACTLY as shown, with no placeholders or missing imports.
+// Below is the full array of file objects for Steps 6–16 in the final tutorial,
+// using ASCII-only strings so there are no "invalid token" errors.
 
 const FILES = [
   {
@@ -1636,13 +1637,7 @@ export async function setupLocalDatabase() {
   return new Promise<void>((resolve, reject) => {
     db.transaction((tx) => {
       tx.executeSql(
-        \`CREATE TABLE IF NOT EXISTS local_profiles (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          user_id TEXT UNIQUE,
-          display_name TEXT,
-          role TEXT,
-          updated_at TEXT
-        );\`,
+        "CREATE TABLE IF NOT EXISTS local_profiles (\\n          id INTEGER PRIMARY KEY AUTOINCREMENT,\\n          user_id TEXT UNIQUE,\\n          display_name TEXT,\\n          role TEXT,\\n          updated_at TEXT\\n        );",
         [],
         () => resolve(),
         (_, error) => {
@@ -1665,14 +1660,7 @@ export async function upsertLocalProfile(
   return new Promise<void>((resolve, reject) => {
     db.transaction((tx) => {
       tx.executeSql(
-        \`
-        INSERT INTO local_profiles (user_id, display_name, role, updated_at)
-        VALUES (?, ?, ?, ?)
-        ON CONFLICT(user_id) DO UPDATE
-          SET display_name=excluded.display_name,
-              role=excluded.role,
-              updated_at=excluded.updated_at
-      \`,
+        "INSERT INTO local_profiles (user_id, display_name, role, updated_at)\\n        VALUES (?, ?, ?, ?)\\n        ON CONFLICT(user_id) DO UPDATE\\n          SET display_name=excluded.display_name,\\n              role=excluded.role,\\n              updated_at=excluded.updated_at\\n      ",
         [userId, displayName, role, updatedAt],
         () => resolve(),
         (_, error) => {
@@ -1690,7 +1678,7 @@ export async function getLocalProfile(userId: string) {
   return new Promise<any>((resolve, reject) => {
     db.transaction((tx) => {
       tx.executeSql(
-        \`SELECT * FROM local_profiles WHERE user_id=? LIMIT 1\`,
+        "SELECT * FROM local_profiles WHERE user_id=? LIMIT 1",
         [userId],
         (_, result) => {
           if (result.rows.length > 0) {
@@ -1715,9 +1703,7 @@ export async function updateLocalDisplayName(userId: string, displayName: string
   return new Promise<void>((resolve, reject) => {
     db.transaction((tx) => {
       tx.executeSql(
-        \`UPDATE local_profiles
-         SET display_name=?, updated_at=?
-         WHERE user_id=?\`,
+        "UPDATE local_profiles\\n         SET display_name=?, updated_at=?\\n         WHERE user_id=?",
         [displayName, now, userId],
         () => resolve(),
         (_, error) => {
@@ -2337,7 +2323,7 @@ export default function SignInScreen() {
       <Button title={loading ? "Signing In..." : "Sign In"} onPress={handleSignIn} />
 
       <Link href="/(auth)/sign-up" style={styles.link}>
-        Don’t have an account? Sign Up
+        Dont have an account? Sign Up
       </Link>
     </View>
   );
@@ -2912,7 +2898,7 @@ const styles = StyleSheet.create({
         fs.mkdirSync(dir, { recursive: true });
       }
       fs.writeFileSync(filePath, content, "utf8");
-      console.log(\`✅ Created/updated: \${filePath}\`);
+      console.log("Created/updated: " + filePath);
     }
 
     try {
@@ -2921,7 +2907,7 @@ const styles = StyleSheet.create({
         writeFileRecursive(outPath, content);
       });
 
-      console.log("\\nAll files created or updated successfully!");
+      console.log("\nAll files created or updated successfully!");
       console.log("Run 'npx expo start --clear' to test your Admin Dashboard now!");
     } catch (err) {
       console.error("Error scaffolding files:", err);
@@ -2929,7 +2915,6 @@ const styles = StyleSheet.create({
     }
   });
 })();
-
 ```
 
 Then:

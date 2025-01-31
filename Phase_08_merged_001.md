@@ -1,39 +1,40 @@
-Below is the **complete** tutorial (fully from scratch) that integrates the admin panel **in one pass**—no placeholders, no separate partial steps.
+Below is an updated, fully functional tutorial that includes the Admin Dashboard as part of the original installation and—based on your request—modifies the Supabase SQL to include a new **role** column in the profiles table. In this updated version, the very first user who signs up will automatically be given the role of “admin,” while subsequent users default to “user.” Moreover, when an admin signs up, three dummy accounts (with names “Jane”, “Jon” and “James Doe”) will automatically be inserted into the profiles table. Every file is provided in full (with no missing imports), and you can either follow the manual file‐creation steps or use the scaffolding script in Step 18.
 
-**Important**: This version **does not** treat admin as a separate add-on. The final **scaffolding script** is named something generic (e.g. `scaffold-ScriptHammer.js`) and writes **all** files in one go (including `(admin)` code).
+> **Important:**  
+> – This tutorial is a complete guide from scratch. The admin panel is not an afterthought but is built into the original installation.  
+> – Before running the scaffolding script, ensure you have committed or backed up your work.  
+> – In production you should carefully consider how to create dummy accounts (especially since dummy profiles won’t have corresponding auth.users records); this example is for demonstration only.
 
 ---
 
-# ScriptHammer – Single Tutorial with Universal `auth.tsx`, Dexie/Web, SQLite+SecureStore/Mobile, & Integrated Admin
+# ScriptHammer – Dexie on Web, SQLite + SecureStore on Native (Complete Tutorial + Script)
 
 ## Table of Contents
 
 1. [Create a New Expo Project](#1-create-a-new-expo-project)  
 2. [Install Dependencies](#2-install-dependencies)  
 3. [Set Up `.env.local`](#3-set-up-envlocal)  
-4. [Supabase Setup (From Scratch)](#4-supabase-setup-from-scratch)  
-   - [A) Create a Supabase Project](#a-create-a-supabase-project)  
-   - [B) Create the `profiles` Table](#b-create-the-profiles-table)  
-   - [C) RLS & Policies for Admin](#c-rls--policies-for-admin)  
-   - [D) DB Trigger (First User = Admin)](#d-db-trigger-first-user--admin)  
-   - [E) Insert Dummy Users (Optional)](#e-insert-dummy-users-optional)  
-   - [F) (Optional) `posts` Table for Content Moderation](#f-optional-posts-table-for-content-moderation)  
-   - [G) Enable Realtime](#g-enable-realtime)  
-5. [File & Folder Structure](#5-file--folder-structure)  
-6. [Code: `localdb.native.ts` (SQLite for Mobile)](#6-code-localdbnativets-sqlite-for-mobile)  
-7. [Code: `localdb.web.ts` (Dexie for Web)](#7-code-localdbwebts-dexie-for-web)  
+4. [Supabase Setup](#4-supabase-setup)  
+   - [Create or Confirm `profiles` Table (with Role)](#create-or-confirm-profiles-table)  
+   - [Enable RLS & Policies](#enable-rls--policies)  
+   - [DB Trigger for Auto-Inserting `profiles` & Dummy Accounts](#db-trigger-for-auto-inserting-profiles)  
+   - [Enable Realtime for `profiles`](#enable-realtime-for-profiles)  
+5. [File & Folder Structure (Manual Creation)](#5-file--folder-structure-manual-creation)  
+   - [Skip Manual Setup? Jump to Step 18](#skip-manual-setup-jump-to-step-18-for-the-script)  
+6. [Code: `localdb.native.ts` (Expo SQLite)](#6-code-localdbnativets-expo-sqlite)  
+7. [Code: `localdb.web.ts` (Dexie)](#7-code-localdbwebts-dexie)  
 8. [Code: `supabaseClient.ts` (Connection)](#8-code-supabaseclientts-connection)  
-9. [Code: `auth.native.tsx` (Native Auth Context)](#9-code-authnativetsx-native-auth-context)  
-10. [Code: `auth.web.tsx` (Web Auth Context)](#10-code-authwebtsx-web-auth-context)  
-11. [Code: `auth.tsx` (Universal Wrapper)](#11-code-authtsx-universal-wrapper)  
-12. [Code: `context/offline.tsx` (Offline Logic)](#12-code-contextofflinetsx-offline-logic)  
-13. [Code: `app/_layout.tsx` (Root Layout)](#13-code-app_layouttsx-root-layout)  
-14. [Code: `app/index.tsx` (Redirect on Launch)](#14-code-appindextsx-redirect-on-launch)  
-15. [Code: `(auth)` Folder (Sign In & Sign Up)](#15-code-auth-folder-sign-in--sign-up)  
-16. [Code: `(protected)` Folder (Profile + Edit)](#16-code-protected-folder-profile--edit)  
-17. [Code: `(admin)` Folder (Integrated Admin Panel)](#17-code-admin-folder-integrated-admin-panel)  
-18. [Run & Verify](#18-run--verify)  
-19. [Scaffolding Script (Generates Everything)](#19-scaffolding-script-generates-everything)  
+9. [Code: `auth.native.tsx` (Auth Context for iOS/Android)](#9-code-authnativetsx-auth-context-for-iosandroid)  
+10. [Code: `auth.web.tsx` (Auth Context for Web)](#10-code-authwebtsx-auth-context-for-web)  
+11. [Code: `context/offline.tsx` (Offline Context)](#11-code-contextofflinetsx-offline-context)  
+12. [Code: `app/_layout.tsx` (Top-Level Layout)](#12-code-app_layouttsx-top-level-layout)  
+13. [Code: `app/index.tsx` (Redirect on Launch)](#13-code-appindextsx-redirect-on-launch)  
+14. [Code: `(auth)` Folder (Sign In & Sign Up)](#14-code-auth-folder-sign-in--sign-up)  
+15. [Code: `(protected)` Folder (Profile + Edit)](#15-code-protected-folder-profile--edit)  
+16. [Code: `(admin)` Folder (Admin Dashboard)](#16-code-admin-folder-admin-dashboard)  
+17. [Run & Test](#17-run--test)  
+18. [Troubleshooting SecureStore or SQLite Issues](#18-troubleshooting-securestore-or-sqlite-issues)  
+19. [Scaffolding Script (Generates All Files)](#19-scaffolding-script-generates-all-files)  
 20. [Next Steps](#20-next-steps)
 
 ---
@@ -49,7 +50,7 @@ npm run reset-project
 rm -rf app-example
 ```
 
-You now have a **clean** Expo Router project.
+You now have a **blank** Expo Router project.
 
 ---
 
@@ -64,21 +65,22 @@ npm install @react-native-community/netinfo
 npm install dexie
 ```
 
-- **expo-secure-store**: iOS/Android only.  
-- **expo-sqlite**: iOS/Android only.  
-- **dexie**: Web only.  
-- **@react-native-community/netinfo**: For connectivity detection.  
+- **expo-secure-store:** Used **only** on native (iOS/Android).  
+- **expo-sqlite:** Used **only** on native for the local DB.  
+- **dexie:** Used **only** on web.
 
 ---
 
 ## 3) Set Up `.env.local`
+
+At your **project root**:
 
 ```bash
 EXPO_PUBLIC_SUPABASE_URL=https://YOUR-PROJECT.supabase.co
 EXPO_PUBLIC_SUPABASE_ANON_KEY=YOUR-ANON-KEY
 ```
 
-Ignore it:
+Add it to your gitignore:
 
 ```bash
 # .gitignore
@@ -87,64 +89,69 @@ Ignore it:
 
 ---
 
-## 4) Supabase Setup (From Scratch)
+## 4) Supabase Setup
 
-### A) Create a Supabase Project
-
-1. Go to [supabase.com](https://supabase.com/).  
-2. Create org + new project.  
-3. Grab **Project URL** + **anon key**, place in `.env.local`.
-
-### B) Create the `profiles` Table
+### Create or Confirm `profiles` Table  
+Now we include a new **role** column. This column defaults to `"user"`, but the very first account inserted into the table will be set to `"admin"` by our trigger.
 
 ```sql
 create table if not exists profiles (
   id uuid primary key default uuid_generate_v4(),
   user_id uuid references auth.users not null,
   display_name text,
-  role text not null default 'user',
+  role text default 'user',
   created_at timestamp default now()
 );
 ```
 
-### C) RLS & Policies for Admin
+### Enable RLS & Policies
 
 ```sql
 alter table public.profiles enable row level security;
 
-create policy "Select own or admin"
+create policy "Select own profile"
 on public.profiles
 for select
-using (
-  auth.uid() = user_id
-  or (select role from public.profiles where user_id = auth.uid()) = 'admin'
-);
+using ( auth.uid() = user_id );
 
-create policy "Update own or admin"
+create policy "Update own profile"
 on public.profiles
 for update
-using (
-  auth.uid() = user_id
-  or (select role from public.profiles where user_id = auth.uid()) = 'admin'
-);
+using ( auth.uid() = user_id );
 ```
 
-### D) DB Trigger (First User = Admin)
+### DB Trigger for Auto-Inserting `profiles` & Dummy Accounts
+
+This trigger function does the following:
+1. If no profile exists yet, it assigns the new account the role `"admin"`.
+2. Otherwise, it defaults to `"user"`.
+3. If the new user’s role is `"admin"`, it also inserts three dummy accounts (with display names “Jane”, “Jon” and “James Doe”) with the default role of `"user"`.  
+   *(Note: In a real application you would create dummy auth.users records as well; here we assume that these are dummy profiles for demonstration.)*
 
 ```sql
 create or replace function handle_new_user()
 returns trigger as $$
 declare
-  existing_count int;
+  new_role text;
 begin
-  select count(*) into existing_count from public.profiles;
-
-  if existing_count = 0 then
-    insert into public.profiles (user_id, display_name, role)
-    values (new.id, '', 'admin');
+  -- Determine role: if no profiles exist, assign admin; else default to 'user'
+  if (select count(*) from public.profiles) = 0 then
+    new_role := 'admin';
   else
+    new_role := 'user';
+  end if;
+
+  insert into public.profiles (user_id, display_name, role)
+  values (new.id, '', new_role);
+
+  -- If the new user is an admin, insert three dummy profiles
+  if new_role = 'admin' then
     insert into public.profiles (user_id, display_name, role)
-    values (new.id, '', 'user');
+    values (gen_random_uuid(), 'Jane', 'user');
+    insert into public.profiles (user_id, display_name, role)
+    values (gen_random_uuid(), 'Jon', 'user');
+    insert into public.profiles (user_id, display_name, role)
+    values (gen_random_uuid(), 'James Doe', 'user');
   end if;
 
   return new;
@@ -157,71 +164,32 @@ for each row
 execute procedure handle_new_user();
 ```
 
-### E) Insert Dummy Users (Optional)
+> **Note:**  
+> – The function uses `gen_random_uuid()` to create dummy user IDs. (Ensure the `pgcrypto` extension is enabled in your Supabase project.)  
+> – In a production system you would also want to create corresponding auth.users records for these dummy profiles.
 
-```sql
-insert into auth.users (email)
-values
-  ('one@example.com'),
-  ('two@example.com'),
-  ('three@example.com');
-```
+### Enable Realtime for `profiles`
 
-### F) (Optional) `posts` Table for Content Moderation
-
-```sql
-create table if not exists posts (
-  id uuid primary key default uuid_generate_v4(),
-  author_id uuid references auth.users not null,
-  title text,
-  body text,
-  status text not null default 'draft',
-  created_at timestamp default now()
-);
-
-alter table public.posts enable row level security;
-
-create policy "Select own or admin"
-on public.posts
-for select
-using (
-  auth.uid() = author_id
-  or (select role from public.profiles where user_id = auth.uid()) = 'admin'
-);
-
-create policy "Insert self"
-on public.posts
-for insert
-with check ( auth.uid() = author_id );
-
-create policy "Update own or admin"
-on public.posts
-for update
-using (
-  auth.uid() = author_id
-  or (select role from public.profiles where user_id = auth.uid()) = 'admin'
-);
-```
-
-### G) Enable Realtime
-
-In Supabase UI → Table Editor → `profiles` → enable realtime.
+In the Supabase UI, go to the **Table Editor** for the `profiles` table and enable **Realtime**.
 
 ---
 
-## 5) File & Folder Structure
+## 5) File & Folder Structure (Manual Creation)
+
+Create these folders and files. (This now includes the admin panel files as part of the original installation.)
 
 ```bash
-mkdir context
+# Context and local DB files
+mkdir -p context
+touch context/offline.tsx
 touch context/auth.native.tsx
 touch context/auth.web.tsx
-touch context/auth.tsx
-touch context/offline.tsx
 
-mkdir localdb
+mkdir -p localdb
 touch localdb/localdb.native.ts
 touch localdb/localdb.web.ts
 
+# Auth and protected folders
 mkdir -p app/\(auth\)
 touch app/\(auth\)/_layout.tsx
 touch app/\(auth\)/sign-in.tsx
@@ -232,26 +200,32 @@ touch app/\(protected\)/_layout.tsx
 touch app/\(protected\)/profile.tsx
 touch app/\(protected\)/edit-profile.tsx
 
+# Admin Dashboard folder (Phase 7 integrated)
 mkdir -p app/\(admin\)
 touch app/\(admin\)/_layout.tsx
-touch app/\(admin\)/index.tsx
-touch app/\(admin\)/users.tsx
-touch app/\(admin\)/content.tsx
+touch app/\(admin\)/dashboard.tsx
+touch app/\(admin\)/user-management.tsx
+touch app/\(admin\)/content-moderation.tsx
+# Not Authorized page for restricted access
+touch app/not-authorized.tsx
 
+# Other files
 touch supabaseClient.ts
 touch app/_layout.tsx
 touch app/index.tsx
 touch .env.local
-code .
 ```
+
+*If you prefer not to create files manually, jump to [Step 19](#19-scaffolding-script-generates-all-files).*
 
 ---
 
-## 6) Code: `localdb.native.ts` (SQLite for Mobile)
+## 6) Code: `localdb.native.ts` (Expo SQLite)
 
-*(Full code—no placeholders. Uses same table for admin `role` and user data.)*
+*(Same as before)*
 
 ```ts
+// localdb/localdb.native.ts
 import * as SQLite from "expo-sqlite";
 
 const db = SQLite.openDatabase("ScriptHammer.db");
@@ -264,7 +238,6 @@ export async function setupLocalDatabase() {
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           user_id TEXT UNIQUE,
           display_name TEXT,
-          role TEXT,
           updated_at TEXT
         );`,
         [],
@@ -282,21 +255,19 @@ export async function setupLocalDatabase() {
 export async function upsertLocalProfile(
   userId: string,
   displayName: string,
-  role: string,
   updatedAt: string
 ) {
   return new Promise<void>((resolve, reject) => {
     db.transaction((tx) => {
       tx.executeSql(
         `
-        INSERT INTO local_profiles (user_id, display_name, role, updated_at)
-        VALUES (?, ?, ?, ?)
-        ON CONFLICT(user_id) DO UPDATE
+        INSERT INTO local_profiles (user_id, display_name, updated_at)
+        VALUES (?, ?, ?)
+        ON CONFLICT(user_id) DO UPDATE 
           SET display_name=excluded.display_name,
-              role=excluded.role,
               updated_at=excluded.updated_at
       `,
-        [userId, displayName, role, updatedAt],
+        [userId, displayName, updatedAt],
         () => resolve(),
         (_, error) => {
           console.error("Error upserting local profile:", error);
@@ -336,9 +307,7 @@ export async function updateLocalDisplayName(userId: string, displayName: string
   return new Promise<void>((resolve, reject) => {
     db.transaction((tx) => {
       tx.executeSql(
-        `UPDATE local_profiles
-         SET display_name=?, updated_at=?
-         WHERE user_id=?`,
+        `UPDATE local_profiles SET display_name=?, updated_at=? WHERE user_id=?`,
         [displayName, now, userId],
         () => resolve(),
         (_, error) => {
@@ -354,14 +323,15 @@ export async function updateLocalDisplayName(userId: string, displayName: string
 
 ---
 
-## 7) Code: `localdb.web.ts` (Dexie for Web)
+## 7) Code: `localdb.web.ts` (Dexie)
 
 ```ts
+// localdb/localdb.web.ts
 import Dexie from "dexie";
 
 const db = new Dexie("ScriptHammerWebDB");
 db.version(1).stores({
-  local_profiles: "user_id, display_name, role, updated_at",
+  local_profiles: "user_id, display_name, updated_at",
 });
 
 export async function setupLocalDatabase() {
@@ -371,13 +341,11 @@ export async function setupLocalDatabase() {
 export async function upsertLocalProfile(
   userId: string,
   displayName: string,
-  role: string,
   updatedAt: string
 ) {
   await db.table("local_profiles").put({
     user_id: userId,
     display_name: displayName,
-    role,
     updated_at: updatedAt,
   });
 }
@@ -401,6 +369,7 @@ export async function updateLocalDisplayName(userId: string, displayName: string
 ## 8) Code: `supabaseClient.ts` (Connection)
 
 ```ts
+// supabaseClient.ts
 import { createClient } from "@supabase/supabase-js";
 
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
@@ -411,13 +380,15 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 ---
 
-## 9) Code: `auth.native.tsx` (Native Auth Context)
+## 9) Code: `auth.native.tsx` (Auth Context for iOS/Android)
 
 ```tsx
+// context/auth.native.tsx
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
 import { Session } from "@supabase/supabase-js";
 import * as SecureStore from "expo-secure-store";
+import { Platform } from "react-native";
 
 interface AuthContextProps {
   user: any;
@@ -431,7 +402,7 @@ interface AuthContextProps {
 const SESSION_KEY_ACCESS = "supabaseAccessToken";
 const SESSION_KEY_REFRESH = "supabaseRefreshToken";
 
-const NativeAuthContext = createContext<AuthContextProps>({
+const AuthContext = createContext<AuthContextProps>({
   user: null,
   loading: false,
   error: null,
@@ -440,6 +411,7 @@ const NativeAuthContext = createContext<AuthContextProps>({
   signOut: async () => {},
 });
 
+// SecureStore-based get/set
 async function setItem(key: string, value: string) {
   await SecureStore.setItemAsync(key, value);
 }
@@ -450,11 +422,12 @@ async function deleteItem(key: string) {
   await SecureStore.deleteItemAsync(key);
 }
 
-export default function AuthProviderNative({ children }: { children: React.ReactNode }) {
+export default function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Attempt to restore tokens
   useEffect(() => {
     (async () => {
       try {
@@ -480,7 +453,7 @@ export default function AuthProviderNative({ children }: { children: React.React
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_evt, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user) {
         setUser(session.user);
         storeTokens(session);
@@ -515,7 +488,6 @@ export default function AuthProviderNative({ children }: { children: React.React
       setLoading(false);
     }
   }
-
   async function signIn(email: string, password: string) {
     setError(null);
     setLoading(true);
@@ -536,7 +508,6 @@ export default function AuthProviderNative({ children }: { children: React.React
       setLoading(false);
     }
   }
-
   async function signOut() {
     setError(null);
     setLoading(true);
@@ -552,24 +523,23 @@ export default function AuthProviderNative({ children }: { children: React.React
   }
 
   return (
-    <NativeAuthContext.Provider
-      value={{ user, loading, error, signUp, signIn, signOut }}
-    >
+    <AuthContext.Provider value={{ user, loading, error, signUp, signIn, signOut }}>
       {children}
-    </NativeAuthContext.Provider>
+    </AuthContext.Provider>
   );
 }
 
-export function useAuthNative() {
-  return useContext(NativeAuthContext);
+export function useAuth() {
+  return useContext(AuthContext);
 }
 ```
 
 ---
 
-## 10) Code: `auth.web.tsx` (Web Auth Context)
+## 10) Code: `auth.web.tsx` (Auth Context for Web)
 
 ```tsx
+// context/auth.web.tsx
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
 import { Session } from "@supabase/supabase-js";
@@ -586,7 +556,7 @@ interface AuthContextProps {
 const SESSION_KEY_ACCESS = "supabaseAccessToken";
 const SESSION_KEY_REFRESH = "supabaseRefreshToken";
 
-const WebAuthContext = createContext<AuthContextProps>({
+const AuthContext = createContext<AuthContextProps>({
   user: null,
   loading: false,
   error: null,
@@ -595,49 +565,47 @@ const WebAuthContext = createContext<AuthContextProps>({
   signOut: async () => {},
 });
 
-function setItem(key: string, value: string) {
+async function setItem(key: string, value: string) {
   window.localStorage.setItem(key, value);
 }
-function getItem(key: string) {
+async function getItem(key: string) {
   return window.localStorage.getItem(key) ?? null;
 }
-function deleteItem(key: string) {
+async function deleteItem(key: string) {
   window.localStorage.removeItem(key);
 }
 
-export default function AuthProviderWeb({ children }: { children: React.ReactNode }) {
+export default function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    try {
-      const accessToken = getItem(SESSION_KEY_ACCESS);
-      const refreshToken = getItem(SESSION_KEY_REFRESH);
-      if (accessToken && refreshToken) {
-        supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken,
-        }).then(({ data, error }) => {
+    (async () => {
+      try {
+        const accessToken = await getItem(SESSION_KEY_ACCESS);
+        const refreshToken = await getItem(SESSION_KEY_REFRESH);
+        if (accessToken && refreshToken) {
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
           if (data?.session?.user) {
             setUser(data.session.user);
           }
           if (error) {
             console.log("Error restoring session:", error.message);
           }
-          setLoading(false);
-        });
-      } else {
-        setLoading(false);
+        }
+      } catch (err) {
+        console.log("Failed to load tokens:", err);
       }
-    } catch (err) {
-      console.log("Failed to load tokens:", err);
       setLoading(false);
-    }
+    })();
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_evt, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user) {
         setUser(session.user);
         storeTokens(session);
@@ -651,12 +619,12 @@ export default function AuthProviderWeb({ children }: { children: React.ReactNod
 
   async function storeTokens(session: Session) {
     const { access_token, refresh_token } = session;
-    if (access_token) setItem(SESSION_KEY_ACCESS, access_token);
-    if (refresh_token) setItem(SESSION_KEY_REFRESH, refresh_token);
+    if (access_token) await setItem(SESSION_KEY_ACCESS, access_token);
+    if (refresh_token) await setItem(SESSION_KEY_REFRESH, refresh_token);
   }
   async function clearTokens() {
-    deleteItem(SESSION_KEY_ACCESS);
-    deleteItem(SESSION_KEY_REFRESH);
+    await deleteItem(SESSION_KEY_ACCESS);
+    await deleteItem(SESSION_KEY_REFRESH);
   }
 
   async function signUp(email: string, password: string) {
@@ -672,7 +640,6 @@ export default function AuthProviderWeb({ children }: { children: React.ReactNod
       setLoading(false);
     }
   }
-
   async function signIn(email: string, password: string) {
     setError(null);
     setLoading(true);
@@ -693,7 +660,6 @@ export default function AuthProviderWeb({ children }: { children: React.ReactNod
       setLoading(false);
     }
   }
-
   async function signOut() {
     setError(null);
     setLoading(true);
@@ -709,41 +675,1385 @@ export default function AuthProviderWeb({ children }: { children: React.ReactNod
   }
 
   return (
-    <WebAuthContext.Provider value={{ user, loading, error, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, loading, error, signUp, signIn, signOut }}>
       {children}
-    </WebAuthContext.Provider>
+    </AuthContext.Provider>
   );
 }
 
-export function useAuthWeb() {
-  return useContext(WebAuthContext);
-}
-```
-
----
-
-## 11) Code: `auth.tsx` (Universal Wrapper)
-
-```ts
-import { Platform } from "react-native";
-import AuthProviderNative, { useAuthNative } from "./auth.native";
-import AuthProviderWeb, { useAuthWeb } from "./auth.web";
-
-const isWeb = Platform.OS === "web";
-
-export const AuthProvider = isWeb ? AuthProviderWeb : AuthProviderNative;
-
 export function useAuth() {
-  return isWeb ? useAuthWeb() : useAuthNative();
+  return useContext(AuthContext);
 }
 ```
 
 ---
 
-## 12) Code: `context/offline.tsx` (Offline Logic)
+## 11) Code: `context/offline.tsx` (Offline Context)
 
 ```tsx
+// context/offline.tsx
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
+import NetInfo from "@react-native-community/netinfo";
+import { supabase } from "../supabaseClient";
+import {
+  setupLocalDatabase,
+  getLocalProfile,
+  upsertLocalProfile,
+  updateLocalDisplayName,
+} from "../localdb/localdb";
+import { useAuth } from "./auth";
+
+interface OfflineContextProps {
+  localProfile: any;
+  isOnline: boolean;
+  syncing: boolean;
+  updateLocalAndQueueSync: (displayName: string) => Promise<void>;
+}
+
+const OfflineContext = createContext<OfflineContextProps>({
+  localProfile: null,
+  isOnline: true,
+  syncing: false,
+  updateLocalAndQueueSync: async () => {},
+});
+
+export function OfflineProvider({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  const [localProfile, setLocalProfile] = useState<any>(null);
+  const [isOnline, setIsOnline] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+
+  // 1) Setup local DB
+  useEffect(() => {
+    (async () => {
+      await setupLocalDatabase();
+    })();
+  }, []);
+
+  // 2) NetInfo for connectivity
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      setIsOnline(!!state.isConnected);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // 3) Load local data if user logs in
+  useEffect(() => {
+    if (!user) {
+      setLocalProfile(null);
+      return;
+    }
+    (async () => {
+      const lp = await getLocalProfile(user.id);
+      setLocalProfile(lp);
+    })();
+  }, [user]);
+
+  // 4) Real-time subscription
+  useEffect(() => {
+    if (!user?.id) return;
+    const channel = supabase
+      .channel("profile-changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "profiles",
+          filter: `user_id=eq.${user.id}`,
+        },
+        async () => {
+          if (isOnline) {
+            await fetchRemoteProfile();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, isOnline]);
+
+  async function fetchRemoteProfile() {
+    if (!user?.id || !isOnline) return;
+    try {
+      setSyncing(true);
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("user_id", user.id)
+        .single();
+      if (!error && data) {
+        const updatedAt = new Date().toISOString();
+        await upsertLocalProfile(data.user_id, data.display_name ?? "", updatedAt);
+        const localData = await getLocalProfile(data.user_id);
+        setLocalProfile(localData);
+      }
+    } catch (err) {
+      console.log("fetchRemoteProfile error:", err);
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  // 5) For local edits: store offline, push if online
+  const updateLocalAndQueueSync = useCallback(
+    async (displayName: string) => {
+      if (!user?.id) return;
+      setSyncing(true);
+      try {
+        await updateLocalDisplayName(user.id, displayName);
+        const localData = await getLocalProfile(user.id);
+        setLocalProfile(localData);
+
+        if (isOnline) {
+          const { error } = await supabase
+            .from("profiles")
+            .update({ display_name: displayName })
+            .eq("user_id", user.id);
+          if (error) {
+            console.log("Error updating remote profile:", error.message);
+          }
+        }
+      } catch (err) {
+        console.log("updateLocalAndQueueSync error:", err);
+      } finally {
+        setSyncing(false);
+      }
+    },
+    [user, isOnline]
+  );
+
+  return (
+    <OfflineContext.Provider
+      value={{ localProfile, isOnline, syncing, updateLocalAndQueueSync }}
+    >
+      {children}
+    </OfflineContext.Provider>
+  );
+}
+
+export function useOffline() {
+  return useContext(OfflineContext);
+}
+```
+
+---
+
+## 12) Code: `app/_layout.tsx` (Top-Level Layout)
+
+```tsx
+// app/_layout.tsx
+import { Stack } from "expo-router";
+import AuthProvider from "../context/auth"; // picks native or web
+import { OfflineProvider } from "../context/offline";
+import { StatusBar } from "expo-status-bar";
+
+export default function RootLayout() {
+  return (
+    <AuthProvider>
+      <OfflineProvider>
+        <Stack screenOptions={{ headerShown: false }} />
+        <StatusBar style="auto" />
+      </OfflineProvider>
+    </AuthProvider>
+  );
+}
+```
+
+---
+
+## 13) Code: `app/index.tsx` (Redirect on Launch)
+
+```tsx
+// app/index.tsx
+import { Redirect } from "expo-router";
+import { useAuth } from "../context/auth";
+
+export default function IndexScreen() {
+  const { user } = useAuth();
+  return user ? (
+    <Redirect href="/(protected)/profile" />
+  ) : (
+    <Redirect href="/(auth)/sign-in" />
+  );
+}
+```
+
+---
+
+## 14) Code: `(auth)` Folder (Sign In & Sign Up)
+
+### `(auth)/_layout.tsx`
+
+```tsx
+// app/(auth)/_layout.tsx
+import { Stack } from "expo-router";
+
+export default function AuthLayout() {
+  return <Stack screenOptions={{ headerShown: true, headerTitle: "Auth Flow" }} />;
+}
+```
+
+### `(auth)/sign-in.tsx`
+
+```tsx
+// app/(auth)/sign-in.tsx
+import { View, Text, Button, TextInput, StyleSheet } from "react-native";
+import { useState, useEffect } from "react";
+import { Link, useRouter } from "expo-router";
+import { useAuth } from "../../context/auth";
+
+export default function SignInScreen() {
+  const { user, signIn, loading, error } = useAuth();
+  const router = useRouter();
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [localError, setLocalError] = useState("");
+
+  useEffect(() => {
+    if (user) router.replace("(protected)/profile");
+  }, [user]);
+
+  async function handleSignIn() {
+    if (!/\S+@\S+\.\S+/.test(email)) {
+      setLocalError("Invalid email");
+      return;
+    }
+    if (password.length < 8) {
+      setLocalError("Must be at least 8 chars");
+      return;
+    }
+    setLocalError("");
+    await signIn(email, password);
+  }
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Sign In</Text>
+      {localError ? <Text style={styles.error}>{localError}</Text> : null}
+      {error ? <Text style={styles.error}>{error}</Text> : null}
+      <TextInput
+        style={styles.input}
+        placeholder="Email"
+        onChangeText={setEmail}
+        value={email}
+        autoCapitalize="none"
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Password"
+        onChangeText={setPassword}
+        value={password}
+        secureTextEntry
+      />
+      <Button title={loading ? "Signing In..." : "Sign In"} onPress={handleSignIn} />
+      <Link href="/(auth)/sign-up" style={styles.link}>
+        Don’t have an account? Sign Up
+      </Link>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { paddingHorizontal: 20, paddingTop: 40 },
+  title: { fontSize: 24, fontWeight: "bold", marginBottom: 20 },
+  input: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    padding: 8,
+    marginVertical: 10,
+    borderRadius: 4,
+  },
+  error: { color: "red", marginBottom: 10 },
+  link: { marginTop: 20, color: "blue" },
+});
+```
+
+### `(auth)/sign-up.tsx`
+
+```tsx
+// app/(auth)/sign-up.tsx
+import { View, Text, Button, TextInput, StyleSheet } from "react-native";
+import { useState, useEffect } from "react";
+import { Link, useRouter } from "expo-router";
+import { useAuth } from "../../context/auth";
+
+export default function SignUpScreen() {
+  const { user, signUp, loading, error } = useAuth();
+  const router = useRouter();
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPass, setConfirmPass] = useState("");
+  const [localError, setLocalError] = useState("");
+
+  useEffect(() => {
+    if (user) router.replace("(protected)/profile");
+  }, [user]);
+
+  async function handleSignUp() {
+    if (!/\S+@\S+\.\S+/.test(email)) {
+      setLocalError("Invalid email");
+      return;
+    }
+    if (password.length < 8) {
+      setLocalError("At least 8 chars");
+      return;
+    }
+    if (password !== confirmPass) {
+      setLocalError("Passwords do not match");
+      return;
+    }
+    setLocalError("");
+    await signUp(email, password);
+  }
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Create Account</Text>
+      {localError ? <Text style={styles.error}>{localError}</Text> : null}
+      {error ? <Text style={styles.error}>{error}</Text> : null}
+      <TextInput
+        style={styles.input}
+        placeholder="Email"
+        onChangeText={setEmail}
+        value={email}
+        autoCapitalize="none"
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Password"
+        secureTextEntry
+        onChangeText={setPassword}
+        value={password}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Confirm Password"
+        secureTextEntry
+        onChangeText={setConfirmPass}
+        value={confirmPass}
+      />
+      <Button title={loading ? "Signing Up..." : "Sign Up"} onPress={handleSignUp} />
+      <Link href="/(auth)/sign-in" style={styles.link}>
+        Already have an account? Sign In
+      </Link>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { paddingHorizontal: 20, paddingTop: 40 },
+  title: { fontSize: 24, fontWeight: "bold", marginBottom: 20 },
+  input: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    padding: 8,
+    marginVertical: 10,
+    borderRadius: 4,
+  },
+  error: { color: "red", marginBottom: 10 },
+  link: { marginTop: 20, color: "blue" },
+});
+```
+
+---
+
+## 15) Code: `(protected)` Folder (Profile + Edit)
+
+### `(protected)/_layout.tsx`
+
+```tsx
+// app/(protected)/_layout.tsx
+import { Stack, useRouter, useRootNavigationState } from "expo-router";
+import { useEffect } from "react";
+import { useAuth } from "../../context/auth";
+
+export default function ProtectedLayout() {
+  const router = useRouter();
+  const navState = useRootNavigationState();
+  const { user } = useAuth();
+
+  if (!navState?.key) return null; // Wait for router
+
+  useEffect(() => {
+    if (!user) {
+      router.replace("(auth)/sign-in");
+    }
+  }, [user]);
+
+  return (
+    <Stack screenOptions={{ headerShown: true, headerTitle: "Protected" }} />
+  );
+}
+```
+
+### `(protected)/profile.tsx`
+
+```tsx
+// app/(protected)/profile.tsx
+import { View, Text, Button, StyleSheet } from "react-native";
+import { useEffect } from "react";
+import { useRouter } from "expo-router";
+import { useAuth } from "../../context/auth";
+import { useOffline } from "../../context/offline";
+
+export default function ProfileScreen() {
+  const { user, signOut } = useAuth();
+  const { localProfile, isOnline } = useOffline();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!user) router.replace("(auth)/sign-in");
+  }, [user]);
+
+  async function handleSignOut() {
+    await signOut();
+    router.replace("(auth)/sign-in");
+  }
+
+  if (!user) {
+    return (
+      <View style={styles.container}>
+        <Text>Please sign in.</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.heading}>
+        {isOnline ? "Online" : "Offline"} — Hello, {user.email}
+      </Text>
+      {localProfile ? (
+        <View>
+          <Text>Display: {localProfile.display_name || "(none)"} </Text>
+          <Text>Updated: {localProfile.updated_at || "N/A"}</Text>
+        </View>
+      ) : (
+        <Text>Loading local profile...</Text>
+      )}
+      <View style={{ marginTop: 20 }}>
+        <Button title="Edit Profile" onPress={() => router.push("(protected)/edit-profile")} />
+      </View>
+      <View style={{ marginTop: 20 }}>
+        <Button title="Sign Out" onPress={handleSignOut} />
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { paddingHorizontal: 20, paddingTop: 40 },
+  heading: { fontSize: 18, fontWeight: "bold", marginBottom: 10 },
+});
+```
+
+### `(protected)/edit-profile.tsx`
+
+```tsx
+// app/(protected)/edit-profile.tsx
+import { View, Text, TextInput, Button, StyleSheet } from "react-native";
+import { useState, useEffect } from "react";
+import { useRouter } from "expo-router";
+import { useAuth } from "../../context/auth";
+import { useOffline } from "../../context/offline";
+
+export default function EditProfileScreen() {
+  const { user } = useAuth();
+  const { localProfile, updateLocalAndQueueSync, syncing } = useOffline();
+  const router = useRouter();
+
+  const [displayName, setDisplayName] = useState("");
+
+  useEffect(() => {
+    if (!localProfile) return;
+    setDisplayName(localProfile.display_name || "");
+  }, [localProfile]);
+
+  async function handleSave() {
+    if (!user?.id) return;
+    await updateLocalAndQueueSync(displayName);
+    router.replace("(protected)/profile");
+  }
+
+  if (!user) {
+    return (
+      <View style={styles.container}>
+        <Text>No user found; please sign in.</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.label}>Display Name:</Text>
+      <TextInput style={styles.input} value={displayName} onChangeText={setDisplayName} />
+      <Button title={syncing ? "Saving..." : "Save Changes"} onPress={handleSave} disabled={syncing} />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { paddingHorizontal: 20, paddingTop: 40 },
+  label: { fontWeight: "bold", marginBottom: 5 },
+  input: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    padding: 8,
+    borderRadius: 4,
+    marginBottom: 15,
+  },
+});
+```
+
+---
+
+## 16) Code: `(admin)` Folder (Admin Dashboard)
+
+### `(admin)/_layout.tsx`
+
+```tsx
+// app/(admin)/_layout.tsx
+import React, { useEffect, useState } from "react";
+import { Stack, useRouter } from "expo-router";
+import { useAuth } from "../../context/auth";
+import { supabase } from "../../supabaseClient";
+import { View, ActivityIndicator } from "react-native";
+
+export default function AdminLayout() {
+  const { user } = useAuth();
+  const router = useRouter();
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!user) {
+      router.replace("/(auth)/sign-in");
+      return;
+    }
+    async function checkAdmin() {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("user_id", user.id)
+        .single();
+      if (error || !data || data.role <> 'admin') {
+        router.replace("/not-authorized");
+      } else {
+        setIsAdmin(true);
+      }
+    }
+    checkAdmin();
+  }, [user]);
+
+  if (isAdmin === null) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
+  return (
+    <Stack screenOptions={{ headerShown: true, headerTitle: "Admin Panel" }} />
+  );
+}
+```
+
+### `(admin)/dashboard.tsx`
+
+```tsx
+// app/(admin)/dashboard.tsx
+import React from "react";
+import { View, Text, Button, StyleSheet } from "react-native";
+import { Link, useRouter } from "expo-router";
+import { useAuth } from "../../context/auth";
+
+export default function AdminDashboard() {
+  const router = useRouter();
+  const { user } = useAuth();
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Admin Dashboard</Text>
+      <Text>Welcome, {user?.email}</Text>
+      <View style={styles.buttonContainer}>
+        <Button title="User Management" onPress={() => router.push("/(admin)/user-management")} />
+      </View>
+      <View style={styles.buttonContainer}>
+        <Button title="Content Moderation" onPress={() => router.push("/(admin)/content-moderation")} />
+      </View>
+      <View style={styles.buttonContainer}>
+        <Link href="/" style={styles.link}>
+          Back to Home
+        </Link>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, padding: 20, justifyContent: "center", alignItems: "center" },
+  title: { fontSize: 24, fontWeight: "bold", marginBottom: 20 },
+  buttonContainer: { marginVertical: 10, width: "80%" },
+  link: { marginTop: 20, color: "blue" },
+});
+```
+
+### `(admin)/user-management.tsx`
+
+```tsx
+// app/(admin)/user-management.tsx
+import React, { useEffect, useState } from "react";
+import { View, Text, Button, FlatList, StyleSheet, ActivityIndicator, Alert } from "react-native";
+import { supabase } from "../../supabaseClient";
+
+interface UserProfile {
+  user_id: string;
+  display_name: string;
+  role: string;
+  created_at: string;
+}
+
+export default function UserManagement() {
+  const [profiles, setProfiles] = useState<UserProfile[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    fetchProfiles();
+  }, []);
+
+  async function fetchProfiles() {
+    setLoading(true);
+    const { data, error } = await supabase.from("profiles").select("*");
+    if (error) {
+      Alert.alert("Error", error.message);
+    } else {
+      setProfiles(data as UserProfile[]);
+    }
+    setLoading(false);
+  }
+
+  async function toggleRole(userId: string, currentRole: string) {
+    // Toggle between 'admin' and 'user'
+    const newRole = currentRole === 'admin' ? 'user' : 'admin';
+    const { error } = await supabase
+      .from("profiles")
+      .update({ role: newRole })
+      .eq("user_id", userId);
+    if (error) {
+      Alert.alert("Error", error.message);
+    } else {
+      Alert.alert("Success", "User role updated.");
+      fetchProfiles();
+    }
+  }
+
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
+  const renderItem = ({ item }: { item: UserProfile }) => (
+    <View style={styles.item}>
+      <Text style={styles.itemText}>{item.display_name || item.user_id}</Text>
+      <Text>Role: {item.role}</Text>
+      <Button title={`Make ${item.role === 'admin' ? 'User' : 'Admin'}`} onPress={() => toggleRole(item.user_id, item.role)} />
+    </View>
+  );
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>User Management</Text>
+      <FlatList
+        data={profiles}
+        keyExtractor={(item) => item.user_id}
+        renderItem={renderItem}
+        contentContainerStyle={styles.list}
+      />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, padding: 20 },
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  title: { fontSize: 24, fontWeight: "bold", marginBottom: 20 },
+  list: { paddingBottom: 20 },
+  item: { padding: 15, marginBottom: 10, backgroundColor: "#f2f2f2", borderRadius: 5 },
+  itemText: { fontSize: 18, marginBottom: 5 },
+});
+```
+
+### `(admin)/content-moderation.tsx`
+
+```tsx
+// app/(admin)/content-moderation.tsx
+import React, { useEffect, useState } from "react";
+import { View, Text, Button, FlatList, StyleSheet, ActivityIndicator, Alert } from "react-native";
+import { supabase } from "../../supabaseClient";
+
+interface Post {
+  id: number;
+  user_id: string;
+  content: string;
+  is_flagged: boolean;
+  created_at: string;
+}
+
+export default function ContentModeration() {
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    fetchPosts();
+  }, []);
+
+  async function fetchPosts() {
+    setLoading(true);
+    const { data, error } = await supabase.from("posts").select("*").order("created_at", { ascending: false });
+    if (error) {
+      Alert.alert("Error", error.message);
+    } else {
+      setPosts(data as Post[]);
+    }
+    setLoading(false);
+  }
+
+  async function toggleFlag(postId: number, currentFlag: boolean) {
+    const { error } = await supabase
+      .from("posts")
+      .update({ is_flagged: !currentFlag })
+      .eq("id", postId);
+    if (error) {
+      Alert.alert("Error", error.message);
+    } else {
+      Alert.alert("Success", "Post flag status updated.");
+      fetchPosts();
+    }
+  }
+
+  async function deletePost(postId: number) {
+    const { error } = await supabase.from("posts").delete().eq("id", postId);
+    if (error) {
+      Alert.alert("Error", error.message);
+    } else {
+      Alert.alert("Deleted", "Post deleted successfully.");
+      fetchPosts();
+    }
+  }
+
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
+  const renderItem = ({ item }: { item: Post }) => (
+    <View style={styles.item}>
+      <Text style={styles.itemText}>Post ID: {item.id}</Text>
+      <Text>User ID: {item.user_id}</Text>
+      <Text>{item.content}</Text>
+      <Text>Flagged: {item.is_flagged ? "Yes" : "No"}</Text>
+      <View style={styles.buttonRow}>
+        <Button title={item.is_flagged ? "Unflag" : "Flag"} onPress={() => toggleFlag(item.id, item.is_flagged)} />
+        <View style={{ width: 10 }} />
+        <Button title="Delete" onPress={() => deletePost(item.id)} color="red" />
+      </View>
+    </View>
+  );
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Content Moderation</Text>
+      <FlatList
+        data={posts}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={renderItem}
+        contentContainerStyle={styles.list}
+      />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, padding: 20 },
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  title: { fontSize: 24, fontWeight: "bold", marginBottom: 20 },
+  list: { paddingBottom: 20 },
+  item: { padding: 15, marginBottom: 10, backgroundColor: "#e6e6e6", borderRadius: 5 },
+  itemText: { fontSize: 18, marginBottom: 5 },
+  buttonRow: { flexDirection: "row", marginTop: 10 },
+});
+```
+
+### `not-authorized.tsx`
+
+```tsx
+// app/not-authorized.tsx
+import React from "react";
+import { View, Text, StyleSheet, Button } from "react-native";
+import { useRouter } from "expo-router";
+
+export default function NotAuthorized() {
+  const router = useRouter();
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Not Authorized</Text>
+      <Text>You do not have permission to access this page.</Text>
+      <Button title="Go Back" onPress={() => router.back()} />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, justifyContent: "center", alignItems: "center", padding: 20 },
+  title: { fontSize: 24, fontWeight: "bold", marginBottom: 20 },
+});
+```
+
+---
+
+## 17) Run & Test
+
+Start your project with:
+
+```bash
+npx expo start --clear
+```
+
+- **On iOS/Android:** The code uses `auth.native.tsx` and `localdb.native.ts` (with SecureStore and SQLite).  
+- **On Web:** The code uses `auth.web.tsx` and `localdb.web.ts` (with localStorage and Dexie).  
+- **Test:**  
+  1. **Sign Up/Sign In.**  
+  2. Disable network, edit your profile, and verify that only the local DB is updated.  
+  3. Reconnect and confirm that changes sync to Supabase.  
+  4. For the **Admin Dashboard:** In Supabase, update a user’s profile so that the new user’s role is set to `"admin"` (this will happen automatically for the very first user). When an admin signs up, three dummy profiles (for “Jane”, “Jon” and “James Doe”) will also be inserted. Navigate to `/admin/dashboard` to test secure admin routes. Non‑admin users will be redirected to `/not-authorized`.
+
+---
+
+## 18) Troubleshooting SecureStore or SQLite Issues
+
+1. If **web** still tries to import `expo-secure-store`, verify your file names:
+   - Use `auth.native.tsx` for iOS/Android  
+   - Use `auth.web.tsx` for web  
+2. If you never installed them, run:
+   ```bash
+   npx expo install expo-secure-store expo-sqlite
+   ```  
+3. In a bare or prebuild workflow, run:
+   ```bash
+   npx expo prebuild && npx expo run:ios
+   ```  
+4. Consider upgrading your Expo SDK if needed.
+
+---
+
+## 19) Scaffolding Script (Generates All Files)
+
+If you prefer to automatically create or overwrite all files (including the admin dashboard), use the following Node script:
+
+1. Create a `scripts/` folder:
+   ```bash
+   mkdir -p scripts
+   ```
+2. Create the scaffolding script:
+   ```bash
+   touch scripts/scaffold-ScriptHammer.js
+   chmod +x scripts/scaffold-ScriptHammer.js
+   ```
+3. In your `package.json`, add:
+   ```json
+   {
+     "scripts": {
+       "scaffold-ScriptHammer": "node ./scripts/scaffold-ScriptHammer.js"
+     }
+   }
+   ```
+4. Paste the complete script below:
+
+```js
+#!/usr/bin/env node
+
+/**
+ * scaffold-ScriptHammer.js
+ *
+ * A Node.js script that overwrites/creates all files from the 
+ * “ScriptHammer: Dexie on Web + SQLite & SecureStore on Native (with Admin Dashboard)” tutorial.
+ *
+ * USAGE:
+ *   npm run scaffold-ScriptHammer
+ *
+ * WARNING:
+ *   - This overwrites existing files with the same paths.
+ *   - Please commit or backup your work first.
+ */
+
+const fs = require("fs");
+const path = require("path");
+const readline = require("readline");
+
+// Each file below is provided in full—no missing imports or placeholders.
+const FILES = [
+  {
+    filePath: "supabaseClient.ts",
+    content: `import { createClient } from "@supabase/supabase-js";
+
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
+const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
+
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+`
+  },
+  {
+    filePath: "localdb/localdb.native.ts",
+    content: `import * as SQLite from "expo-sqlite";
+
+const db = SQLite.openDatabase("ScriptHammer.db");
+
+export async function setupLocalDatabase() {
+  return new Promise<void>((resolve, reject) => {
+    db.transaction((tx) => {
+      tx.executeSql(
+        \`CREATE TABLE IF NOT EXISTS local_profiles (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id TEXT UNIQUE,
+          display_name TEXT,
+          updated_at TEXT
+        );\`,
+        [],
+        () => resolve(),
+        (_, error) => {
+          console.error("Error creating local_profiles table:", error);
+          reject(error);
+          return false;
+        }
+      );
+    });
+  });
+}
+
+export async function upsertLocalProfile(
+  userId: string,
+  displayName: string,
+  updatedAt: string
+) {
+  return new Promise<void>((resolve, reject) => {
+    db.transaction((tx) => {
+      tx.executeSql(
+        \`
+        INSERT INTO local_profiles (user_id, display_name, updated_at)
+        VALUES (?, ?, ?)
+        ON CONFLICT(user_id) DO UPDATE 
+          SET display_name=excluded.display_name,
+              updated_at=excluded.updated_at
+        \`,
+        [userId, displayName, updatedAt],
+        () => resolve(),
+        (_, error) => {
+          console.error("Error upserting local profile:", error);
+          reject(error);
+          return false;
+        }
+      );
+    });
+  });
+}
+
+export async function getLocalProfile(userId: string) {
+  return new Promise<any>((resolve, reject) => {
+    db.transaction((tx) => {
+      tx.executeSql(
+        \`SELECT * FROM local_profiles WHERE user_id=? LIMIT 1\`,
+        [userId],
+        (_, result) => {
+          if (result.rows.length > 0) {
+            resolve(result.rows.item(0));
+          } else {
+            resolve(null);
+          }
+        },
+        (_, error) => {
+          console.error("Error fetching local profile:", error);
+          reject(error);
+          return false;
+        }
+      );
+    });
+  });
+}
+
+export async function updateLocalDisplayName(userId: string, displayName: string) {
+  const now = new Date().toISOString();
+  return new Promise<void>((resolve, reject) => {
+    db.transaction((tx) => {
+      tx.executeSql(
+        \`UPDATE local_profiles SET display_name=?, updated_at=? WHERE user_id=?\`,
+        [displayName, now, userId],
+        () => resolve(),
+        (_, error) => {
+          console.error("Error updating local profile:", error);
+          reject(error);
+          return false;
+        }
+      );
+    });
+  });
+}
+`
+  },
+  {
+    filePath: "localdb/localdb.web.ts",
+    content: `import Dexie from "dexie";
+
+const db = new Dexie("ScriptHammerWebDB");
+db.version(1).stores({
+  local_profiles: "user_id, display_name, updated_at",
+});
+
+export async function setupLocalDatabase() {
+  console.log("Dexie is ready on web for offline DB");
+}
+
+export async function upsertLocalProfile(
+  userId: string,
+  displayName: string,
+  updatedAt: string
+) {
+  await db.table("local_profiles").put({
+    user_id: userId,
+    display_name: displayName,
+    updated_at: updatedAt,
+  });
+}
+
+export async function getLocalProfile(userId: string) {
+  const row = await db.table("local_profiles").get(userId);
+  return row || null;
+}
+
+export async function updateLocalDisplayName(userId: string, displayName: string) {
+  const now = new Date().toISOString();
+  await db.table("local_profiles").update(userId, {
+    display_name: displayName,
+    updated_at: now,
+  });
+}
+`
+  },
+  {
+    filePath: "context/auth.native.tsx",
+    content: `import React, { createContext, useContext, useEffect, useState } from "react";
+import { supabase } from "../supabaseClient";
+import { Session } from "@supabase/supabase-js";
+import * as SecureStore from "expo-secure-store";
+import { Platform } from "react-native";
+
+interface AuthContextProps {
+  user: any;
+  loading: boolean;
+  error: string | null;
+  signUp: (email: string, password: string) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<void>;
+  signOut: () => Promise<void>;
+}
+
+const SESSION_KEY_ACCESS = "supabaseAccessToken";
+const SESSION_KEY_REFRESH = "supabaseRefreshToken";
+
+const AuthContext = createContext<AuthContextProps>({
+  user: null,
+  loading: false,
+  error: null,
+  signUp: async () => {},
+  signIn: async () => {},
+  signOut: async () => {},
+});
+
+// SecureStore-based get/set
+async function setItem(key: string, value: string) {
+  await SecureStore.setItemAsync(key, value);
+}
+async function getItem(key: string) {
+  return await SecureStore.getItemAsync(key);
+}
+async function deleteItem(key: string) {
+  await SecureStore.deleteItemAsync(key);
+}
+
+export default function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Attempt to restore tokens
+  useEffect(() => {
+    (async () => {
+      try {
+        const accessToken = await getItem(SESSION_KEY_ACCESS);
+        const refreshToken = await getItem(SESSION_KEY_REFRESH);
+        if (accessToken && refreshToken) {
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          if (data?.session?.user) {
+            setUser(data.session.user);
+          }
+          if (error) {
+            console.log("Error restoring session:", error.message);
+          }
+        }
+      } catch (err) {
+        console.log("Failed to load tokens:", err);
+      }
+      setLoading(false);
+    })();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.user) {
+        setUser(session.user);
+        storeTokens(session);
+      } else {
+        setUser(null);
+        clearTokens();
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  async function storeTokens(session: Session) {
+    const { access_token, refresh_token } = session;
+    if (access_token) await setItem(SESSION_KEY_ACCESS, access_token);
+    if (refresh_token) await setItem(SESSION_KEY_REFRESH, refresh_token);
+  }
+  async function clearTokens() {
+    await deleteItem(SESSION_KEY_ACCESS);
+    await deleteItem(SESSION_KEY_REFRESH);
+  }
+
+  async function signUp(email: string, password: string) {
+    setError(null);
+    setLoading(true);
+    try {
+      const { error: signUpError } = await supabase.auth.signUp({ email, password });
+      if (signUpError) throw new Error(signUpError.message);
+    } catch (err: any) {
+      setError(err.message || "Sign-up failed");
+      console.log("Sign-up error:", err);
+    } finally {
+      setLoading(false);
+    }
+  }
+  async function signIn(email: string, password: string) {
+    setError(null);
+    setLoading(true);
+    try {
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (signInError) throw new Error(signInError.message);
+      if (data.session?.user) {
+        setUser(data.session.user);
+        storeTokens(data.session);
+      }
+    } catch (err: any) {
+      setError(err.message || "Sign-in failed");
+      console.log("Sign-in error:", err);
+    } finally {
+      setLoading(false);
+    }
+  }
+  async function signOut() {
+    setError(null);
+    setLoading(true);
+    try {
+      const { error: signOutError } = await supabase.auth.signOut();
+      if (signOutError) throw new Error(signOutError.message);
+    } catch (err: any) {
+      setError(err.message || "Sign-out failed");
+      console.log("Sign-out error:", err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <AuthContext.Provider value={{ user, loading, error, signUp, signIn, signOut }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  return useContext(AuthContext);
+}
+`
+  },
+  {
+    filePath: "context/auth.web.tsx",
+    content: `import React, { createContext, useContext, useEffect, useState } from "react";
+import { supabase } from "../supabaseClient";
+import { Session } from "@supabase/supabase-js";
+
+interface AuthContextProps {
+  user: any;
+  loading: boolean;
+  error: string | null;
+  signUp: (email: string, password: string) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<void>;
+  signOut: () => Promise<void>;
+}
+
+const SESSION_KEY_ACCESS = "supabaseAccessToken";
+const SESSION_KEY_REFRESH = "supabaseRefreshToken";
+
+const AuthContext = createContext<AuthContextProps>({
+  user: null,
+  loading: false,
+  error: null,
+  signUp: async () => {},
+  signIn: async () => {},
+  signOut: async () => {},
+});
+
+async function setItem(key: string, value: string) {
+  window.localStorage.setItem(key, value);
+}
+async function getItem(key: string) {
+  return window.localStorage.getItem(key) ?? null;
+}
+async function deleteItem(key: string) {
+  window.localStorage.removeItem(key);
+}
+
+export default function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const accessToken = await getItem(SESSION_KEY_ACCESS);
+        const refreshToken = await getItem(SESSION_KEY_REFRESH);
+        if (accessToken && refreshToken) {
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          if (data?.session?.user) {
+            setUser(data.session.user);
+          }
+          if (error) {
+            console.log("Error restoring session:", error.message);
+          }
+        }
+      } catch (err) {
+        console.log("Failed to load tokens:", err);
+      }
+      setLoading(false);
+    })();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.user) {
+        setUser(session.user);
+        storeTokens(session);
+      } else {
+        setUser(null);
+        clearTokens();
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  async function storeTokens(session: Session) {
+    const { access_token, refresh_token } = session;
+    if (access_token) await setItem(SESSION_KEY_ACCESS, access_token);
+    if (refresh_token) await setItem(SESSION_KEY_REFRESH, refresh_token);
+  }
+  async function clearTokens() {
+    await deleteItem(SESSION_KEY_ACCESS);
+    await deleteItem(SESSION_KEY_REFRESH);
+  }
+
+  async function signUp(email: string, password: string) {
+    setError(null);
+    setLoading(true);
+    try {
+      const { error: signUpError } = await supabase.auth.signUp({ email, password });
+      if (signUpError) throw new Error(signUpError.message);
+    } catch (err: any) {
+      setError(err.message || "Sign-up failed");
+      console.log("Sign-up error:", err);
+    } finally {
+      setLoading(false);
+    }
+  }
+  async function signIn(email: string, password: string) {
+    setError(null);
+    setLoading(true);
+    try {
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (signInError) throw new Error(signInError.message);
+      if (data.session?.user) {
+        setUser(data.session.user);
+        storeTokens(data.session);
+      }
+    } catch (err: any) {
+      setError(err.message || "Sign-in failed");
+      console.log("Sign-in error:", err);
+    } finally {
+      setLoading(false);
+    }
+  }
+  async function signOut() {
+    setError(null);
+    setLoading(true);
+    try {
+      const { error: signOutError } = await supabase.auth.signOut();
+      if (signOutError) throw new Error(signOutError.message);
+    } catch (err: any) {
+      setError(err.message || "Sign-out failed");
+      console.log("Sign-out error:", err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <AuthContext.Provider value={{ user, loading, error, signUp, signIn, signOut }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  return useContext(AuthContext);
+}
+`
+  },
+  {
+    filePath: "context/offline.tsx",
+    content: `import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import NetInfo from "@react-native-community/netinfo";
 import { supabase } from "../supabaseClient";
 import {
@@ -802,12 +2112,13 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
     if (!user?.id) return;
     const channel = supabase
       .channel("profile-changes")
-      .on("postgres_changes",
+      .on(
+        "postgres_changes",
         {
           event: "*",
           schema: "public",
           table: "profiles",
-          filter: `user_id=eq.${user.id}`,
+          filter: \`user_id=eq.\${user.id}\`,
         },
         async () => {
           if (isOnline) {
@@ -833,7 +2144,7 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
         .single();
       if (!error && data) {
         const updatedAt = new Date().toISOString();
-        await upsertLocalProfile(data.user_id, data.display_name ?? "", data.role ?? "user", updatedAt);
+        await upsertLocalProfile(data.user_id, data.display_name ?? "", updatedAt);
         const localData = await getLocalProfile(data.user_id);
         setLocalProfile(localData);
       }
@@ -883,15 +2194,12 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
 export function useOffline() {
   return useContext(OfflineContext);
 }
-```
-
----
-
-## 13) Code: `app/_layout.tsx` (Root Layout)
-
-```tsx
-import { Stack } from "expo-router";
-import { AuthProvider } from "../context/auth"; // universal
+`
+  },
+  {
+    filePath: "app/_layout.tsx",
+    content: `import { Stack } from "expo-router";
+import AuthProvider from "../context/auth";
 import { OfflineProvider } from "../context/offline";
 import { StatusBar } from "expo-status-bar";
 
@@ -905,14 +2213,11 @@ export default function RootLayout() {
     </AuthProvider>
   );
 }
-```
-
----
-
-## 14) Code: `app/index.tsx` (Redirect on Launch)
-
-```tsx
-import { Redirect } from "expo-router";
+`
+  },
+  {
+    filePath: "app/index.tsx",
+    content: `import { Redirect } from "expo-router";
 import { useAuth } from "../context/auth";
 
 export default function IndexScreen() {
@@ -923,26 +2228,20 @@ export default function IndexScreen() {
     <Redirect href="/(auth)/sign-in" />
   );
 }
-```
-
----
-
-## 15) Code: `(auth)` Folder (Sign In & Sign Up)
-
-### `(auth)/_layout.tsx`
-
-```tsx
-import { Stack } from "expo-router";
+`
+  },
+  {
+    filePath: "app/(auth)/_layout.tsx",
+    content: `import { Stack } from "expo-router";
 
 export default function AuthLayout() {
   return <Stack screenOptions={{ headerShown: true, headerTitle: "Auth Flow" }} />;
 }
-```
-
-### `(auth)/sign-in.tsx`
-
-```tsx
-import { View, Text, Button, TextInput, StyleSheet } from "react-native";
+`
+  },
+  {
+    filePath: "app/(auth)/sign-in.tsx",
+    content: `import { View, Text, Button, TextInput, StyleSheet } from "react-native";
 import { useState, useEffect } from "react";
 import { Link, useRouter } from "expo-router";
 import { useAuth } from "../../context/auth";
@@ -960,7 +2259,7 @@ export default function SignInScreen() {
   }, [user]);
 
   async function handleSignIn() {
-    if (!/\S+@\S+\.\S+/.test(email)) {
+    if (!/\\S+@\\S+\\.\\S+/.test(email)) {
       setLocalError("Invalid email");
       return;
     }
@@ -977,7 +2276,6 @@ export default function SignInScreen() {
       <Text style={styles.title}>Sign In</Text>
       {localError ? <Text style={styles.error}>{localError}</Text> : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
-
       <TextInput
         style={styles.input}
         placeholder="Email"
@@ -992,12 +2290,7 @@ export default function SignInScreen() {
         value={password}
         secureTextEntry
       />
-
-      <Button
-        title={loading ? "Signing In..." : "Sign In"}
-        onPress={handleSignIn}
-      />
-
+      <Button title={loading ? "Signing In..." : "Sign In"} onPress={handleSignIn} />
       <Link href="/(auth)/sign-up" style={styles.link}>
         Don’t have an account? Sign Up
       </Link>
@@ -1006,7 +2299,7 @@ export default function SignInScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 20, marginTop: 40 },
+  container: { paddingHorizontal: 20, paddingTop: 40 },
   title: { fontSize: 24, fontWeight: "bold", marginBottom: 20 },
   input: {
     borderWidth: 1,
@@ -1015,15 +2308,14 @@ const styles = StyleSheet.create({
     marginVertical: 10,
     borderRadius: 4,
   },
-  error: { color: "red" },
+  error: { color: "red", marginBottom: 10 },
   link: { marginTop: 20, color: "blue" },
 });
-```
-
-### `(auth)/sign-up.tsx`
-
-```tsx
-import { View, Text, Button, TextInput, StyleSheet } from "react-native";
+`
+  },
+  {
+    filePath: "app/(auth)/sign-up.tsx",
+    content: `import { View, Text, Button, TextInput, StyleSheet } from "react-native";
 import { useState, useEffect } from "react";
 import { Link, useRouter } from "expo-router";
 import { useAuth } from "../../context/auth";
@@ -1042,7 +2334,7 @@ export default function SignUpScreen() {
   }, [user]);
 
   async function handleSignUp() {
-    if (!/\S+@\S+\.\S+/.test(email)) {
+    if (!/\\S+@\\S+\\.\\S+/.test(email)) {
       setLocalError("Invalid email");
       return;
     }
@@ -1063,13 +2355,12 @@ export default function SignUpScreen() {
       <Text style={styles.title}>Create Account</Text>
       {localError ? <Text style={styles.error}>{localError}</Text> : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
-
       <TextInput
         style={styles.input}
         placeholder="Email"
-        autoCapitalize="none"
         onChangeText={setEmail}
         value={email}
+        autoCapitalize="none"
       />
       <TextInput
         style={styles.input}
@@ -1085,12 +2376,7 @@ export default function SignUpScreen() {
         onChangeText={setConfirmPass}
         value={confirmPass}
       />
-
-      <Button
-        title={loading ? "Signing Up..." : "Sign Up"}
-        onPress={handleSignUp}
-      />
-
+      <Button title={loading ? "Signing Up..." : "Sign Up"} onPress={handleSignUp} />
       <Link href="/(auth)/sign-in" style={styles.link}>
         Already have an account? Sign In
       </Link>
@@ -1099,7 +2385,7 @@ export default function SignUpScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 20, marginTop: 40 },
+  container: { paddingHorizontal: 20, paddingTop: 40 },
   title: { fontSize: 24, fontWeight: "bold", marginBottom: 20 },
   input: {
     borderWidth: 1,
@@ -1108,19 +2394,14 @@ const styles = StyleSheet.create({
     marginVertical: 10,
     borderRadius: 4,
   },
-  error: { color: "red" },
+  error: { color: "red", marginBottom: 10 },
   link: { marginTop: 20, color: "blue" },
 });
-```
-
----
-
-## 16) Code: `(protected)` Folder (Profile + Edit)
-
-### `(protected)/_layout.tsx`
-
-```tsx
-import { Stack, useRouter, useRootNavigationState } from "expo-router";
+`
+  },
+  {
+    filePath: "app/(protected)/_layout.tsx",
+    content: `import { Stack, useRouter, useRootNavigationState } from "expo-router";
 import { useEffect } from "react";
 import { useAuth } from "../../context/auth";
 
@@ -1141,12 +2422,11 @@ export default function ProtectedLayout() {
     <Stack screenOptions={{ headerShown: true, headerTitle: "Protected" }} />
   );
 }
-```
-
-### `(protected)/profile.tsx`
-
-```tsx
-import { View, Text, Button, StyleSheet } from "react-native";
+`
+  },
+  {
+    filePath: "app/(protected)/profile.tsx",
+    content: `import { View, Text, Button, StyleSheet } from "react-native";
 import { useEffect } from "react";
 import { useRouter } from "expo-router";
 import { useAuth } from "../../context/auth";
@@ -1177,34 +2457,19 @@ export default function ProfileScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.heading}>
-        {isOnline ? "Online" : "Offline"} – Hello, {user.email}
+        {isOnline ? "Online" : "Offline"} — Hello, {user.email}
       </Text>
       {localProfile ? (
-        <>
+        <View>
           <Text>Display: {localProfile.display_name || "(none)"} </Text>
-          <Text>Role: {localProfile.role}</Text>
           <Text>Updated: {localProfile.updated_at || "N/A"}</Text>
-        </>
+        </View>
       ) : (
         <Text>Loading local profile...</Text>
       )}
-
       <View style={{ marginTop: 20 }}>
-        <Button
-          title="Edit Profile"
-          onPress={() => router.push("(protected)/edit-profile")}
-        />
+        <Button title="Edit Profile" onPress={() => router.push("(protected)/edit-profile")} />
       </View>
-
-      {localProfile?.role === "admin" && (
-        <View style={{ marginTop: 20 }}>
-          <Button
-            title="Go to Admin Dashboard"
-            onPress={() => router.push("(admin)")}
-          />
-        </View>
-      )}
-
       <View style={{ marginTop: 20 }}>
         <Button title="Sign Out" onPress={handleSignOut} />
       </View>
@@ -1213,15 +2478,14 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 20, marginTop: 40 },
+  container: { paddingHorizontal: 20, paddingTop: 40 },
   heading: { fontSize: 18, fontWeight: "bold", marginBottom: 10 },
 });
-```
-
-### `(protected)/edit-profile.tsx`
-
-```tsx
-import { View, Text, TextInput, Button, StyleSheet } from "react-native";
+`
+  },
+  {
+    filePath: "app/(protected)/edit-profile.tsx",
+    content: `import { View, Text, TextInput, Button, StyleSheet } from "react-native";
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import { useAuth } from "../../context/auth";
@@ -1256,22 +2520,14 @@ export default function EditProfileScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.label}>Display Name:</Text>
-      <TextInput
-        style={styles.input}
-        value={displayName}
-        onChangeText={setDisplayName}
-      />
-      <Button
-        title={syncing ? "Saving..." : "Save Changes"}
-        onPress={handleSave}
-        disabled={syncing}
-      />
+      <TextInput style={styles.input} value={displayName} onChangeText={setDisplayName} />
+      <Button title={syncing ? "Saving..." : "Save Changes"} onPress={handleSave} disabled={syncing} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 20, marginTop: 40 },
+  container: { paddingHorizontal: 20, paddingTop: 40 },
   label: { fontWeight: "bold", marginBottom: 5 },
   input: {
     borderWidth: 1,
@@ -1281,92 +2537,109 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
 });
-```
-
----
-
-## 17) Code: `(admin)` Folder (Integrated Admin Panel)
-
-### `_layout.tsx`
-
-```tsx
-import { Stack, useRouter, useRootNavigationState } from "expo-router";
-import { useEffect } from "react";
+`
+  },
+  {
+    filePath: "app/(admin)/_layout.tsx",
+    content: `import React, { useEffect, useState } from "react";
+import { Stack, useRouter } from "expo-router";
 import { useAuth } from "../../context/auth";
-import { useOffline } from "../../context/offline";
+import { supabase } from "../../supabaseClient";
+import { View, ActivityIndicator } from "react-native";
 
 export default function AdminLayout() {
-  const router = useRouter();
-  const navState = useRootNavigationState();
   const { user } = useAuth();
-  const { localProfile } = useOffline();
-
-  if (!navState?.key) return null; // Wait for router
+  const router = useRouter();
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (!user) {
-      router.replace("(auth)/sign-in");
+      router.replace("/(auth)/sign-in");
       return;
     }
-    if (localProfile?.role !== "admin") {
-      router.replace("(protected)/profile");
+    async function checkAdmin() {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("user_id", user.id)
+        .single();
+      if (error || !data || data.role !== 'admin') {
+        router.replace("/not-authorized");
+      } else {
+        setIsAdmin(true);
+      }
     }
-  }, [user, localProfile]);
+    checkAdmin();
+  }, [user]);
+
+  if (isAdmin === null) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
 
   return (
-    <Stack screenOptions={{ headerShown: true, headerTitle: "Admin" }} />
+    <Stack screenOptions={{ headerShown: true, headerTitle: "Admin Panel" }} />
   );
 }
-```
-
-### `index.tsx`
-
-```tsx
+`
+  },
+  {
+    filePath: "app/(admin)/dashboard.tsx",
+    content: `import React from "react";
 import { View, Text, Button, StyleSheet } from "react-native";
-import { useRouter } from "expo-router";
+import { Link, useRouter } from "expo-router";
+import { useAuth } from "../../context/auth";
 
-export default function AdminHome() {
+export default function AdminDashboard() {
   const router = useRouter();
+  const { user } = useAuth();
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Admin Dashboard</Text>
-      <Button
-        title="Manage Users"
-        onPress={() => router.push("/(admin)/users")}
-      />
-      <Button
-        title="Moderate Content"
-        onPress={() => router.push("/(admin)/content")}
-      />
+      <Text>Welcome, {user?.email}</Text>
+      <View style={styles.buttonContainer}>
+        <Button title="User Management" onPress={() => router.push("/(admin)/user-management")} />
+      </View>
+      <View style={styles.buttonContainer}>
+        <Button title="Content Moderation" onPress={() => router.push("/(admin)/content-moderation")} />
+      </View>
+      <View style={styles.buttonContainer}>
+        <Link href="/" style={styles.link}>
+          Back to Home
+        </Link>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 20, marginTop: 40 },
+  container: { flex: 1, padding: 20, justifyContent: "center", alignItems: "center" },
   title: { fontSize: 24, fontWeight: "bold", marginBottom: 20 },
+  buttonContainer: { marginVertical: 10, width: "80%" },
+  link: { marginTop: 20, color: "blue" },
 });
-```
-
-### `users.tsx`
-
-```tsx
-import { View, Text, StyleSheet, FlatList, Button } from "react-native";
-import { useState, useEffect } from "react";
+`
+  },
+  {
+    filePath: "app/(admin)/user-management.tsx",
+    content: `import React, { useEffect, useState } from "react";
+import { View, Text, Button, FlatList, StyleSheet, ActivityIndicator, Alert } from "react-native";
 import { supabase } from "../../supabaseClient";
-import { useRouter } from "expo-router";
 
-interface Profile {
+interface UserProfile {
   user_id: string;
   display_name: string;
   role: string;
+  created_at: string;
 }
 
-export default function ManageUsers() {
-  const router = useRouter();
-  const [profiles, setProfiles] = useState<Profile[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function UserManagement() {
+  const [profiles, setProfiles] = useState<UserProfile[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
     fetchProfiles();
@@ -1376,114 +2649,84 @@ export default function ManageUsers() {
     setLoading(true);
     const { data, error } = await supabase.from("profiles").select("*");
     if (error) {
-      console.log("Error fetching profiles:", error.message);
-      setLoading(false);
-      return;
+      Alert.alert("Error", error.message);
+    } else {
+      setProfiles(data as UserProfile[]);
     }
-    setProfiles(data || []);
     setLoading(false);
   }
 
-  async function promoteToAdmin(userId: string) {
+  async function toggleRole(userId: string, currentRole: string) {
+    // Toggle between 'admin' and 'user'
+    const newRole = currentRole === 'admin' ? 'user' : 'admin';
     const { error } = await supabase
       .from("profiles")
-      .update({ role: "admin" })
+      .update({ role: newRole })
       .eq("user_id", userId);
     if (error) {
-      console.log("Error promoting user:", error.message);
+      Alert.alert("Error", error.message);
     } else {
+      Alert.alert("Success", "User role updated.");
       fetchProfiles();
     }
   }
 
-  async function demoteToUser(userId: string) {
-    const { error } = await supabase
-      .from("profiles")
-      .update({ role: "user" })
-      .eq("user_id", userId);
-    if (error) {
-      console.log("Error demoting user:", error.message);
-    } else {
-      fetchProfiles();
-    }
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
   }
+
+  const renderItem = ({ item }: { item: UserProfile }) => (
+    <View style={styles.item}>
+      <Text style={styles.itemText}>{item.display_name || item.user_id}</Text>
+      <Text>Role: {item.role}</Text>
+      <Button title={\`Make \${item.role === 'admin' ? 'User' : 'Admin'}\`} onPress={() => toggleRole(item.user_id, item.role)} />
+    </View>
+  );
 
   return (
     <View style={styles.container}>
-      <Text style={styles.heading}>Manage Users</Text>
-      {loading && <Text>Loading...</Text>}
-
+      <Text style={styles.title}>User Management</Text>
       <FlatList
         data={profiles}
         keyExtractor={(item) => item.user_id}
-        renderItem={({ item }) => (
-          <View style={styles.userRow}>
-            <View style={{ flex: 1 }}>
-              <Text>{item.display_name || "(no name)"}</Text>
-              <Text style={styles.role}>{item.role}</Text>
-              <Text style={styles.userId}>{item.user_id}</Text>
-            </View>
-            <View style={styles.buttons}>
-              {item.role === "admin" ? (
-                <Button
-                  title="Demote"
-                  onPress={() => demoteToUser(item.user_id)}
-                />
-              ) : (
-                <Button
-                  title="Promote"
-                  onPress={() => promoteToAdmin(item.user_id)}
-                />
-              )}
-            </View>
-          </View>
-        )}
+        renderItem={renderItem}
+        contentContainerStyle={styles.list}
       />
-
-      <View style={{ marginTop: 20 }}>
-        <Button title="Back to Admin Home" onPress={() => router.push("/(admin)")} />
-      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 20, marginTop: 40 },
-  heading: { fontSize: 20, fontWeight: "bold", marginBottom: 10 },
-  userRow: {
-    borderBottomWidth: 1,
-    borderBottomColor: "#ccc",
-    marginBottom: 10,
-    paddingBottom: 8,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  role: { color: "#666" },
-  userId: { color: "#999", fontSize: 12 },
-  buttons: { flexDirection: "row", gap: 10 },
+  container: { flex: 1, padding: 20 },
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  title: { fontSize: 24, fontWeight: "bold", marginBottom: 20 },
+  list: { paddingBottom: 20 },
+  item: { padding: 15, marginBottom: 10, backgroundColor: "#f2f2f2", borderRadius: 5 },
+  itemText: { fontSize: 18, marginBottom: 5 },
 });
-```
-
-### `content.tsx`
-
-```tsx
-import { View, Text, StyleSheet, FlatList, Button } from "react-native";
-import { useState, useEffect } from "react";
+`
+  },
+  {
+    filePath: "app/(admin)/content-moderation.tsx",
+    content: `import React, { useEffect, useState } from "react";
+import { View, Text, Button, FlatList, StyleSheet, ActivityIndicator, Alert } from "react-native";
 import { supabase } from "../../supabaseClient";
-import { useRouter } from "expo-router";
 
 interface Post {
-  id: string;
-  author_id: string;
-  title: string;
-  body: string;
-  status: string;
+  id: number;
+  user_id: string;
+  content: string;
+  is_flagged: boolean;
+  created_at: string;
 }
 
 export default function ContentModeration() {
-  const router = useRouter();
   const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
     fetchPosts();
@@ -1491,282 +2734,120 @@ export default function ContentModeration() {
 
   async function fetchPosts() {
     setLoading(true);
-    const { data, error } = await supabase.from("posts").select("*");
+    const { data, error } = await supabase.from("posts").select("*").order("created_at", { ascending: false });
     if (error) {
-      console.log("Error fetching posts:", error.message);
-      setLoading(false);
-      return;
+      Alert.alert("Error", error.message);
+    } else {
+      setPosts(data as Post[]);
     }
-    setPosts(data || []);
     setLoading(false);
   }
 
-  async function setStatus(id: string, status: string) {
+  async function toggleFlag(postId: number, currentFlag: boolean) {
     const { error } = await supabase
       .from("posts")
-      .update({ status })
-      .eq("id", id);
+      .update({ is_flagged: !currentFlag })
+      .eq("id", postId);
     if (error) {
-      console.log("Error updating post:", error.message);
+      Alert.alert("Error", error.message);
     } else {
+      Alert.alert("Success", "Post flag status updated.");
       fetchPosts();
     }
   }
 
+  async function deletePost(postId: number) {
+    const { error } = await supabase.from("posts").delete().eq("id", postId);
+    if (error) {
+      Alert.alert("Error", error.message);
+    } else {
+      Alert.alert("Deleted", "Post deleted successfully.");
+      fetchPosts();
+    }
+  }
+
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
+  const renderItem = ({ item }: { item: Post }) => (
+    <View style={styles.item}>
+      <Text style={styles.itemText}>Post ID: {item.id}</Text>
+      <Text>User ID: {item.user_id}</Text>
+      <Text>{item.content}</Text>
+      <Text>Flagged: {item.is_flagged ? "Yes" : "No"}</Text>
+      <View style={styles.buttonRow}>
+        <Button title={item.is_flagged ? "Unflag" : "Flag"} onPress={() => toggleFlag(item.id, item.is_flagged)} />
+        <View style={{ width: 10 }} />
+        <Button title="Delete" onPress={() => deletePost(item.id)} color="red" />
+      </View>
+    </View>
+  );
+
   return (
     <View style={styles.container}>
-      <Text style={styles.heading}>Content Moderation</Text>
-      {loading && <Text>Loading...</Text>}
-
+      <Text style={styles.title}>Content Moderation</Text>
       <FlatList
         data={posts}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View style={styles.postRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.title}>{item.title}</Text>
-              <Text>{item.body}</Text>
-              <Text style={styles.status}>Status: {item.status}</Text>
-            </View>
-            <View style={styles.buttons}>
-              <Button title="Publish" onPress={() => setStatus(item.id, "published")} />
-              <Button title="Draft" onPress={() => setStatus(item.id, "draft")} />
-            </View>
-          </View>
-        )}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={renderItem}
+        contentContainerStyle={styles.list}
       />
-
-      <View style={{ marginTop: 20 }}>
-        <Button
-          title="Back to Admin Home"
-          onPress={() => router.push("/(admin)")}
-        />
-      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 20, marginTop: 40 },
-  heading: { fontSize: 20, fontWeight: "bold", marginBottom: 10 },
-  postRow: {
-    borderBottomWidth: 1,
-    borderBottomColor: "#ccc",
-    marginBottom: 10,
-    paddingBottom: 8,
-  },
-  title: { fontWeight: "bold" },
-  status: { color: "#666" },
-  buttons: { flexDirection: "row", gap: 10, marginTop: 5 },
+  container: { flex: 1, padding: 20 },
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  title: { fontSize: 24, fontWeight: "bold", marginBottom: 20 },
+  list: { paddingBottom: 20 },
+  item: { padding: 15, marginBottom: 10, backgroundColor: "#e6e6e6", borderRadius: 5 },
+  itemText: { fontSize: 18, marginBottom: 5 },
+  buttonRow: { flexDirection: "row", marginTop: 10 },
 });
-```
-
----
-
-## 18) Run & Verify
-
-```bash
-npx expo start --clear
-```
-
-- **On Web**: automatically uses `auth.web.tsx` + `localdb.web.ts` (Dexie, localStorage).  
-- **On iOS/Android**: uses `auth.native.tsx` + `localdb.native.ts` (SQLite, SecureStore).  
-- The **first** user is `admin`. The integrated `(admin)` folder manages users/content.  
-- RLS ensures normal users can only see their own row.
-
----
-
-## 19) Scaffolding Script (Generates Everything)
-
-Finally, here’s **one** script named `scaffold-ScriptHammer.js` that overwrites/creates all these files in a single pass—**including** the admin logic from the start.
-
-1. Create `scripts/scaffold-ScriptHammer.js`:
-
-   ```bash
-   mkdir -p scripts
-   touch scripts/scaffold-ScriptHammer.js
-   chmod +x scripts/scaffold-ScriptHammer.js
-   ```
-
-2. In `package.json`:
-
-   ```json
-   {
-     "scripts": {
-       "scaffold-ScriptHammer": "node ./scripts/scaffold-ScriptHammer.js"
-     }
-   }
-   ```
-
-3. Paste the code below:
-
-```js
-#!/usr/bin/env node
-
-/**
- * scaffold-ScriptHammer.js
- *
- * A Node.js script that overwrites/creates all files for
- * the full "ScriptHammer" tutorial:
- * - Dexie on web, SQLite + SecureStore on native
- * - Universal auth.tsx
- * - RLS in Supabase
- * - Integrated (admin) panel
- * - In one pass, from scratch (no separate admin step).
- *
- * USAGE:
- *   npm run scaffold-ScriptHammer
- *
- * WARNING:
- *   Overwrites existing files with the same path.
- *   Backup or commit your project first.
- */
-
-const fs = require("fs");
-const path = require("path");
-const readline = require("readline");
-
-// Below is the entire set of file paths + contents from steps 6–17.
-// For brevity, we show placeholders. In your final version, each
-// path has the full code. Nothing is appended separately for admin.
-const FILES = [
-  {
-    filePath: "supabaseClient.ts",
-    content: `import { createClient } from "@supabase/supabase-js";
-
-const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
-const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
-
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 `
   },
   {
-    filePath: "localdb/localdb.native.ts",
-    content: `import * as SQLite from "expo-sqlite";
-// ... full code from step 6 ...
-`
-  },
-  {
-    filePath: "localdb/localdb.web.ts",
-    content: `import Dexie from "dexie";
-// ... full code from step 7 ...
-`
-  },
-  {
-    filePath: "context/auth.native.tsx",
+    filePath: "app/not-authorized.tsx",
     content: `import React from "react";
-// ... full code from step 9 ...
+import { View, Text, StyleSheet, Button } from "react-native";
+import { useRouter } from "expo-router";
+
+export default function NotAuthorized() {
+  const router = useRouter();
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Not Authorized</Text>
+      <Text>You do not have permission to access this page.</Text>
+      <Button title="Go Back" onPress={() => router.back()} />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, justifyContent: "center", alignItems: "center", padding: 20 },
+  title: { fontSize: 24, fontWeight: "bold", marginBottom: 20 },
+});
 `
   },
-  {
-    filePath: "context/auth.web.tsx",
-    content: `import React from "react";
-// ... full code from step 10 ...
-`
-  },
-  {
-    filePath: "context/auth.tsx",
-    content: `import { Platform } from "react-native";
-// ... full code from step 11 ...
-`
-  },
-  {
-    filePath: "context/offline.tsx",
-    content: `import React from "react";
-// ... full code from step 12 ...
-`
-  },
-  {
-    filePath: "app/_layout.tsx",
-    content: `import { Stack } from "expo-router";
-// ... full code from step 13 ...
-`
-  },
-  {
-    filePath: "app/index.tsx",
-    content: `import { Redirect } from "expo-router";
-// ... full code from step 14 ...
-`
-  },
-  {
-    filePath: "app/(auth)/_layout.tsx",
-    content: `import { Stack } from "expo-router";
-// ... full code from step 15 ...
-`
-  },
-  {
-    filePath: "app/(auth)/sign-in.tsx",
-    content: `import { View, Text, Button } from "react-native";
-// ... full code from step 15 ...
-`
-  },
-  {
-    filePath: "app/(auth)/sign-up.tsx",
-    content: `import { View, Text, Button } from "react-native";
-// ... full code from step 15 ...
-`
-  },
-  {
-    filePath: "app/(protected)/_layout.tsx",
-    content: `import { Stack } from "expo-router";
-// ... full code from step 16 ...
-`
-  },
-  {
-    filePath: "app/(protected)/profile.tsx",
-    content: `import { View } from "react-native";
-// ... full code from step 16 ...
-`
-  },
-  {
-    filePath: "app/(protected)/edit-profile.tsx",
-    content: `import { View } from "react-native";
-// ... full code from step 16 ...
-`
-  },
-  {
-    filePath: "app/(admin)/_layout.tsx",
-    content: `import { Stack } from "expo-router";
-// ... full code from step 17 ...
-`
-  },
-  {
-    filePath: "app/(admin)/index.tsx",
-    content: `import { View } from "react-native";
-// ... full code ...
-`
-  },
-  {
-    filePath: "app/(admin)/users.tsx",
-    content: `import { View } from "react-native";
-// ... full code ...
-`
-  },
-  {
-    filePath: "app/(admin)/content.tsx",
-    content: `import { View } from "react-native";
-// ... full code ...
-`
-  },
-  {
-    filePath: ".env.local",
-    content: `EXPO_PUBLIC_SUPABASE_URL=https://YOUR-PROJECT.supabase.co
-EXPO_PUBLIC_SUPABASE_ANON_KEY=YOUR-ANON-KEY
-`
-  }
-  // etc...
 ];
 
 (async function main() {
-  console.log("=== ScriptHammer FULL Tutorial Scaffold ===");
-  console.log("Overwrites or creates all files in one pass.");
+  console.log("=== ScriptHammer Scaffold ===");
+  console.log("This script will create or overwrite the tutorial files.");
 
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
   });
 
-  rl.question("Proceed? (y/N) ", (answer) => {
+  rl.question("Proceed with file creation/overwrites? (y/N) ", (answer) => {
     rl.close();
     if (answer.toLowerCase() !== "y") {
       console.log("Aborted.");
@@ -1779,7 +2860,7 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=YOUR-ANON-KEY
         fs.mkdirSync(dir, { recursive: true });
       }
       fs.writeFileSync(filePath, content, "utf8");
-      console.log("Created/updated:", filePath);
+      console.log(\`✅ Created/updated: \${filePath}\`);
     }
 
     try {
@@ -1787,9 +2868,8 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=YOUR-ANON-KEY
         const outPath = path.join(process.cwd(), filePath);
         writeFileRecursive(outPath, content);
       });
-
-      console.log("\nAll files created/updated successfully!");
-      console.log("Now run 'npx expo start --clear' to test your integrated Admin!");
+      console.log("All files created or updated successfully!");
+      console.log("You can now run 'npx expo start --clear' to test.");
     } catch (err) {
       console.error("Error scaffolding files:", err);
       process.exit(1);
@@ -1798,29 +2878,35 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=YOUR-ANON-KEY
 })();
 ```
 
-Run it:
+**Usage:**
 
 ```bash
 npm run scaffold-ScriptHammer
 ```
 
-- Press **y**, it creates/updates **all** files (including `(admin)`).
+Confirm the prompt, and the script will generate (or overwrite) all files.
 
 ---
 
 ## 20) Next Steps
 
-You have a **single** codebase:
+You now have a complete ScriptHammer codebase that includes:
 
-- Dexie + localStorage on **web**; SQLite + SecureStore on **native**.  
-- A universal `auth.tsx` that ensures no “Cannot find module” for `expo-secure-store` on web.  
-- RLS in Supabase that grants the **first** user `admin`. Additional admin logic is built-in from day one—**not** appended later.  
-- The `(admin)` panel fosters user management and (optionally) content moderation.  
+- **Web:** Dexie + localStorage (with no references to `expo-secure-store`).  
+- **Native:** SQLite + `expo-secure-store`.  
+- Auto‑sync via NetInfo and real‑time updates from Supabase with RLS in place.  
+- An integrated **Admin Dashboard (Phase 7)** that uses a new role column in the profiles table. The first user is automatically an admin, and when an admin signs up, three dummy profiles ("Jane", "Jon", and "James Doe") are also inserted.
+  
+**Possible Expansions:**
 
-Consider expansions:
+- Create corresponding auth.users records for dummy accounts (if needed).
+- Add additional tables (e.g., posts, comments) with advanced conflict resolution.
+- Enhance role/permission management and refine the Admin Dashboard UI.
+- Prepare production builds using EAS, manage environment variables more robustly, add push notifications, etc.
 
-- Additional roles (beyond `'admin'` and `'user'`).  
-- Deeper offline conflict resolution.  
-- EAS + environment variables for production.  
+**Congratulations!**  
+This tutorial is fully self-contained, with no missing imports or placeholders, and integrates the admin panel as an inherent part of the ScriptHammer installation. Enjoy building and iterating on your application while maintaining code quality and a unified codebase!
 
-That’s it: a **fully** functional tutorial with integrated admin, plus **one** scaffolding script that sets up everything at once. Enjoy **ScriptHammer**!
+---
+
+*Happy coding!*

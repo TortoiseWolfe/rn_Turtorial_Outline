@@ -242,6 +242,7 @@ touch supabaseClient.ts
 touch app/_layout.tsx
 touch app/index.tsx
 touch .env.local
+code .
 ```
 
 ---

@@ -1,7 +1,3 @@
-Below is an updated roadmap that better reflects your iterative, merge‐and‐update workflow. The key change is that every new phase is no longer treated as an “extension” appended at the end, but as an integrated iteration that merges seamlessly into your existing codebase. In addition, the system prompt snippets now explicitly instruct ChatGPT to update or merge with existing files instead of simply adding new steps. You can use the roadmap below as a guide for future phases and to inform the system prompts you share.
-
----
-
 # ScriptHammer Roadmap (Iterative & Merged Approach)
 
 1. ~~Fake tokens + ephemeral sign-up~~  
@@ -167,7 +163,3 @@ IMPORTANT:
 With **Phases 1–6** completed (including Dexie on Web, SQLite + SecureStore on Native, real-time updates from Supabase, and our offline-first approach), you have a strong foundation. The subsequent phases will iteratively merge new features into this codebase rather than adding separate blocks. This approach ensures that every enhancement (admin dashboard, CLI scaffolding, advanced roles, social features, and production pipeline) is fully integrated and maintains parity with your existing system.
 
 Happy building with ScriptHammer!
-
----
-
-This updated roadmap should guide future iterations and help ensure that every phase is merged into the current codebase instead of being tacked on as a separate step.

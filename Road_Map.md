@@ -1,7 +1,3 @@
-Below is a comprehensive, step‐by‐step roadmap outlining our opinionated framework for a React Native Expo-based solution designed to get small business owners into the iPhone App Store with minimal fuss. This guide emphasizes best practices, integration with the existing codebase, and long-term maintainability. It details what to focus on for the MVP, as well as features to consider for version 2.
-
----
-
 ## 1. Executive Overview
 
 Our goal is to create an opinionated framework—think of it as “Bonfire for Expo”—that simplifies building mobile apps for small businesses. By leveraging Expo, Supabase for the backend, NativeWind for styling, Storybook for component development, and a built-in testing framework, we ensure the framework remains modern, accessible, and easy to integrate into existing systems. Key functionalities include:

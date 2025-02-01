@@ -3,9 +3,34 @@
 
 ---
 
+## Table of Contents
+
+1. [Supabase Setup](#supabase-setup)  
+2. [Create a New Expo Project](#create-a-new-expo-project)  
+3. [Install Dependencies](#install-dependencies)  
+4. [File & Folder Structure (Manual Creation)](#file--folder-structure-manual-creation)  
+5. [Code: `localdb/localdb.native.ts` (Expo SQLite)](#code-localdblocaldbnativets-expo-sqlite)  
+6. [Code: `localdb/localdb.web.ts` (Dexie)](#code-localdblocaldbwebts-dexie)  
+7. [Code: `supabaseClient.ts` (Connection)](#code-supabaseclientts-connection)  
+8. [Code: `context/auth.native.tsx` (Auth Context for iOS/Android)](#code-contextauthnativetsx-auth-context-for-iosandroid)  
+9. [Code: `context/auth.web.tsx` (Auth Context for Web)](#code-contextauthwebtsx-auth-context-for-web)  
+10. [Code: `context/offline.tsx` (Offline Context)](#code-contextofflinetsx-offline-context)  
+11. [Code: `app/_layout.tsx` (Top-Level Layout)](#code-applayouttsx-top-level-layout)  
+12. [Code: `app/index.tsx` (Redirect on Launch)](#code-appindextsx-redirect-on-launch)  
+13. [Code: `(auth)` Folder (Sign In & Sign Up)](#code-auth-folder-sign-in--sign-up)  
+14. [Code: `(protected)` Folder (Profile + Edit)](#code-protected-folder-profile--edit)  
+15. [Code: `(admin)` Folder (Admin Dashboard)](#code-admin-folder-admin-dashboard)  
+16. [Run & Test](#run--test)  
+17. [Troubleshooting SecureStore or SQLite Issues](#troubleshooting-securestore-or-sqlite-issues)  
+18. [Scaffolding Script (Generates All Files)](#scaffolding-script-generates-all-files)  
+19. [Set Up `.env.local`](#set-up-envlocal)  
+20. [Next Steps](#next-steps)
+
+---
+
 ## 1) Supabase Setup
 
-Before you begin working on your app, configure your Supabase backend. You can complete these steps in your browser (using the Supabase SQL Editor), which helps minimize context switching.
+Before you begin working on your app, configure your Supabase backend in your browser to reduce context switching.
 
 ### Create or Confirm the `profiles` Table  
 This table now has a new **role** column. The column defaults to `"user"`, but the very first account inserted into the table will be set to `"admin"` by our trigger.
@@ -38,7 +63,7 @@ using ( auth.uid() = user_id );
 
 ### DB Trigger for Auto-Inserting `profiles`
 
-This trigger function automatically inserts a profile record when a new auth user is created. If no profile exists yet, the new account is set to `"admin"`; otherwise it defaults to `"user"`. (Dummy account insertion has been removed here to avoid foreign key errors.)
+This trigger function automatically inserts a profile record when a new auth user is created. If no profile exists yet, the new account is set to `"admin"`; otherwise it defaults to `"user"`.
 
 ```sql
 create or replace function handle_new_user()
@@ -76,7 +101,7 @@ values (gen_random_uuid(), 'Jane', 'user'),
        (gen_random_uuid(), 'James Doe', 'user');
 ```
 
-> **Note:** Make sure the `pgcrypto` extension is enabled.
+> **Note:** Ensure the `pgcrypto` extension is enabled.
 
 ### Enable Realtime for `profiles`  
 In the Supabase UI, open the **Table Editor** for the `profiles` table and enable **Realtime**.
@@ -122,9 +147,9 @@ npm install dexie
 
 ## 4) File & Folder Structure (Manual Creation)
 
-**If you prefer not to create files manually, jump to [Section 18](#18-scaffolding-script-generates-all-files).**
+**If you prefer not to create files manually, jump to [Section 18](#scaffolding-script-generates-all-files).**
 
-Create the following folders and files (this now includes the admin panel). The link to skip manual setup is mentioned at the very top of this section.
+Create the following folders and files (this now includes the admin panel):
 
 ```bash
 # Context and local DB files
@@ -634,7 +659,7 @@ export function useAuth() {
 
 ## 10) Code: `context/offline.tsx` (Offline Context)
 
-This version now ensures that if no profile record is found for the logged‑in user, a default record is inserted. (Also note that if your display name is blank, it remains blank.)
+This version ensures that if no profile record is found for the logged‑in user, a default record is inserted (and a blank display name remains blank).
 
 ```tsx
 // context/offline.tsx
@@ -2893,10 +2918,11 @@ EXPO_PUBLIC_SUPABASE_URL=https://YOUR-PROJECT.supabase.co
 EXPO_PUBLIC_SUPABASE_ANON_KEY=YOUR-ANON-KEY
 ```
 
-Start your project with:
+Also, add it to your `.gitignore`:
 
 ```bash
-npx expo start --clear
+# .gitignore
+.env.local
 ```
 
 ---

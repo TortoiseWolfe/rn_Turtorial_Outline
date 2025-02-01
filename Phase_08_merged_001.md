@@ -144,7 +144,8 @@ begin
   insert into public.profiles (user_id, display_name, role)
   values (new.id, '', new_role);
 
-  -- If the new user is an admin, insert three dummy profiles
+  -- Dummy account insertion commented out to avoid foreign key violations.
+  /*
   if new_role = 'admin' then
     insert into public.profiles (user_id, display_name, role)
     values (gen_random_uuid(), 'Jane', 'user');
@@ -153,15 +154,12 @@ begin
     insert into public.profiles (user_id, display_name, role)
     values (gen_random_uuid(), 'James Doe', 'user');
   end if;
+  */
 
   return new;
 end;
 $$ language plpgsql security definer;
 
-create trigger on_auth_user_created
-after insert on auth.users
-for each row
-execute procedure handle_new_user();
 ```
 
 > **Note:**  

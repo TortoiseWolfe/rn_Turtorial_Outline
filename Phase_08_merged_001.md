@@ -1,7 +1,3 @@
-Below is the complete, rearranged tutorial in plain Markdown exactly as it used to work—with the updates you requested. In this version, the Supabase Setup has been moved to the top (right after the table of contents) to minimize context switching, and the “Set Up .env.local” section is now at the very bottom. (The table of contents uses the standard GitHub header linking style.) Simply save the text as your README (or other documentation file) and it should work exactly as before.
-
----
-
 # ScriptHammer – Dexie on Web, SQLite + SecureStore on Native  
 **(Complete Tutorial + Script)**
 
@@ -1517,21 +1513,16 @@ Test by:
 If you prefer to automatically create or overwrite all files (including both native and web auth files), use the following Node script:
 
 1. Create a `scripts/` folder:
-   ```bash
-   mkdir -p scripts
-   ```
 2. Create the script:
    ```bash
+   mkdir -p scripts
    touch scripts/scaffold-ScriptHammer.js
    chmod +x scripts/scaffold-ScriptHammer.js
+   touch .env.local
    ```
 3. In your `package.json`, add:
    ```json
-   {
-     "scripts": {
-       "scaffold-ScriptHammer": "node ./scripts/scaffold-ScriptHammer.js"
-     }
-   }
+       "scaffold-ScriptHammer": "node ./scripts/scaffold-ScriptHammer.js",
    ```
 4. Paste the complete script below:
 

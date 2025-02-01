@@ -1572,7 +1572,7 @@ npx expo start --clear
 If you prefer to automatically create or overwrite all files (including the admin dashboard), use the following Node script.
 
 1. Create a `scripts/` folder:
-2. Create the scaffolding script:
+2. Create the `scaffolding` script:
    ```bash
    mkdir -p scripts
    touch scripts/scaffold-ScriptHammer.js
@@ -1580,13 +1580,9 @@ If you prefer to automatically create or overwrite all files (including the admi
    code .
    ```
 3. In your `package.json`, add:
-   {
-     "scripts": {
    ```json
        "scaffold-ScriptHammer": "node ./scripts/scaffold-ScriptHammer.js",
    ```
-     }
-   }
 4. Paste the complete script below:
 
 ```js

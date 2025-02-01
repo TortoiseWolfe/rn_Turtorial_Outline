@@ -57,9 +57,10 @@ npm install @react-native-community/netinfo
 npm install dexie
 ```
 
-- **expo-secure-store:** Used **only** on native (iOS/Android).  
-- **expo-sqlite:** Used **only** on native for the local DB.  
-- **dexie:** Used **only** on web.
+> **Note:**  
+> • `expo-secure-store` is used only on native (iOS/Android).  
+> • `expo-sqlite` is used only on native for the local DB.  
+> • `dexie` is used only on web.
 
 ---
 
@@ -72,7 +73,7 @@ EXPO_PUBLIC_SUPABASE_URL=https://YOUR-PROJECT.supabase.co
 EXPO_PUBLIC_SUPABASE_ANON_KEY=YOUR-ANON-KEY
 ```
 
-Add it to your `.gitignore`:
+Also, add it to your `.gitignore`:
 
 ```bash
 # .gitignore
@@ -84,7 +85,7 @@ Add it to your `.gitignore`:
 ## 4) Supabase Setup
 
 ### Create or Confirm `profiles` Table  
-Now we include a new **role** column. This column defaults to `"user"`, but the very first account inserted into the table will be set to `"admin"` by our trigger.
+This table now has a new **role** column. The column defaults to `"user"`, but the very first account inserted into the table will be set to `"admin"` by our trigger.
 
 ```sql
 create table if not exists profiles (
@@ -114,7 +115,7 @@ using ( auth.uid() = user_id );
 
 ### DB Trigger for Auto-Inserting `profiles`
 
-This trigger function assigns the new account a role. If no profile exists yet, the new account is set to `"admin"`; otherwise, it defaults to `"user"`. (The dummy account insertion is now removed from the trigger to avoid foreign key errors.)
+This trigger function automatically inserts a profile record when a new auth user is created. If no profile exists yet, the new account is set to `"admin"`; otherwise it defaults to `"user"`. (Dummy account insertion is removed here to avoid FK issues.)
 
 ```sql
 create or replace function handle_new_user()
@@ -143,7 +144,7 @@ execute procedure handle_new_user();
 ```
 
 ### Separate SQL Command for Dummy Accounts  
-Run the following SQL command (manually in Supabase SQL Editor) after you have a valid admin user (and corresponding auth.users records) to insert dummy profiles:
+(Optional) Run this SQL manually in the Supabase SQL Editor after you have an admin user to seed three dummy profiles:
 
 ```sql
 insert into public.profiles (user_id, display_name, role)
@@ -152,19 +153,16 @@ values (gen_random_uuid(), 'Jane', 'user'),
        (gen_random_uuid(), 'James Doe', 'user');
 ```
 
-> **Note:**  
-> – The command uses `gen_random_uuid()` (make sure the `pgcrypto` extension is enabled).  
-> – In production, consider a different seeding method that creates corresponding auth.users records.
+> **Note:** Ensure the `pgcrypto` extension is enabled.
 
-### Enable Realtime for `profiles`
-
+### Enable Realtime for `profiles`  
 In the Supabase UI, open the **Table Editor** for the `profiles` table and enable **Realtime**.
 
 ---
 
 ## 5) File & Folder Structure (Manual Creation)
 
-Create these folders and files. (This now includes the admin panel files as part of the original installation.)
+Create the following folders and files (this now includes the admin panel):
 
 ```bash
 # Context and local DB files
@@ -188,7 +186,7 @@ touch app/\(protected\)/_layout.tsx
 touch app/\(protected\)/profile.tsx
 touch app/\(protected\)/edit-profile.tsx
 
-# Admin Dashboard folder (Phase 7 integrated)
+# Admin Dashboard folder
 mkdir -p app/\(admin\)
 touch app/\(admin\)/_layout.tsx
 touch app/\(admin\)/dashboard.tsx
@@ -205,13 +203,11 @@ touch .env.local
 code .
 ```
 
-*If you prefer not to create files manually, jump to [Step 19](#19-scaffolding-script-generates-all-files).*
+If you prefer not to create files manually, jump to [Step 19](#19-scaffolding-script-generates-all-files).
 
 ---
 
 ## 6) Code: `localdb.native.ts` (Expo SQLite)
-
-*(Same as before)*
 
 ```ts
 // localdb/localdb.native.ts
@@ -678,6 +674,8 @@ export function useAuth() {
 
 ## 11) Code: `context/offline.tsx` (Offline Context)
 
+Below is the key update. In the function `fetchRemoteProfile()`, if no row is found (or if an error occurs indicating no row), we now insert a default profile record for the user so that your profile data is always available. This means you do not have to manually edit your display name unless you wish to change it; if left blank, it remains blank.
+
 ```tsx
 // context/offline.tsx
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
@@ -768,12 +766,28 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
     if (!user?.id || !isOnline) return;
     try {
       setSyncing(true);
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from("profiles")
         .select("*")
         .eq("user_id", user.id)
         .single();
-      if (!error && data) {
+      // If no profile record is found, insert a default profile record
+      if (error) {
+        if (error.message.includes("No rows found")) {
+          const { data: insertedData, error: insertError } = await supabase
+            .from("profiles")
+            .insert({ user_id: user.id, display_name: "", role: "user" })
+            .select();
+          if (insertError) {
+            console.error("Error inserting profile:", insertError.message);
+          } else {
+            data = insertedData[0];
+          }
+        } else {
+          console.error("Error fetching profile:", error.message);
+        }
+      }
+      if (data) {
         const updatedAt = new Date().toISOString();
         await upsertLocalProfile(data.user_id, data.display_name ?? "", updatedAt);
         const localData = await getLocalProfile(data.user_id);
@@ -1160,7 +1174,8 @@ export default function EditProfileScreen() {
 
   useEffect(() => {
     if (!localProfile) return;
-    setDisplayName(localProfile.display_name || "");
+    // If the profile display_name is null (or undefined), leave it blank.
+    setDisplayName(localProfile.display_name ?? "");
   }, [localProfile]);
 
   async function handleSave() {
@@ -1179,8 +1194,13 @@ export default function EditProfileScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>Display Name:</Text>
-      <TextInput style={styles.input} value={displayName} onChangeText={setDisplayName} />
+      <Text style={styles.label}>Display Name (leave blank if desired):</Text>
+      <TextInput
+        style={styles.input}
+        value={displayName}
+        onChangeText={setDisplayName}
+        placeholder="Optional display name"
+      />
       <Button title={syncing ? "Saving..." : "Save Changes"} onPress={handleSave} disabled={syncing} />
     </View>
   );
@@ -1229,7 +1249,6 @@ export default function AdminLayout() {
         .select("role")
         .eq("user_id", user.id)
         .single();
-      // Use !== for comparison (not <>)
       if (error || !data || data.role !== 'admin') {
         router.replace("/not-authorized");
       } else {
@@ -1521,22 +1540,22 @@ Start your project with:
 npx expo start --clear
 ```
 
-- **On iOS/Android:** The code uses `auth.native.tsx` and `localdb.native.ts` (with SecureStore and SQLite).  
-- **On Web:** The code uses `auth.web.tsx` and `localdb.web.ts` (with localStorage and Dexie).  
-- **Test:**  
-  1. **Sign Up/Sign In:** The very first user will have the role `"admin"`.  
-  2. If you disable network, edit your profile (update the display name) and verify that only the local DB is updated. (If the display name remains empty, please update it manually using the Edit Profile screen.)  
-  3. Reconnect and confirm that changes sync to Supabase.  
-  4. **Admin Dashboard:** After an admin user is created, navigate to `/admin/dashboard`. Non‑admin users will be redirected to `/not-authorized`.
+> **Testing Notes:**  
+> • On iOS/Android the code uses `auth.native.tsx` and `localdb.native.ts` (SecureStore and SQLite).  
+> • On Web the code uses `auth.web.tsx` and `localdb.web.ts` (localStorage and Dexie).  
+> • When you sign up, the very first user is automatically set to `"admin"` (via the Supabase trigger).  
+> • The trigger inserts a profile record into the `profiles` table; if for any reason it isn’t found, the client-side code in `fetchRemoteProfile()` inserts a default profile record (with an empty display name).  
+> • You should now see your profile record populate (or remain blank if you haven’t set a display name) rather than “loading forever.”  
+> • Navigate to `/admin/dashboard` to test the admin dashboard. Non‑admin users will be redirected to `/not-authorized`.
 
 ---
 
 ## 18) Troubleshooting SecureStore or SQLite Issues
 
-1. If **web** still tries to import `expo-secure-store`, verify your file names:  
+1. If on Web your project still tries to import `expo-secure-store`, ensure you have named your files correctly:
    - Use `auth.native.tsx` for iOS/Android  
-   - Use `auth.web.tsx` for web  
-2. If you never installed them, run:
+   - Use `auth.web.tsx` for Web  
+2. If you did not install them, run:
    ```bash
    npx expo install expo-secure-store expo-sqlite
    ```
@@ -1550,14 +1569,16 @@ npx expo start --clear
 
 ## 19) Scaffolding Script (Generates All Files)
 
-If you prefer to automatically create or overwrite all files (including the admin dashboard), use the following Node script:
+If you prefer to automatically create or overwrite all files (including the admin dashboard), use the following Node script.
 
-1. Create a `scripts/` folder & Create the `scaffolding` script:
+1. Create a `scripts/` folder:
    ```bash
    mkdir -p scripts
+   ```
+2. Create the scaffolding script:
+   ```bash
    touch scripts/scaffold-ScriptHammer.js
    chmod +x scripts/scaffold-ScriptHammer.js
-   code .
    ```
 3. In your `package.json`, add:
    ```json
@@ -2122,12 +2143,28 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
     if (!user?.id || !isOnline) return;
     try {
       setSyncing(true);
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from("profiles")
         .select("*")
         .eq("user_id", user.id)
         .single();
-      if (!error && data) {
+      if (error) {
+        // If no profile record exists, insert a default record
+        if (error.message.includes("No rows found")) {
+          const { data: insertedData, error: insertError } = await supabase
+            .from("profiles")
+            .insert({ user_id: user.id, display_name: "", role: "user" })
+            .select();
+          if (insertError) {
+            console.error("Error inserting profile:", insertError.message);
+          } else {
+            data = insertedData[0];
+          }
+        } else {
+          console.error("Error fetching profile:", error.message);
+        }
+      }
+      if (data) {
         const updatedAt = new Date().toISOString();
         await upsertLocalProfile(data.user_id, data.display_name ?? "", updatedAt);
         const localData = await getLocalProfile(data.user_id);
@@ -2485,7 +2522,8 @@ export default function EditProfileScreen() {
 
   useEffect(() => {
     if (!localProfile) return;
-    setDisplayName(localProfile.display_name || "");
+    // If display_name is null, leave it blank.
+    setDisplayName(localProfile.display_name ?? "");
   }, [localProfile]);
 
   async function handleSave() {
@@ -2504,8 +2542,13 @@ export default function EditProfileScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>Display Name:</Text>
-      <TextInput style={styles.input} value={displayName} onChangeText={setDisplayName} />
+      <Text style={styles.label}>Display Name (optional):</Text>
+      <TextInput
+        style={styles.input}
+        value={displayName}
+        onChangeText={setDisplayName}
+        placeholder="Leave blank to remain empty"
+      />
       <Button title={syncing ? "Saving..." : "Save Changes"} onPress={handleSave} disabled={syncing} />
     </View>
   );
@@ -2642,7 +2685,6 @@ export default function UserManagement() {
   }
 
   async function toggleRole(userId: string, currentRole: string) {
-    // Toggle between 'admin' and 'user'
     const newRole = currentRole === 'admin' ? 'user' : 'admin';
     const { error } = await supabase
       .from("profiles")
@@ -2877,11 +2919,11 @@ Confirm the prompt, and the script will generate (or overwrite) all files.
 
 You now have a complete ScriptHammer codebase that includes:
 
-- **Web:** Dexie + localStorage (with no references to `expo-secure-store`).  
-- **Native:** SQLite + `expo-secure-store`.  
-- Auto‑sync via NetInfo and real‑time updates from Supabase with RLS in place.  
-- An integrated **Admin Dashboard (Phase 7)** that uses a new role column in the profiles table. The very first user who signs up becomes an admin, and you can run the separate SQL command (Step 4, “Separate SQL Command for Dummy Accounts”) to insert three dummy profiles ("Jane", "Jon", and "James Doe") if needed.  
-- **Important:** If the display name remains empty (resulting in a “Loading local profile…” message), update your display name using the “Edit Profile” screen.
+- **Web:** Dexie + localStorage (with no references to `expo-secure-store`).
+- **Native:** SQLite + `expo-secure-store`.
+- Auto‑sync via NetInfo and real‑time updates from Supabase with RLS in place.
+- An integrated **Admin Dashboard (Phase 7)** that uses a new role column in the profiles table. The very first user who signs up becomes an admin, and if no profile record exists, the client-side code will automatically insert a default record (with a blank display name). You may run the separate SQL command (Step 4, “Separate SQL Command for Dummy Accounts”) if you want to seed dummy profiles.
+- **Important:** Your display name will remain blank unless you choose to edit it. Also, the offline logic now ensures that a profile record is always available (so you won’t see “Loading local profile…” forever).
 
 **Possible Expansions:**
 

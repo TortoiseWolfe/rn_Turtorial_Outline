@@ -1554,13 +1554,7 @@ If you prefer to automatically create or overwrite all files (including the admi
    ```json
        "scaffold-ScriptHammer": "node ./scripts/scaffold-ScriptHammer.js",
    ```
-
-Start your project with:
-```bash
-npx expo start --clear
-```
-
-4. first Paste the completed script below:
+4. Paste the complete script below:
 
 ```js
 #!/usr/bin/env node
@@ -2899,11 +2893,10 @@ EXPO_PUBLIC_SUPABASE_URL=https://YOUR-PROJECT.supabase.co
 EXPO_PUBLIC_SUPABASE_ANON_KEY=YOUR-ANON-KEY
 ```
 
-Also, add it to your `.gitignore`:
+Start your project with:
 
 ```bash
-# .gitignore
-.env.local
+npx expo start --clear
 ```
 
 ---

@@ -1,12 +1,3 @@
-Below is an updated, fully functional tutorial that includes the Admin Dashboard as part of the original installation and—based on your request—modifies the Supabase SQL to include a new **role** column in the profiles table. In this updated version, the very first user who signs up will automatically be given the role of “admin,” while subsequent users default to “user.” Moreover, when an admin signs up, three dummy accounts (with names “Jane”, “Jon” and “James Doe”) will automatically be inserted into the profiles table. Every file is provided in full (with no missing imports), and you can either follow the manual file‐creation steps or use the scaffolding script in Step 18.
-
-> **Important:**  
-> – This tutorial is a complete guide from scratch. The admin panel is not an afterthought but is built into the original installation.  
-> – Before running the scaffolding script, ensure you have committed or backed up your work.  
-> – In production you should carefully consider how to create dummy accounts (especially since dummy profiles won’t have corresponding auth.users records); this example is for demonstration only.
-
----
-
 # ScriptHammer – Dexie on Web, SQLite + SecureStore on Native (Complete Tutorial + Script)
 
 ## Table of Contents
@@ -17,10 +8,11 @@ Below is an updated, fully functional tutorial that includes the Admin Dashboard
 4. [Supabase Setup](#4-supabase-setup)  
    - [Create or Confirm `profiles` Table (with Role)](#create-or-confirm-profiles-table)  
    - [Enable RLS & Policies](#enable-rls--policies)  
-   - [DB Trigger for Auto-Inserting `profiles` & Dummy Accounts](#db-trigger-for-auto-inserting-profiles)  
+   - [DB Trigger for Auto-Inserting `profiles`](#db-trigger-for-auto-inserting-profiles)  
+   - [Separate SQL Command for Dummy Accounts](#separate-sql-command-for-dummy-accounts)  
    - [Enable Realtime for `profiles`](#enable-realtime-for-profiles)  
 5. [File & Folder Structure (Manual Creation)](#5-file--folder-structure-manual-creation)  
-   - [Skip Manual Setup? Jump to Step 18](#skip-manual-setup-jump-to-step-18-for-the-script)  
+   - [Skip Manual Setup? Jump to Step 19](#skip-manual-setup-jump-to-step-19-for-the-script)  
 6. [Code: `localdb.native.ts` (Expo SQLite)](#6-code-localdbnativets-expo-sqlite)  
 7. [Code: `localdb.web.ts` (Dexie)](#7-code-localdbwebts-dexie)  
 8. [Code: `supabaseClient.ts` (Connection)](#8-code-supabaseclientts-connection)  
@@ -80,7 +72,7 @@ EXPO_PUBLIC_SUPABASE_URL=https://YOUR-PROJECT.supabase.co
 EXPO_PUBLIC_SUPABASE_ANON_KEY=YOUR-ANON-KEY
 ```
 
-Add it to your gitignore:
+Add it to your `.gitignore`:
 
 ```bash
 # .gitignore
@@ -120,13 +112,9 @@ for update
 using ( auth.uid() = user_id );
 ```
 
-### DB Trigger for Auto-Inserting `profiles` & Dummy Accounts
+### DB Trigger for Auto-Inserting `profiles`
 
-This trigger function does the following:
-1. If no profile exists yet, it assigns the new account the role `"admin"`.
-2. Otherwise, it defaults to `"user"`.
-3. If the new user’s role is `"admin"`, it also inserts three dummy accounts (with display names “Jane”, “Jon” and “James Doe”) with the default role of `"user"`.  
-   *(Note: In a real application you would create dummy auth.users records as well; here we assume that these are dummy profiles for demonstration.)*
+This trigger function assigns the new account a role. If no profile exists yet, the new account is set to `"admin"`; otherwise, it defaults to `"user"`. (The dummy account insertion is now removed from the trigger to avoid foreign key errors.)
 
 ```sql
 create or replace function handle_new_user()
@@ -144,31 +132,33 @@ begin
   insert into public.profiles (user_id, display_name, role)
   values (new.id, '', new_role);
 
-  -- Dummy account insertion commented out to avoid foreign key violations.
-  /*
-  if new_role = 'admin' then
-    insert into public.profiles (user_id, display_name, role)
-    values (gen_random_uuid(), 'Jane', 'user');
-    insert into public.profiles (user_id, display_name, role)
-    values (gen_random_uuid(), 'Jon', 'user');
-    insert into public.profiles (user_id, display_name, role)
-    values (gen_random_uuid(), 'James Doe', 'user');
-  end if;
-  */
-
   return new;
 end;
 $$ language plpgsql security definer;
 
+create trigger on_auth_user_created
+after insert on auth.users
+for each row
+execute procedure handle_new_user();
+```
+
+### Separate SQL Command for Dummy Accounts  
+Run the following SQL command (manually in Supabase SQL Editor) after you have a valid admin user (and corresponding auth.users records) to insert dummy profiles:
+
+```sql
+insert into public.profiles (user_id, display_name, role)
+values (gen_random_uuid(), 'Jane', 'user'),
+       (gen_random_uuid(), 'Jon', 'user'),
+       (gen_random_uuid(), 'James Doe', 'user');
 ```
 
 > **Note:**  
-> – The function uses `gen_random_uuid()` to create dummy user IDs. (Ensure the `pgcrypto` extension is enabled in your Supabase project.)  
-> – In a production system you would also want to create corresponding auth.users records for these dummy profiles.
+> – The command uses `gen_random_uuid()` (make sure the `pgcrypto` extension is enabled).  
+> – In production, consider a different seeding method that creates corresponding auth.users records.
 
 ### Enable Realtime for `profiles`
 
-In the Supabase UI, go to the **Table Editor** for the `profiles` table and enable **Realtime**.
+In the Supabase UI, open the **Table Editor** for the `profiles` table and enable **Realtime**.
 
 ---
 
@@ -253,8 +243,8 @@ export async function setupLocalDatabase() {
 
 export async function upsertLocalProfile(
   userId: string,
-  displayName: string,
-  updatedAt: string
+  display_name: string,
+  updated_at: string
 ) {
   return new Promise<void>((resolve, reject) => {
     db.transaction((tx) => {
@@ -266,7 +256,7 @@ export async function upsertLocalProfile(
           SET display_name=excluded.display_name,
               updated_at=excluded.updated_at
       `,
-        [userId, displayName, updatedAt],
+        [userId, display_name, updated_at],
         () => resolve(),
         (_, error) => {
           console.error("Error upserting local profile:", error);
@@ -301,13 +291,13 @@ export async function getLocalProfile(userId: string) {
   });
 }
 
-export async function updateLocalDisplayName(userId: string, displayName: string) {
+export async function updateLocalDisplayName(userId: string, display_name: string) {
   const now = new Date().toISOString();
   return new Promise<void>((resolve, reject) => {
     db.transaction((tx) => {
       tx.executeSql(
         `UPDATE local_profiles SET display_name=?, updated_at=? WHERE user_id=?`,
-        [displayName, now, userId],
+        [display_name, now, userId],
         () => resolve(),
         (_, error) => {
           console.error("Error updating local profile:", error);
@@ -339,13 +329,13 @@ export async function setupLocalDatabase() {
 
 export async function upsertLocalProfile(
   userId: string,
-  displayName: string,
-  updatedAt: string
+  display_name: string,
+  updated_at: string
 ) {
   await db.table("local_profiles").put({
     user_id: userId,
-    display_name: displayName,
-    updated_at: updatedAt,
+    display_name,
+    updated_at,
   });
 }
 
@@ -354,10 +344,10 @@ export async function getLocalProfile(userId: string) {
   return row || null;
 }
 
-export async function updateLocalDisplayName(userId: string, displayName: string) {
+export async function updateLocalDisplayName(userId: string, display_name: string) {
   const now = new Date().toISOString();
   await db.table("local_profiles").update(userId, {
-    display_name: displayName,
+    display_name,
     updated_at: now,
   });
 }
@@ -426,7 +416,6 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Attempt to restore tokens
   useEffect(() => {
     (async () => {
       try {
@@ -760,7 +749,7 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
           event: "*",
           schema: "public",
           table: "profiles",
-          filter: `user_id=eq.${user.id}`,
+          filter: \`user_id=eq.\${user.id}\`,
         },
         async () => {
           if (isOnline) {
@@ -1240,7 +1229,8 @@ export default function AdminLayout() {
         .select("role")
         .eq("user_id", user.id)
         .single();
-      if (error || !data || data.role <> 'admin') {
+      // Use !== for comparison (not <>)
+      if (error || !data || data.role !== 'admin') {
         router.replace("/not-authorized");
       } else {
         setIsAdmin(true);
@@ -1364,7 +1354,7 @@ export default function UserManagement() {
     <View style={styles.item}>
       <Text style={styles.itemText}>{item.display_name || item.user_id}</Text>
       <Text>Role: {item.role}</Text>
-      <Button title={`Make ${item.role === 'admin' ? 'User' : 'Admin'}`} onPress={() => toggleRole(item.user_id, item.role)} />
+      <Button title={\`Make \${item.role === 'admin' ? 'User' : 'Admin'}\`} onPress={() => toggleRole(item.user_id, item.role)} />
     </View>
   );
 
@@ -1534,26 +1524,26 @@ npx expo start --clear
 - **On iOS/Android:** The code uses `auth.native.tsx` and `localdb.native.ts` (with SecureStore and SQLite).  
 - **On Web:** The code uses `auth.web.tsx` and `localdb.web.ts` (with localStorage and Dexie).  
 - **Test:**  
-  1. **Sign Up/Sign In.**  
-  2. Disable network, edit your profile, and verify that only the local DB is updated.  
+  1. **Sign Up/Sign In:** The very first user will have the role `"admin"`.  
+  2. If you disable network, edit your profile (update the display name) and verify that only the local DB is updated. (If the display name remains empty, please update it manually using the Edit Profile screen.)  
   3. Reconnect and confirm that changes sync to Supabase.  
-  4. For the **Admin Dashboard:** In Supabase, update a user’s profile so that the new user’s role is set to `"admin"` (this will happen automatically for the very first user). When an admin signs up, three dummy profiles (for “Jane”, “Jon” and “James Doe”) will also be inserted. Navigate to `/admin/dashboard` to test secure admin routes. Non‑admin users will be redirected to `/not-authorized`.
+  4. **Admin Dashboard:** After an admin user is created, navigate to `/admin/dashboard`. Non‑admin users will be redirected to `/not-authorized`.
 
 ---
 
 ## 18) Troubleshooting SecureStore or SQLite Issues
 
-1. If **web** still tries to import `expo-secure-store`, verify your file names:
+1. If **web** still tries to import `expo-secure-store`, verify your file names:  
    - Use `auth.native.tsx` for iOS/Android  
    - Use `auth.web.tsx` for web  
 2. If you never installed them, run:
    ```bash
    npx expo install expo-secure-store expo-sqlite
-   ```  
+   ```
 3. In a bare or prebuild workflow, run:
    ```bash
    npx expo prebuild && npx expo run:ios
-   ```  
+   ```
 4. Consider upgrading your Expo SDK if needed.
 
 ---
@@ -1562,14 +1552,12 @@ npx expo start --clear
 
 If you prefer to automatically create or overwrite all files (including the admin dashboard), use the following Node script:
 
-1. Create a `scripts/` folder:
+1. Create a `scripts/` folder & Create the `scaffolding` script:
    ```bash
    mkdir -p scripts
-   ```
-2. Create the scaffolding script:
-   ```bash
    touch scripts/scaffold-ScriptHammer.js
    chmod +x scripts/scaffold-ScriptHammer.js
+   code .
    ```
 3. In your `package.json`, add:
    ```json
@@ -1643,8 +1631,8 @@ export async function setupLocalDatabase() {
 
 export async function upsertLocalProfile(
   userId: string,
-  displayName: string,
-  updatedAt: string
+  display_name: string,
+  updated_at: string
 ) {
   return new Promise<void>((resolve, reject) => {
     db.transaction((tx) => {
@@ -1656,7 +1644,7 @@ export async function upsertLocalProfile(
           SET display_name=excluded.display_name,
               updated_at=excluded.updated_at
         \`,
-        [userId, displayName, updatedAt],
+        [userId, display_name, updated_at],
         () => resolve(),
         (_, error) => {
           console.error("Error upserting local profile:", error);
@@ -1691,13 +1679,13 @@ export async function getLocalProfile(userId: string) {
   });
 }
 
-export async function updateLocalDisplayName(userId: string, displayName: string) {
+export async function updateLocalDisplayName(userId: string, display_name: string) {
   const now = new Date().toISOString();
   return new Promise<void>((resolve, reject) => {
     db.transaction((tx) => {
       tx.executeSql(
         \`UPDATE local_profiles SET display_name=?, updated_at=? WHERE user_id=?\`,
-        [displayName, now, userId],
+        [display_name, now, userId],
         () => resolve(),
         (_, error) => {
           console.error("Error updating local profile:", error);
@@ -1725,13 +1713,13 @@ export async function setupLocalDatabase() {
 
 export async function upsertLocalProfile(
   userId: string,
-  displayName: string,
-  updatedAt: string
+  display_name: string,
+  updated_at: string
 ) {
   await db.table("local_profiles").put({
     user_id: userId,
-    display_name: displayName,
-    updated_at: updatedAt,
+    display_name,
+    updated_at,
   });
 }
 
@@ -1740,10 +1728,10 @@ export async function getLocalProfile(userId: string) {
   return row || null;
 }
 
-export async function updateLocalDisplayName(userId: string, displayName: string) {
+export async function updateLocalDisplayName(userId: string, display_name: string) {
   const now = new Date().toISOString();
   await db.table("local_profiles").update(userId, {
-    display_name: displayName,
+    display_name,
     updated_at: now,
   });
 }
@@ -2892,8 +2880,9 @@ You now have a complete ScriptHammer codebase that includes:
 - **Web:** Dexie + localStorage (with no references to `expo-secure-store`).  
 - **Native:** SQLite + `expo-secure-store`.  
 - Auto‑sync via NetInfo and real‑time updates from Supabase with RLS in place.  
-- An integrated **Admin Dashboard (Phase 7)** that uses a new role column in the profiles table. The first user is automatically an admin, and when an admin signs up, three dummy profiles ("Jane", "Jon", and "James Doe") are also inserted.
-  
+- An integrated **Admin Dashboard (Phase 7)** that uses a new role column in the profiles table. The very first user who signs up becomes an admin, and you can run the separate SQL command (Step 4, “Separate SQL Command for Dummy Accounts”) to insert three dummy profiles ("Jane", "Jon", and "James Doe") if needed.  
+- **Important:** If the display name remains empty (resulting in a “Loading local profile…” message), update your display name using the “Edit Profile” screen.
+
 **Possible Expansions:**
 
 - Create corresponding auth.users records for dummy accounts (if needed).
@@ -2902,7 +2891,7 @@ You now have a complete ScriptHammer codebase that includes:
 - Prepare production builds using EAS, manage environment variables more robustly, add push notifications, etc.
 
 **Congratulations!**  
-This tutorial is fully self-contained, with no missing imports or placeholders, and integrates the admin panel as an inherent part of the ScriptHammer installation. Enjoy building and iterating on your application while maintaining code quality and a unified codebase!
+This tutorial is fully self-contained, with no missing imports or placeholders, and integrates the Admin Dashboard as an inherent part of the ScriptHammer installation. Enjoy building and iterating on your application while maintaining code quality and a unified codebase!
 
 ---
 

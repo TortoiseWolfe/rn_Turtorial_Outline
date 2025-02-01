@@ -1,34 +1,5 @@
 # ScriptHammer – Dexie on Web, SQLite + SecureStore on Native (Complete Tutorial + Script)
 
-## Table of Contents
-
-1. [Create a New Expo Project](#1-create-a-new-expo-project)  
-2. [Install Dependencies](#2-install-dependencies)  
-3. [Set Up `.env.local`](#3-set-up-envlocal)  
-4. [Supabase Setup](#4-supabase-setup)  
-   - [Create or Confirm `profiles` Table (with Role)](#create-or-confirm-profiles-table)  
-   - [Enable RLS & Policies](#enable-rls--policies)  
-   - [DB Trigger for Auto-Inserting `profiles`](#db-trigger-for-auto-inserting-profiles)  
-   - [Separate SQL Command for Dummy Accounts](#separate-sql-command-for-dummy-accounts)  
-   - [Enable Realtime for `profiles`](#enable-realtime-for-profiles)  
-5. [File & Folder Structure (Manual Creation)](#5-file--folder-structure-manual-creation)  
-   - [Skip Manual Setup? Jump to Step 19](#skip-manual-setup-jump-to-step-19-for-the-script)  
-6. [Code: `localdb.native.ts` (Expo SQLite)](#6-code-localdbnativets-expo-sqlite)  
-7. [Code: `localdb.web.ts` (Dexie)](#7-code-localdbwebts-dexie)  
-8. [Code: `supabaseClient.ts` (Connection)](#8-code-supabaseclientts-connection)  
-9. [Code: `auth.native.tsx` (Auth Context for iOS/Android)](#9-code-authnativetsx-auth-context-for-iosandroid)  
-10. [Code: `auth.web.tsx` (Auth Context for Web)](#10-code-authwebtsx-auth-context-for-web)  
-11. [Code: `context/offline.tsx` (Offline Context)](#11-code-contextofflinetsx-offline-context)  
-12. [Code: `app/_layout.tsx` (Top-Level Layout)](#12-code-app_layouttsx-top-level-layout)  
-13. [Code: `app/index.tsx` (Redirect on Launch)](#13-code-appindextsx-redirect-on-launch)  
-14. [Code: `(auth)` Folder (Sign In & Sign Up)](#14-code-auth-folder-sign-in--sign-up)  
-15. [Code: `(protected)` Folder (Profile + Edit)](#15-code-protected-folder-profile--edit)  
-16. [Code: `(admin)` Folder (Admin Dashboard)](#16-code-admin-folder-admin-dashboard)  
-17. [Run & Test](#17-run--test)  
-18. [Troubleshooting SecureStore or SQLite Issues](#18-troubleshooting-securestore-or-sqlite-issues)  
-19. [Scaffolding Script (Generates All Files)](#19-scaffolding-script-generates-all-files)  
-20. [Next Steps](#20-next-steps)
-
 ---
 
 ## 1) Create a New Expo Project
@@ -60,7 +31,7 @@ npm install dexie
 > **Note:**  
 > • `expo-secure-store` is used only on native (iOS/Android).  
 > • `expo-sqlite` is used only on native for the local DB.  
-> • `dexie` is used only on web.
+> • `dexie` is used only on Web.
 
 ---
 
@@ -115,7 +86,7 @@ using ( auth.uid() = user_id );
 
 ### DB Trigger for Auto-Inserting `profiles`
 
-This trigger function automatically inserts a profile record when a new auth user is created. If no profile exists yet, the new account is set to `"admin"`; otherwise it defaults to `"user"`. (Dummy account insertion is removed here to avoid FK issues.)
+This trigger function automatically inserts a profile record when a new auth user is created. If no profile exists yet, the new account is set to `"admin"`; otherwise it defaults to `"user"`. (Dummy account insertion has been removed here to avoid foreign key errors.)
 
 ```sql
 create or replace function handle_new_user()
@@ -144,7 +115,7 @@ execute procedure handle_new_user();
 ```
 
 ### Separate SQL Command for Dummy Accounts  
-(Optional) Run this SQL manually in the Supabase SQL Editor after you have an admin user to seed three dummy profiles:
+(Optional) Run this SQL command manually (in the Supabase SQL Editor) after you have a valid admin user to seed dummy profiles:
 
 ```sql
 insert into public.profiles (user_id, display_name, role)
@@ -674,7 +645,7 @@ export function useAuth() {
 
 ## 11) Code: `context/offline.tsx` (Offline Context)
 
-Below is the key update. In the function `fetchRemoteProfile()`, if no row is found (or if an error occurs indicating no row), we now insert a default profile record for the user so that your profile data is always available. This means you do not have to manually edit your display name unless you wish to change it; if left blank, it remains blank.
+This version now ensures that if no profile record is found for the logged‑in user, a default record is inserted. (Also note that if your display name is blank, it remains blank.)
 
 ```tsx
 // context/offline.tsx
@@ -771,8 +742,8 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
         .select("*")
         .eq("user_id", user.id)
         .single();
-      // If no profile record is found, insert a default profile record
       if (error) {
+        // If no profile record exists, insert a default record
         if (error.message.includes("No rows found")) {
           const { data: insertedData, error: insertError } = await supabase
             .from("profiles")
@@ -846,9 +817,12 @@ export function useOffline() {
 
 ## 12) Code: `app/_layout.tsx` (Top-Level Layout)
 
+> **Important Update:**  
+> To avoid the “Attempted to navigate before mounting the Root Layout component” error, the root layout now renders a `<Slot />` inside the `<Stack>`. This ensures that navigation can occur only after the layout is fully mounted.
+
 ```tsx
 // app/_layout.tsx
-import { Stack } from "expo-router";
+import { Stack, Slot } from "expo-router";
 import AuthProvider from "../context/auth"; // picks native or web
 import { OfflineProvider } from "../context/offline";
 import { StatusBar } from "expo-status-bar";
@@ -857,7 +831,9 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <OfflineProvider>
-        <Stack screenOptions={{ headerShown: false }} />
+        <Stack screenOptions={{ headerShown: false }}>
+          <Slot />
+        </Stack>
         <StatusBar style="auto" />
       </OfflineProvider>
     </AuthProvider>
@@ -1174,7 +1150,7 @@ export default function EditProfileScreen() {
 
   useEffect(() => {
     if (!localProfile) return;
-    // If the profile display_name is null (or undefined), leave it blank.
+    // If display_name is null, leave it blank.
     setDisplayName(localProfile.display_name ?? "");
   }, [localProfile]);
 
@@ -1194,12 +1170,12 @@ export default function EditProfileScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>Display Name (leave blank if desired):</Text>
+      <Text style={styles.label}>Display Name (optional):</Text>
       <TextInput
         style={styles.input}
         value={displayName}
         onChangeText={setDisplayName}
-        placeholder="Optional display name"
+        placeholder="Leave blank to remain empty"
       />
       <Button title={syncing ? "Saving..." : "Save Changes"} onPress={handleSave} disabled={syncing} />
     </View>
@@ -1347,7 +1323,6 @@ export default function UserManagement() {
   }
 
   async function toggleRole(userId: string, currentRole: string) {
-    // Toggle between 'admin' and 'user'
     const newRole = currentRole === 'admin' ? 'user' : 'admin';
     const { error } = await supabase
       .from("profiles")
@@ -1544,17 +1519,19 @@ npx expo start --clear
 > • On iOS/Android the code uses `auth.native.tsx` and `localdb.native.ts` (SecureStore and SQLite).  
 > • On Web the code uses `auth.web.tsx` and `localdb.web.ts` (localStorage and Dexie).  
 > • When you sign up, the very first user is automatically set to `"admin"` (via the Supabase trigger).  
-> • The trigger inserts a profile record into the `profiles` table; if for any reason it isn’t found, the client-side code in `fetchRemoteProfile()` inserts a default profile record (with an empty display name).  
-> • You should now see your profile record populate (or remain blank if you haven’t set a display name) rather than “loading forever.”  
-> • Navigate to `/admin/dashboard` to test the admin dashboard. Non‑admin users will be redirected to `/not-authorized`.
+> • If no profile record exists, the client (in `fetchRemoteProfile()`) inserts a default profile record (with a blank display name) so that your profile will load instead of “Loading local profile…” forever.  
+> • To test admin functionality, navigate to `/admin/dashboard`. (If you’d like an admin button on your profile page, you can add one conditionally based on a separate Supabase call.)  
+> 
+> **Important:**  
+> • The Root Layout now properly renders a `<Slot />` inside a `<Stack>`, preventing the navigation error.
 
 ---
 
 ## 18) Troubleshooting SecureStore or SQLite Issues
 
-1. If on Web your project still tries to import `expo-secure-store`, ensure you have named your files correctly:
-   - Use `auth.native.tsx` for iOS/Android  
-   - Use `auth.web.tsx` for Web  
+1. If on Web your project still imports `expo-secure-store`, ensure you have named your files correctly:
+   - Use **auth.native.tsx** for iOS/Android  
+   - Use **auth.web.tsx** for Web  
 2. If you did not install them, run:
    ```bash
    npx expo install expo-secure-store expo-sqlite
@@ -1572,7 +1549,7 @@ npx expo start --clear
 If you prefer to automatically create or overwrite all files (including the admin dashboard), use the following Node script.
 
 1. Create a `scripts/` folder:
-2. Create the `scaffolding` script:
+2. Create the scaffolding script:
    ```bash
    mkdir -p scripts
    touch scripts/scaffold-ScriptHammer.js
@@ -1583,10 +1560,6 @@ If you prefer to automatically create or overwrite all files (including the admi
    ```json
        "scaffold-ScriptHammer": "node ./scripts/scaffold-ScriptHammer.js",
    ```
-5.
-```bash
-npx expo start --clear
-```
 4. Paste the complete script below:
 
 ```js
@@ -2148,7 +2121,6 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
         .eq("user_id", user.id)
         .single();
       if (error) {
-        // If no profile record exists, insert a default record
         if (error.message.includes("No rows found")) {
           const { data: insertedData, error: insertError } = await supabase
             .from("profiles")
@@ -2219,7 +2191,7 @@ export function useOffline() {
   },
   {
     filePath: "app/_layout.tsx",
-    content: `import { Stack } from "expo-router";
+    content: `import { Stack, Slot } from "expo-router";
 import AuthProvider from "../context/auth";
 import { OfflineProvider } from "../context/offline";
 import { StatusBar } from "expo-status-bar";
@@ -2228,7 +2200,9 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <OfflineProvider>
-        <Stack screenOptions={{ headerShown: false }} />
+        <Stack screenOptions={{ headerShown: false }}>
+          <Slot />
+        </Stack>
         <StatusBar style="auto" />
       </OfflineProvider>
     </AuthProvider>
@@ -2918,11 +2892,12 @@ Confirm the prompt, and the script will generate (or overwrite) all files.
 
 You now have a complete ScriptHammer codebase that includes:
 
-- **Web:** Dexie + localStorage (with no references to `expo-secure-store`).
-- **Native:** SQLite + `expo-secure-store`.
-- Auto‑sync via NetInfo and real‑time updates from Supabase with RLS in place.
-- An integrated **Admin Dashboard (Phase 7)** that uses a new role column in the profiles table. The very first user who signs up becomes an admin, and if no profile record exists, the client-side code will automatically insert a default record (with a blank display name). You may run the separate SQL command (Step 4, “Separate SQL Command for Dummy Accounts”) if you want to seed dummy profiles.
-- **Important:** Your display name will remain blank unless you choose to edit it. Also, the offline logic now ensures that a profile record is always available (so you won’t see “Loading local profile…” forever).
+- **Web:** Dexie + localStorage (with no references to `expo-secure-store`).  
+- **Native:** SQLite + `expo-secure-store`.  
+- Auto‑sync via NetInfo and real‑time updates from Supabase with RLS in place.  
+- An integrated **Admin Dashboard (Phase 7)** that uses a new role column in the profiles table. The very first user who signs up becomes an admin, and if no profile record exists for the user the client inserts a default record (with a blank display name). You may also run the separate SQL command (Step 4, “Separate SQL Command for Dummy Accounts”) if you wish to seed dummy profiles.
+- **Important:** The Root Layout now includes a `<Slot />` to ensure navigation occurs only after mounting. This fixes the navigation error you saw.
+- (Optionally) To make admin navigation easier, consider adding an “Admin Dashboard” button to your profile screen if desired.
 
 **Possible Expansions:**
 

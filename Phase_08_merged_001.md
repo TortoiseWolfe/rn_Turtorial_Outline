@@ -1583,6 +1583,10 @@ If you prefer to automatically create or overwrite all files (including the admi
    ```json
        "scaffold-ScriptHammer": "node ./scripts/scaffold-ScriptHammer.js",
    ```
+5.
+```bash
+npx expo start --clear
+```
 4. Paste the complete script below:
 
 ```js

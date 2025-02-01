@@ -1,61 +1,13 @@
-# ScriptHammer – Dexie on Web, SQLite + SecureStore on Native (Complete Tutorial + Script)
+# ScriptHammer – Dexie on Web, SQLite + SecureStore on Native  
+**(Complete Tutorial + Script)**
 
 ---
 
-## 1) Create a New Expo Project
+## 1) Supabase Setup
 
-```bash
-npx create-expo-app ScriptHammer
-cd ScriptHammer
+Before you begin working on your app, configure your Supabase backend. You can complete these steps in your browser (using the Supabase SQL Editor), which helps minimize context switching.
 
-# Optional: remove leftover example screens
-npm run reset-project
-rm -rf app-example
-```
-
-You now have a **blank** Expo Router project.
-
----
-
-## 2) Install Dependencies
-
-```bash
-npm install @supabase/supabase-js
-npx expo install expo-secure-store
-npm install dotenv
-npx expo install expo-sqlite
-npm install @react-native-community/netinfo
-npm install dexie
-```
-
-> **Note:**  
-> • `expo-secure-store` is used only on native (iOS/Android).  
-> • `expo-sqlite` is used only on native for the local DB.  
-> • `dexie` is used only on Web.
-
----
-
-## 3) Set Up `.env.local`
-
-At your **project root**:
-
-```bash
-EXPO_PUBLIC_SUPABASE_URL=https://YOUR-PROJECT.supabase.co
-EXPO_PUBLIC_SUPABASE_ANON_KEY=YOUR-ANON-KEY
-```
-
-Also, add it to your `.gitignore`:
-
-```bash
-# .gitignore
-.env.local
-```
-
----
-
-## 4) Supabase Setup
-
-### Create or Confirm `profiles` Table  
+### Create or Confirm the `profiles` Table  
 This table now has a new **role** column. The column defaults to `"user"`, but the very first account inserted into the table will be set to `"admin"` by our trigger.
 
 ```sql
@@ -115,7 +67,7 @@ execute procedure handle_new_user();
 ```
 
 ### Separate SQL Command for Dummy Accounts  
-(Optional) Run this SQL command manually (in the Supabase SQL Editor) after you have a valid admin user to seed dummy profiles:
+(Optional) After you have a valid admin user, run this SQL command in the Supabase SQL Editor to seed dummy profiles:
 
 ```sql
 insert into public.profiles (user_id, display_name, role)
@@ -124,16 +76,55 @@ values (gen_random_uuid(), 'Jane', 'user'),
        (gen_random_uuid(), 'James Doe', 'user');
 ```
 
-> **Note:** Ensure the `pgcrypto` extension is enabled.
+> **Note:** Make sure the `pgcrypto` extension is enabled.
 
 ### Enable Realtime for `profiles`  
 In the Supabase UI, open the **Table Editor** for the `profiles` table and enable **Realtime**.
 
 ---
 
-## 5) File & Folder Structure (Manual Creation)
+## 2) Create a New Expo Project
 
-Create the following folders and files (this now includes the admin panel):
+Now that your Supabase backend is set up, create your Expo project.
+
+```bash
+npx create-expo-app ScriptHammer
+cd ScriptHammer
+
+# Optional: remove leftover example screens
+npm run reset-project
+rm -rf app-example
+```
+
+You now have a **blank** Expo Router project.
+
+---
+
+## 3) Install Dependencies
+
+Install the required dependencies for Supabase, local databases, and offline support:
+
+```bash
+npm install @supabase/supabase-js
+npx expo install expo-secure-store
+npm install dotenv
+npx expo install expo-sqlite
+npm install @react-native-community/netinfo
+npm install dexie
+```
+
+> **Note:**  
+> • `expo-secure-store` is used only on native (iOS/Android).  
+> • `expo-sqlite` is used only on native for the local DB.  
+> • `dexie` is used only on Web.
+
+---
+
+## 4) File & Folder Structure (Manual Creation)
+
+**If you prefer not to create files manually, jump to [Section 18](#18-scaffolding-script-generates-all-files).**
+
+Create the following folders and files (this now includes the admin panel). The link to skip manual setup is mentioned at the very top of this section.
 
 ```bash
 # Context and local DB files
@@ -174,11 +165,9 @@ touch .env.local
 code .
 ```
 
-If you prefer not to create files manually, jump to [Step 19](#19-scaffolding-script-generates-all-files).
-
 ---
 
-## 6) Code: `localdb.native.ts` (Expo SQLite)
+## 5) Code: `localdb/localdb.native.ts` (Expo SQLite)
 
 ```ts
 // localdb/localdb.native.ts
@@ -279,7 +268,7 @@ export async function updateLocalDisplayName(userId: string, display_name: strin
 
 ---
 
-## 7) Code: `localdb.web.ts` (Dexie)
+## 6) Code: `localdb/localdb.web.ts` (Dexie)
 
 ```ts
 // localdb/localdb.web.ts
@@ -322,7 +311,7 @@ export async function updateLocalDisplayName(userId: string, display_name: strin
 
 ---
 
-## 8) Code: `supabaseClient.ts` (Connection)
+## 7) Code: `supabaseClient.ts` (Connection)
 
 ```ts
 // supabaseClient.ts
@@ -336,7 +325,7 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 ---
 
-## 9) Code: `auth.native.tsx` (Auth Context for iOS/Android)
+## 8) Code: `context/auth.native.tsx` (Auth Context for iOS/Android)
 
 ```tsx
 // context/auth.native.tsx
@@ -491,7 +480,7 @@ export function useAuth() {
 
 ---
 
-## 10) Code: `auth.web.tsx` (Auth Context for Web)
+## 9) Code: `context/auth.web.tsx` (Auth Context for Web)
 
 ```tsx
 // context/auth.web.tsx
@@ -643,7 +632,7 @@ export function useAuth() {
 
 ---
 
-## 11) Code: `context/offline.tsx` (Offline Context)
+## 10) Code: `context/offline.tsx` (Offline Context)
 
 This version now ensures that if no profile record is found for the logged‑in user, a default record is inserted. (Also note that if your display name is blank, it remains blank.)
 
@@ -718,7 +707,7 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
           event: "*",
           schema: "public",
           table: "profiles",
-          filter: \`user_id=eq.\${user.id}\`,
+          filter: `user_id=eq.${user.id}`,
         },
         async () => {
           if (isOnline) {
@@ -815,7 +804,7 @@ export function useOffline() {
 
 ---
 
-## 12) Code: `app/_layout.tsx` (Top-Level Layout)
+## 11) Code: `app/_layout.tsx` (Top-Level Layout)
 
 > **Important Update:**  
 > To avoid the “Attempted to navigate before mounting the Root Layout component” error, the root layout now renders a `<Slot />` inside the `<Stack>`. This ensures that navigation can occur only after the layout is fully mounted.
@@ -843,7 +832,7 @@ export default function RootLayout() {
 
 ---
 
-## 13) Code: `app/index.tsx` (Redirect on Launch)
+## 12) Code: `app/index.tsx` (Redirect on Launch)
 
 ```tsx
 // app/index.tsx
@@ -862,7 +851,7 @@ export default function IndexScreen() {
 
 ---
 
-## 14) Code: `(auth)` Folder (Sign In & Sign Up)
+## 13) Code: `(auth)` Folder (Sign In & Sign Up)
 
 ### `(auth)/_layout.tsx`
 
@@ -1041,7 +1030,7 @@ const styles = StyleSheet.create({
 
 ---
 
-## 15) Code: `(protected)` Folder (Profile + Edit)
+## 14) Code: `(protected)` Folder (Profile + Edit)
 
 ### `(protected)/_layout.tsx`
 
@@ -1197,14 +1186,16 @@ const styles = StyleSheet.create({
 
 ---
 
-## 16) Code: `(admin)` Folder (Admin Dashboard)
+## 15) Code: `(admin)` Folder (Admin Dashboard)
 
 ### `(admin)/_layout.tsx`
+
+*Note: This file has been updated to include a `<Slot />` inside the `<Stack>` to ensure proper navigation of child routes.*
 
 ```tsx
 // app/(admin)/_layout.tsx
 import React, { useEffect, useState } from "react";
-import { Stack, useRouter } from "expo-router";
+import { Stack, Slot, useRouter } from "expo-router";
 import { useAuth } from "../../context/auth";
 import { supabase } from "../../supabaseClient";
 import { View, ActivityIndicator } from "react-native";
@@ -1225,7 +1216,7 @@ export default function AdminLayout() {
         .select("role")
         .eq("user_id", user.id)
         .single();
-      if (error || !data || data.role !== 'admin') {
+      if (error || !data || data.role !== "admin") {
         router.replace("/not-authorized");
       } else {
         setIsAdmin(true);
@@ -1243,7 +1234,9 @@ export default function AdminLayout() {
   }
 
   return (
-    <Stack screenOptions={{ headerShown: true, headerTitle: "Admin Panel" }} />
+    <Stack screenOptions={{ headerShown: true, headerTitle: "Admin Panel" }}>
+      <Slot />
+    </Stack>
   );
 }
 ```
@@ -1348,7 +1341,7 @@ export default function UserManagement() {
     <View style={styles.item}>
       <Text style={styles.itemText}>{item.display_name || item.user_id}</Text>
       <Text>Role: {item.role}</Text>
-      <Button title={\`Make \${item.role === 'admin' ? 'User' : 'Admin'}\`} onPress={() => toggleRole(item.user_id, item.role)} />
+      <Button title={`Make ${item.role === 'admin' ? 'User' : 'Admin'}`} onPress={() => toggleRole(item.user_id, item.role)} />
     </View>
   );
 
@@ -1507,7 +1500,7 @@ const styles = StyleSheet.create({
 
 ---
 
-## 17) Run & Test
+## 16) Run & Test
 
 Start your project with:
 
@@ -1527,7 +1520,7 @@ npx expo start --clear
 
 ---
 
-## 18) Troubleshooting SecureStore or SQLite Issues
+## 17) Troubleshooting SecureStore or SQLite Issues
 
 1. If on Web your project still imports `expo-secure-store`, ensure you have named your files correctly:
    - Use **auth.native.tsx** for iOS/Android  
@@ -1544,7 +1537,7 @@ npx expo start --clear
 
 ---
 
-## 19) Scaffolding Script (Generates All Files)
+## 18) Scaffolding Script (Generates All Files)
 
 If you prefer to automatically create or overwrite all files (including the admin dashboard), use the following Node script.
 
@@ -1561,7 +1554,13 @@ If you prefer to automatically create or overwrite all files (including the admi
    ```json
        "scaffold-ScriptHammer": "node ./scripts/scaffold-ScriptHammer.js",
    ```
-4. Paste the complete script below:
+
+Start your project with:
+```bash
+npx expo start --clear
+```
+
+4. first Paste the completed script below:
 
 ```js
 #!/usr/bin/env node
@@ -2544,7 +2543,7 @@ const styles = StyleSheet.create({
   {
     filePath: "app/(admin)/_layout.tsx",
     content: `import React, { useEffect, useState } from "react";
-import { Stack, useRouter } from "expo-router";
+import { Stack, Slot, useRouter } from "expo-router";
 import { useAuth } from "../../context/auth";
 import { supabase } from "../../supabaseClient";
 import { View, ActivityIndicator } from "react-native";
@@ -2565,7 +2564,7 @@ export default function AdminLayout() {
         .select("role")
         .eq("user_id", user.id)
         .single();
-      if (error || !data || data.role !== 'admin') {
+      if (error || !data || data.role !== "admin") {
         router.replace("/not-authorized");
       } else {
         setIsAdmin(true);
@@ -2583,7 +2582,9 @@ export default function AdminLayout() {
   }
 
   return (
-    <Stack screenOptions={{ headerShown: true, headerTitle: "Admin Panel" }} />
+    <Stack screenOptions={{ headerShown: true, headerTitle: "Admin Panel" }}>
+      <Slot />
+    </Stack>
   );
 }
 `
@@ -2889,6 +2890,24 @@ Confirm the prompt, and the script will generate (or overwrite) all files.
 
 ---
 
+## 19) Set Up `.env.local`
+
+At your **project root**, create a file named `.env.local` with the following content:
+
+```bash
+EXPO_PUBLIC_SUPABASE_URL=https://YOUR-PROJECT.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=YOUR-ANON-KEY
+```
+
+Also, add it to your `.gitignore`:
+
+```bash
+# .gitignore
+.env.local
+```
+
+---
+
 ## 20) Next Steps
 
 You now have a complete ScriptHammer codebase that includes:
@@ -2896,19 +2915,19 @@ You now have a complete ScriptHammer codebase that includes:
 - **Web:** Dexie + localStorage (with no references to `expo-secure-store`).  
 - **Native:** SQLite + `expo-secure-store`.  
 - Auto‑sync via NetInfo and real‑time updates from Supabase with RLS in place.  
-- An integrated **Admin Dashboard (Phase 7)** that uses a new role column in the profiles table. The very first user who signs up becomes an admin, and if no profile record exists for the user the client inserts a default record (with a blank display name). You may also run the separate SQL command (Step 4, “Separate SQL Command for Dummy Accounts”) if you wish to seed dummy profiles.
-- **Important:** The Root Layout now includes a `<Slot />` to ensure navigation occurs only after mounting. This fixes the navigation error you saw.
+- An integrated **Admin Dashboard (Phase 7)** that uses a new role column in the profiles table. The very first user who signs up becomes an admin, and if no profile record exists for the user the client inserts a default record (with a blank display name). You may also run the separate SQL command (Step 1, Dummy Accounts) if desired.
+- **Important:** The Root Layout now properly renders a `<Slot />` inside a `<Stack>`, preventing the navigation error you saw.
 - (Optionally) To make admin navigation easier, consider adding an “Admin Dashboard” button to your profile screen if desired.
 
 **Possible Expansions:**
 
-- Create corresponding auth.users records for dummy accounts (if needed).
+- Create corresponding `auth.users` records for dummy accounts (if needed).
 - Add additional tables (e.g., posts, comments) with advanced conflict resolution.
 - Enhance role/permission management and refine the Admin Dashboard UI.
 - Prepare production builds using EAS, manage environment variables more robustly, add push notifications, etc.
 
 **Congratulations!**  
-This tutorial is fully self-contained, with no missing imports or placeholders, and integrates the Admin Dashboard as an inherent part of the ScriptHammer installation. Enjoy building and iterating on your application while maintaining code quality and a unified codebase!
+This tutorial is fully self-contained—with no missing imports or placeholders—and integrates the Admin Dashboard as an inherent part of the ScriptHammer installation. Enjoy building and iterating on your application while maintaining a high standard of code quality and a unified codebase!
 
 ---
 

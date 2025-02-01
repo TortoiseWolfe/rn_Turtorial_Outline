@@ -1,165 +1,159 @@
-# ScriptHammer Roadmap (Iterative & Merged Approach)
-
-1. ~~Fake tokens + ephemeral sign-up~~  
-2. ~~Add real Supabase auth + RLS~~  
-3. ~~DB triggers for automatic profile creation~~  
-4. ~~Minimal token storage (SecureStore or localStorage)~~  
-5. ~~Real-time subscription for user’s profile~~  
-6. ~~Offline/local-first approach (Dexie for web, SQLite for native)~~
+Below is a comprehensive, step‐by‐step roadmap outlining our opinionated framework for a React Native Expo-based solution designed to get small business owners into the iPhone App Store with minimal fuss. This guide emphasizes best practices, integration with the existing codebase, and long-term maintainability. It details what to focus on for the MVP, as well as features to consider for version 2.
 
 ---
 
-## Next Phases (All phases must be merged into the existing codebase, updating files rather than simply appending new ones):
+## 1. Executive Overview
 
-### **Phase 7 – Admin Dashboard (Web Interface)**
-  
-**Potential Objectives:**
-- **User Management:** View, search, and disable accounts from the Supabase DB.
-- **Content Moderation:** Edit or remove user posts.
-- **Analytics:** Basic usage stats, sign-ups per day.
+Our goal is to create an opinionated framework—think of it as “Bonfire for Expo”—that simplifies building mobile apps for small businesses. By leveraging Expo, Supabase for the backend, NativeWind for styling, Storybook for component development, and a built-in testing framework, we ensure the framework remains modern, accessible, and easy to integrate into existing systems. Key functionalities include:
 
-**Why It Matters:**
-- A web-based admin panel simplifies management of user data and content moderation.
-
-**System Prompt Code (Phase 7):**
-
-```
-You are a senior Expo/React Native developer focusing on Phase 7 of ScriptHammer: “Admin Dashboard (Web Interface).”
-
-I need a fully functional tutorial (no placeholders) showing how to build a web-based admin panel that:
-1. Integrates with our Supabase instance for user management and content moderation.
-2. Follows best practices (secure routes, role checks, etc.).
-3. Ends with a Node script that merges or updates existing files to maintain parity with the current iteration.
-
-IMPORTANT:
-- Merge this admin panel code into the existing code from Phases 1-6 (Dexie, SQLite, RLS, triggers, etc.).
-- Provide complete code blocks with no missing imports.
-- The tutorial must NOT treat the admin panel as an afterthought; it must be woven into the existing structure rather than appended at the end.
-- The final Node script must preserve the existing architecture and update or add only what’s needed to integrate this feature.
-```
-
-### **Phase 8 – CLI Scaffolding Tool (Like Bonfire’s Builder)**
-  
-**Potential Objectives:**
-- **Command-Line Interface:** e.g., `npx script-hammer generate module posts`.
-- **Auto-Generate:** React Native screens, Supabase table creation scripts, context files.
-- **Configurable:** Use a YAML/JSON configuration to describe module fields.
-
-**Why It Matters:**
-- CRUD scaffolding accelerates development and ensures consistency across modules.
-
-**System Prompt Code (Phase 8):**
-
-```
-You are a senior Expo/React Native developer focusing on Phase 8 of ScriptHammer: “CLI Scaffolding Tool.”
-
-I need a fully functional tutorial (no placeholders) showing how to:
-1. Build a Node-based CLI that generates common files (RN screens, Supabase table scripts).
-2. Follow best practices so new modules integrate seamlessly into ScriptHammer’s existing codebase.
-3. End with a Node script that merges or updates existing logic, ensuring full parity with the current iteration.
-
-IMPORTANT:
-- Merge with the existing code from Phases 1-7 (including the admin panel).
-- Provide complete code blocks with no placeholders or missing imports.
-- The final Node script must incorporate the new logic from this phase in a way that does not overwrite or ignore previous phases.
-```
-
-### **Phase 9 – Advanced Roles & Permissions**
-
-**Potential Objectives:**
-- **Supabase Policies:** Expand RLS with roles such as admin and moderator.
-- **UI Changes:** Hide or show features based on roles.
-- **Data Model:** Optionally store roles in a separate table or extend `profiles`.
-
-**Why It Matters:**
-- Real-world applications need granular control; not every user should have full permissions.
-
-**System Prompt Code (Phase 9):**
-
-```
-You are a senior Expo/React Native developer focusing on Phase 9 of ScriptHammer: “Advanced Roles & Permissions.”
-
-I need a fully functional tutorial (no placeholders) that:
-1. Extends our Supabase RLS with roles like admin and moderator.
-2. Shows how the front end checks these roles to hide or show certain features (merging into the existing admin panel).
-3. Concludes with a Node script that merges or updates existing files/policies so everything remains in sync.
-
-IMPORTANT:
-- Merge with the existing code from Phases 1-8 (including the admin panel).
-- No placeholders or truncated imports; everything is integrated into the existing structure (contexts, DB triggers, etc.).
-- The scaffolding script should update or add what’s needed for these new permissions, preserving the current iteration’s integrity.
-```
-
-### **Phase 10 – Social/Business Features (Posts, Uploads, Notifications)**
-
-**Potential Objectives:**
-- **Posts & Feeds:** Create a `posts` table in Supabase, show a dynamic feed.
-- **File Uploads:** Integrate file uploads to Supabase Storage or a third-party service.
-- **Notifications:** Implement push notifications or in-app notifications.
-- **Realtime:** Automatically update the feed as posts are added or updated.
-
-**Why It Matters:**
-- Elevates your project from a simple profile system to a robust social/business platform.
-
-**System Prompt Code (Phase 10):**
-
-```
-You are a senior Expo/React Native developer focusing on Phase 10 of ScriptHammer: “Social/Business Features (Posts, Uploads, Notifications).”
-
-I need a fully functional tutorial (no placeholders) demonstrating:
-1. A “posts” feed with Supabase (integrated with existing offline logic if feasible).
-2. File uploads (images/docs) via Supabase Storage or a third-party.
-3. Optional push notifications for new likes/comments.
-4. Ends with a Node script that merges new modules/tables into the existing code in a way that preserves parity.
-
-IMPORTANT:
-- Merge with the existing code from Phases 1-9 (including admin, roles, etc.).
-- Provide complete code blocks with no missing imports or placeholders.
-- Show how these features integrate with existing contexts/offline logic.
-- The final script updates or adds only what’s needed to seamlessly incorporate these features.
-```
-
-### **Phase 11 – Production Pipeline (Expo EAS, Env Vars, Logging, Monitoring)**
-
-**Potential Objectives:**
-- **Expo EAS Build:** Prepare builds for iOS and Android.
-- **Environment Variables:** Securely manage secrets.
-- **Logging/Monitoring:** Integrate services like Sentry or Bugsnag.
-- **Performance:** Code splitting, caching, etc.
-
-**Why It Matters:**
-- A stable release pipeline is essential for production, ensuring updates, secure configurations, and robust monitoring.
-
-**System Prompt Code (Phase 11):**
-
-```
-You are a senior Expo/React Native developer focusing on Phase 11 of ScriptHammer: “Production Pipeline (Expo EAS, Env Vars, Logging, Monitoring).”
-
-I need a fully functional tutorial (no placeholders) showing how to:
-1. Use Expo EAS to build/submit iOS and Android apps.
-2. Manage environment variables securely.
-3. Integrate logging or crash reporting (Sentry, Bugsnag) in production.
-4. Provide a Node script that updates or adds the necessary files to maintain parity with the current iteration’s pipeline.
-
-IMPORTANT:
-- Merge with the existing code from Phases 1-10.
-- Provide complete code blocks, ensuring the final code is fully integrated.
-- The final script must not overwrite or ignore prior logic. It should carefully merge these pipeline enhancements into the existing structure.
-```
+- **Admin Dashboard with Role-Based Access:** First registered user becomes admin; subsequent users default to “user.”
+- **Social Network Core:** Posts, chats, and other basic social interactions.
+- **Dynamic Branding & Scaffolding:** Use the project name as a project variable and provide an interface for generating CRUD operations, adaptable to different business domains.
+- **Robust Developer Experience:** Out-of-the-box Storybook integration, comprehensive testing, and consistent styling with NativeWind.
 
 ---
 
-## How to Use These System Prompt Blocks
+## 2. Phase 1 – MVP Features & Prioritization
 
-1. **Start a fresh ChatGPT conversation** for the phase you’re implementing.  
-2. Copy the phase’s **System Prompt Code** (including the triple backticks) into your **System** message.  
-3. In your **User** message, add any additional details if needed.  
-4. ChatGPT should then reply with a fully integrated tutorial that merges into the existing codebase along with a Node script that updates only what is necessary.
+For the MVP, we need to focus on the core functionality that delivers immediate value to our target users. Here’s what to prioritize:
+
+### A. **Core Infrastructure**
+- **Project Setup & Repository Structure:**
+  - Initialize an Expo managed workflow.
+  - Establish a clear folder structure separating components, screens, services, and configurations.
+  - Configure environment variables and project-level settings (e.g., project name).
+- **Coding Standards & Linting:**
+  - Set up ESLint, Prettier, and commit hooks to enforce code quality.
+  - Define style guides and coding conventions to maintain consistency across the codebase.
+
+### B. **Backend Integration with Supabase**
+- **Authentication & User Management:**
+  - Implement user sign-up/sign-in flows.
+  - Define roles so that the first sign-up defaults to “admin” and all others to “user.”
+- **Database Schema:**
+  - Design tables for users, posts, chats, and any initial social network interactions.
+  - Set up necessary relationships and indices to ensure performance.
+- **API Service Layer:**
+  - Develop a robust service layer to handle interactions with Supabase.
+  - Include error handling and logging mechanisms.
+
+### C. **Admin Dashboard & Role-Based Access Control**
+- **Dashboard UI:**
+  - Build an admin dashboard accessible only to users with the “admin” role.
+  - Use React Navigation (or another routing library) for navigation between admin screens.
+- **Role-Based Components:**
+  - Develop higher-order components or hooks to enforce role-based access within the UI.
+  - Secure endpoints on both the client and server sides to ensure data integrity.
+
+### D. **Core Social Network Functionality**
+- **Posts & Chat Modules:**
+  - Create screens for posting content and chatting.
+  - Integrate real-time capabilities via Supabase subscriptions.
+- **User Interface & Styling:**
+  - Implement the global styling system using NativeWind.
+  - Provide a default system theme with toggling options for dark/light mode.
+  - Ensure the project name is dynamically injected in the header (branding).
+
+### E. **Developer Experience Enhancements**
+- **Storybook Integration:**
+  - Set up Storybook to document and test UI components in isolation.
+  - Create initial stories for key components like headers, buttons, and form elements.
+- **Testing Framework:**
+  - Integrate a testing solution (e.g., Jest with React Native Testing Library).
+  - Write initial unit and integration tests for core modules to ensure reliability.
+
+### F. **Scaffolding Interface for CRUD Operations**
+- **Dynamic Scaffolding:**
+  - Develop an interface to allow small business owners to define and generate CRUD operations dynamically.
+  - Provide templates that can be customized based on the type of business (e.g., widgets, real estate).
+- **Integration & Extensibility:**
+  - Ensure the scaffolding tool is easily extendable to add additional fields and custom business logic.
 
 ---
 
-## Final Note
+## 3. Detailed Implementation Steps for MVP
 
-With **Phases 1–6** completed (including Dexie on Web, SQLite + SecureStore on Native, real-time updates from Supabase, and our offline-first approach), you have a strong foundation. The subsequent phases will iteratively merge new features into this codebase rather than adding separate blocks. This approach ensures that every enhancement (admin dashboard, CLI scaffolding, advanced roles, social features, and production pipeline) is fully integrated and maintains parity with your existing system.
+### **Step 1: Initial Setup & Configuration**
+- **Repository and Project Setup:**
+  - Initialize the Expo project and configure the project structure.
+  - Integrate ESLint, Prettier, and commit hooks.
+- **Environment & Branding:**
+  - Create configuration files that store global project variables (e.g., project name).
+  - Ensure these variables are accessible in the header component for dynamic branding.
 
-Happy building with ScriptHammer!
+### **Step 2: Supabase Integration & Backend Setup**
+- **Authentication Module:**
+  - Integrate Supabase Auth.
+  - Write logic to assign the “admin” role to the first user.
+- **Database Schema and API:**
+  - Set up initial tables in Supabase for users, posts, chats, etc.
+  - Build a service layer for API calls with proper error handling and logging.
+
+### **Step 3: Building the Admin Dashboard**
+- **UI Components & Navigation:**
+  - Develop the main dashboard layout.
+  - Create protected routes/components that enforce role-based access.
+- **Role Enforcement:**
+  - Use hooks or context to manage user roles and permissions throughout the app.
+
+### **Step 4: Implementing Social Network Features**
+- **Posts & Chats:**
+  - Create components for displaying, creating, and interacting with posts.
+  - Set up chat interfaces with real-time updates.
+- **Styling and Theming:**
+  - Integrate NativeWind to apply global styles.
+  - Implement dark/light theme toggling based on system settings.
+
+### **Step 5: Developer Experience Tools**
+- **Storybook Setup:**
+  - Configure Storybook and add initial stories for reusable UI components.
+- **Testing Setup:**
+  - Integrate Jest (or another testing framework) and write tests for critical paths.
+
+### **Step 6: CRUD Scaffolding Interface**
+- **Interface Design:**
+  - Design a user-friendly interface that guides users through creating custom CRUD operations.
+- **Dynamic Code Generation:**
+  - Implement logic that dynamically generates form components and API endpoints based on user input.
+
+---
+
+## 4. Future Roadmap for Version 2
+
+While the MVP focuses on core functionalities, keep the following features on your radar for future versions:
+
+- **Enhanced Widget Customization:**
+  - Allow for more complex, customizable widgets beyond the basic CRUD operations.
+- **Advanced Analytics & Reporting:**
+  - Integrate analytics dashboards for monitoring app usage and user interactions.
+- **Scalability Enhancements:**
+  - Optimize database interactions and API endpoints for performance as user numbers grow.
+- **Additional Integrations:**
+  - Consider integrating additional third-party services for payments, scheduling, or marketing.
+- **Improved UX & Accessibility:**
+  - Refine the user interface based on user feedback to improve usability and accessibility.
+- **Extensive Role Management:**
+  - Expand the role-based system to include more granular permissions and multi-tier access control.
+
+---
+
+## 5. Best Practices & Integration Reminders
+
+- **Maintain Codebase Integrity:**
+  - Always integrate new modules with the existing system, ensuring consistency with the current architecture and coding standards.
+- **Automated Testing & CI/CD:**
+  - Leverage automated tests and continuous integration pipelines to catch regressions early.
+- **Documentation:**
+  - Document every new module and update the developer guide to maintain clarity across the team.
+- **Iterative Development:**
+  - Build the MVP in iterations, and prioritize core features that deliver value immediately while planning for future enhancements.
+- **User-Centered Design:**
+  - Keep the end-user in mind, especially small business owners, and ensure the interface is intuitive with minimal setup overhead.
+
+---
+
+## Conclusion
+
+This roadmap is designed to guide you through building a robust, opinionated framework that accelerates mobile app development for small business owners. Starting with a solid foundation in Expo and Supabase, and layering in an intuitive admin dashboard, social network functionality, dynamic CRUD scaffolding, and developer-friendly tools like Storybook and automated testing, this MVP sets the stage for future growth. Always adhere to your established codebase standards and integrate new features incrementally, ensuring that each addition is thoroughly tested and documented.
+
+By following this roadmap, you’ll create a maintainable, scalable solution that not only meets immediate needs but is also primed for future enhancements. Happy coding and remember: meticulous planning and adherence to best practices are key to long-term success!

@@ -1,3 +1,6 @@
+Below is an example of a complete Markdown file where each section heading includes an explicit HTML anchor. This should ensure that the table of contents links work in GitHub (or any Markdown viewer that supports HTML anchors). You can copy and paste the content into your documentation file (for example, `README.md`). Feel free to adjust the formatting to your liking.
+
+```markdown
 # ScriptHammer – Dexie on Web, SQLite + SecureStore on Native  
 **(Complete Tutorial + Script)**
 
@@ -28,7 +31,7 @@
 
 ---
 
-## 1) Supabase Setup
+## <a id="supabase-setup"></a>1) Supabase Setup
 
 Before you begin working on your app, configure your Supabase backend in your browser to reduce context switching.
 
@@ -108,7 +111,7 @@ In the Supabase UI, open the **Table Editor** for the `profiles` table and enabl
 
 ---
 
-## 2) Create a New Expo Project
+## <a id="create-a-new-expo-project"></a>2) Create a New Expo Project
 
 Now that your Supabase backend is set up, create your Expo project.
 
@@ -125,7 +128,7 @@ You now have a **blank** Expo Router project.
 
 ---
 
-## 3) Install Dependencies
+## <a id="install-dependencies"></a>3) Install Dependencies
 
 Install the required dependencies for Supabase, local databases, and offline support:
 
@@ -145,7 +148,7 @@ npm install dexie
 
 ---
 
-## 4) File & Folder Structure (Manual Creation)
+## <a id="file--folder-structure-manual-creation"></a>4) File & Folder Structure (Manual Creation)
 
 **If you prefer not to create files manually, jump to [Section 18](#scaffolding-script-generates-all-files).**
 
@@ -192,7 +195,7 @@ code .
 
 ---
 
-## 5) Code: `localdb/localdb.native.ts` (Expo SQLite)
+## <a id="code-localdblocaldbnativets-expo-sqlite"></a>5) Code: `localdb/localdb.native.ts` (Expo SQLite)
 
 ```ts
 // localdb/localdb.native.ts
@@ -293,7 +296,7 @@ export async function updateLocalDisplayName(userId: string, display_name: strin
 
 ---
 
-## 6) Code: `localdb/localdb.web.ts` (Dexie)
+## <a id="code-localdblocaldbwebts-dexie"></a>6) Code: `localdb/localdb.web.ts` (Dexie)
 
 ```ts
 // localdb/localdb.web.ts
@@ -336,7 +339,7 @@ export async function updateLocalDisplayName(userId: string, display_name: strin
 
 ---
 
-## 7) Code: `supabaseClient.ts` (Connection)
+## <a id="code-supabaseclientts-connection"></a>7) Code: `supabaseClient.ts` (Connection)
 
 ```ts
 // supabaseClient.ts
@@ -350,7 +353,7 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 ---
 
-## 8) Code: `context/auth.native.tsx` (Auth Context for iOS/Android)
+## <a id="code-contextauthnativetsx-auth-context-for-iosandroid"></a>8) Code: `context/auth.native.tsx` (Auth Context for iOS/Android)
 
 ```tsx
 // context/auth.native.tsx
@@ -505,7 +508,7 @@ export function useAuth() {
 
 ---
 
-## 9) Code: `context/auth.web.tsx` (Auth Context for Web)
+## <a id="code-contextauthwebtsx-auth-context-for-web"></a>9) Code: `context/auth.web.tsx` (Auth Context for Web)
 
 ```tsx
 // context/auth.web.tsx
@@ -657,7 +660,7 @@ export function useAuth() {
 
 ---
 
-## 10) Code: `context/offline.tsx` (Offline Context)
+## <a id="code-contextofflinetsx-offline-context"></a>10) Code: `context/offline.tsx` (Offline Context)
 
 This version ensures that if no profile record is found for the logged‑in user, a default record is inserted (and a blank display name remains blank).
 
@@ -829,7 +832,7 @@ export function useOffline() {
 
 ---
 
-## 11) Code: `app/_layout.tsx` (Top-Level Layout)
+## <a id="code-applayouttsx-top-level-layout"></a>11) Code: `app/_layout.tsx` (Top-Level Layout)
 
 > **Important Update:**  
 > To avoid the “Attempted to navigate before mounting the Root Layout component” error, the root layout now renders a `<Slot />` inside the `<Stack>`. This ensures that navigation can occur only after the layout is fully mounted.
@@ -857,7 +860,7 @@ export default function RootLayout() {
 
 ---
 
-## 12) Code: `app/index.tsx` (Redirect on Launch)
+## <a id="code-appindextsx-redirect-on-launch"></a>12) Code: `app/index.tsx` (Redirect on Launch)
 
 ```tsx
 // app/index.tsx
@@ -876,7 +879,7 @@ export default function IndexScreen() {
 
 ---
 
-## 13) Code: `(auth)` Folder (Sign In & Sign Up)
+## <a id="code-auth-folder-sign-in--sign-up"></a>13) Code: `(auth)` Folder (Sign In & Sign Up)
 
 ### `(auth)/_layout.tsx`
 
@@ -1055,7 +1058,7 @@ const styles = StyleSheet.create({
 
 ---
 
-## 14) Code: `(protected)` Folder (Profile + Edit)
+## <a id="code-protected-folder-profile--edit"></a>14) Code: `(protected)` Folder (Profile + Edit)
 
 ### `(protected)/_layout.tsx`
 
@@ -1211,7 +1214,7 @@ const styles = StyleSheet.create({
 
 ---
 
-## 15) Code: `(admin)` Folder (Admin Dashboard)
+## <a id="code-admin-folder-admin-dashboard"></a>15) Code: `(admin)` Folder (Admin Dashboard)
 
 ### `(admin)/_layout.tsx`
 
@@ -1525,7 +1528,7 @@ const styles = StyleSheet.create({
 
 ---
 
-## 16) Run & Test
+## <a id="run--test"></a>16) Run & Test
 
 Start your project with:
 
@@ -1545,7 +1548,7 @@ npx expo start --clear
 
 ---
 
-## 17) Troubleshooting SecureStore or SQLite Issues
+## <a id="troubleshooting-securestore-or-sqlite-issues"></a>17) Troubleshooting SecureStore or SQLite Issues
 
 1. If on Web your project still imports `expo-secure-store`, ensure you have named your files correctly:
    - Use **auth.native.tsx** for iOS/Android  
@@ -1562,7 +1565,7 @@ npx expo start --clear
 
 ---
 
-## 18) Scaffolding Script (Generates All Files)
+## <a id="scaffolding-script-generates-all-files"></a>18) Scaffolding Script (Generates All Files)
 
 If you prefer to automatically create or overwrite all files (including the admin dashboard), use the following Node script.
 
@@ -1577,7 +1580,7 @@ If you prefer to automatically create or overwrite all files (including the admi
    ```
 3. In your `package.json`, add:
    ```json
-       "scaffold-ScriptHammer": "node ./scripts/scaffold-ScriptHammer.js",
+   "scaffold-ScriptHammer": "node ./scripts/scaffold-ScriptHammer.js",
    ```
 4. Paste the complete script below:
 
@@ -1751,7 +1754,7 @@ export async function updateLocalDisplayName(userId: string, display_name: strin
   },
   {
     filePath: "context/auth.native.tsx",
-    content: `import React, { createContext, useContext, useEffect, useState } from "react";
+    content: `import React, { createContext, useContext, useEffect, useState } from "@react";
 import { supabase } from "../supabaseClient";
 import { Session } from "@supabase/supabase-js";
 import * as SecureStore from "expo-secure-store";
@@ -2909,7 +2912,7 @@ Confirm the prompt, and the script will generate (or overwrite) all files.
 
 ---
 
-## 19) Set Up `.env.local`
+## <a id="set-up-envlocal"></a>19) Set Up `.env.local`
 
 At your **project root**, create a file named `.env.local` with the following content:
 
@@ -2927,7 +2930,7 @@ Also, add it to your `.gitignore`:
 
 ---
 
-## 20) Next Steps
+## <a id="next-steps"></a>20) Next Steps
 
 You now have a complete ScriptHammer codebase that includes:
 
@@ -2951,3 +2954,13 @@ This tutorial is fully self-contained—with no missing imports or placeholders�
 ---
 
 *Happy coding!*
+```
+
+A few notes:
+
+- The anchor links are defined by placing `<a id="..."></a>` before each heading text. This guarantees that the TOC links (e.g., `[Supabase Setup](#supabase-setup)`) work correctly.
+- You can adjust the heading text as needed while keeping the `id` attribute intact.
+
+If you still experience issues with the links, ensure your Markdown viewer supports HTML anchors. GitHub and VSCode’s built-in Markdown preview do support them.
+
+I hope this helps!

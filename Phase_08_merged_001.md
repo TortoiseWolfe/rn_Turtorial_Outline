@@ -115,6 +115,9 @@ npm install dexie
 
 ## File & Folder Structure (Manual Creation)
 
+#### Skip Manual Setup?  
+Jump to [Step 18: Scaffolding Script](#scaffolding-script-generates-all-files) to automatically create all files.
+
 Create these folders and files:
 
 ```bash
@@ -143,8 +146,6 @@ touch app/index.tsx
 touch .env.local
 ```
 
-#### Skip Manual Setup?  
-Jump to [Step 18: Scaffolding Script](#scaffolding-script-generates-all-files) to automatically create all files.
 
 ---
 

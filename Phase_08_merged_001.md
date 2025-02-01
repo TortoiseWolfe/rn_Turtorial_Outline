@@ -1604,7 +1604,6 @@ const fs = require("fs");
 const path = require("path");
 const readline = require("readline");
 
-// Each file below is provided in full—no missing imports or placeholders.
 const FILES = [
   {
     filePath: "supabaseClient.ts",
@@ -1797,7 +1796,6 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Attempt to restore tokens
   useEffect(() => {
     (async () => {
       try {
@@ -2861,7 +2859,7 @@ const styles = StyleSheet.create({
         fs.mkdirSync(dir, { recursive: true });
       }
       fs.writeFileSync(filePath, content, "utf8");
-      console.log(\`✅ Created/updated: \${filePath}\`);
+      console.log("Created/updated: " + filePath);
     }
 
     try {

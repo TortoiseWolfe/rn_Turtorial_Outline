@@ -1554,6 +1554,7 @@ If you prefer to automatically create or overwrite all files (including the admi
    mkdir -p scripts
    touch scripts/scaffold-ScriptHammer.js
    chmod +x scripts/scaffold-ScriptHammer.js
+   touch .env.local
    code .
    ```
 3. In your `package.json`, add:

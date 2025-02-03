@@ -28,42 +28,6 @@ This creates a new Expo project named **ScriptHammer** using the latest managed 
 
 **Best Practice:** Keep using the **Managed Workflow** – you don't need to eject to Xcode/Android Studio. Expo’s managed approach lets you handle native features (like camera, location) via Expo SDK packages, keeping your life easier. All configuration will be via JavaScript/JSON (no native code editing), which fits our needs.
 
-### 2. Set up Expo Router navigation 🗺️
-
-**Command:**  
-```bash
-npx expo install expo-router react-native-safe-area-context
-``` 
-
-This installs Expo’s file-based router and a safe-area library. Expo Router enables **Next.js-like page routing** in React Native, where screens are files in the `app/` directory. The safe-area context ensures content isn’t hidden under notches or status bars.
-
-Next, open your `package.json` and **set the entry point** to Expo Router:
-
-```json
-"main": "expo-router/entry"
-``` 
-
-This tells Expo to load the router’s entry file. (If you created the project with Expo Router from the start, this is likely done for you; otherwise, add it now.) 
-
-Now, organize the navigation structure in the `app/` directory:
-
-- **Create a file** `app/_layout.tsx` with a default layout component. This will wrap all your screens. For example: 
-
-  ```tsx
-  import { Stack } from "expo-router";
-  export default function Layout() {
-    return <Stack />;
-  }
-  ``` 
-
-  This uses Expo Router’s Stack navigator by default for all child routes. The `_layout.tsx` serves as a layout wrapper for screens in the same folder (here, the root of `app/`). You can think of it like a global navigation container.
-
-- **Create a screen** file, e.g. `app/index.tsx`, for your home screen. For now, it can return a simple `<Text>Home</Text>` component. Every file in `app/` becomes a route automatically. So `index.tsx` becomes the default **home** route, and other files (e.g. `profile.tsx`) become other screens. Expo Router will map these to navigation paths.
-
-🚦 **Routing Best Practices:** Keep all screens in the `app/` directory for Expo Router to auto-detect. If you ever decide to group your source code in a `src/` folder (for a cleaner project root), you can move `app` into `src/app`. Expo Router supports a top-level `src/` directory out of the box. **Important:** Don’t have both an `app/` and `src/app` – if both exist, **only** `src/app` is used (it takes precedence). In other words, choose one approach to avoid conflicts. For now, you can keep using the root `app/` directory, or if you prefer a dedicated src folder, move it now (and leave your config files like **app.json**, **babel.config.js** at the root).
-
-Also, to avoid unwanted routes, **do not put non-screen components inside `app/`** unless they follow Expo Router conventions. For example, if you add `app/components/Header.tsx`, Expo Router will think “Header” is a route (`/components/header`) – not what we want. To prevent this, keep such components in a separate folder (e.g. a top-level `components/` or within `src/`) so the router ignores them. This keeps the navigation clean and only mapping actual screens.
-
 ### 3. Install and configure NativeWind (Tailwind CSS for React Native) 🎨
 
 We’ll use **NativeWind** to style our app with Tailwind CSS utility classes, giving us rapid and consistent UI styling.

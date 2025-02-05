@@ -1,4 +1,4 @@
-Got it! Below is the **Bash script** that scaffolds a WordPress theme, supporting both classic PHP-based themes and block-based Full Site Editing (FSE) themes. The script will:
+the **Bash script** that scaffolds a WordPress theme, supporting both classic PHP-based themes and block-based Full Site Editing (FSE) themes. The script will:
 
 - **Load settings** from a `.env` file (if available) or prompt for input.
 - **Initialize Git** and create a `.gitignore` file.

@@ -1,64 +1,72 @@
-**Prompt:**
+You are a seasoned full-stack developer tasked with building a complete, production-ready social network application. The solution must consist of three standalone scripts that integrate seamlessly:
 
-I need two SQL scripts that sandwich one Bash script to fully set up a robust social network using Supabase for the backend and React Native Expo with Zustand for the frontend. 
+1. **SQL Script 1: Supabase Backend Setup**
+   - Create a comprehensive database schema for a robust social network on Supabase. This schema must include the following tables with proper relationships, constraints, indexes, and robust Row-Level Security (RLS) policies:
+     - **Users:**
+       - Integrate with Supabase Auth for email/password and OAuth authentication.
+       - Include fields for user metadata such as full name, email, and a profile picture URL.
+       - Allow users to upload and edit their profile picture.
+       - Include a role field (the first user to sign up becomes the admin; subsequent users default to regular users; dummy roles include moderator and editor).
+     - **Friend Requests:**
+       - Store friend request details, including statuses (pending, accepted, declined).
+     - **Posts:**
+       - Support text and image posts with real-time update capabilities.
+     - **Comments:**
+       - Support nested replies on posts.
+     - **Reactions:**
+       - Allow for likes, dislikes, and various emoji reactions.
+     - **Chats:**
+       - Support both individual and group chats with the required metadata.
+     - **Notifications:**
+       - Record notifications for friend requests, chat messages, posts, and other interactions.
+     - **Geolocation:**
+       - Store user location data for real-time tracking.
+   - Ensure that real-time subscriptions are configured for posts, messages, and notifications.
 
-### **SQL Script 1 (Setup Supabase Backend)**
-This script should:
-- Define a full-featured database schema with best practices, including tables for:
-  - Users (with authentication via Supabase Auth, role-based access control, and user metadata)
-  - Friend requests (with status tracking: pending, accepted, declined)
-  - Posts (supporting images, text, and real-time updates)
-  - Comments (nested replies supported)
-  - Reactions (likes, dislikes, emojis, etc.)
-  - Direct messages (including individual and group chats)
-  - Notifications (for friend requests, message updates, etc.)
-  - Geolocation tracking (storing user locations with real-time updates)
-- Implement **Row-Level Security (RLS)** for all necessary tables.
-- Enable **real-time subscriptions** to posts, messages, and notifications.
-- Ensure relationships between tables are well-structured with foreign keys and constraints.
+2. **Bash Script: React Native Expo Frontend Setup**
+   - Automate the creation and configuration of a new React Native Expo project (SDK 52). The default project name is “ScriptHammer” (allowing for customization). This script must run the following commands:
+     ```
+     npx create-expo-app ScriptHammer
+     cd ScriptHammer
+     npm run reset-project
+     rm -rf app-example
+     ```
+   - Within the generated project, set up the following functionalities:
+     - **Authentication:**
+       - Integrate Supabase Auth (email/password and OAuth options).
+     - **State Management:**
+       - Implement Zustand for global state management.
+     - **Geolocation:**
+       - Add real-time geolocation tracking using appropriate libraries (e.g., expo-location and react-native-maps).
+     - **Global Theming:**
+       - Use NativeWind to implement a global theme that supports system, light, and dark modes.
+     - **User Interface & Navigation:**
+       - Include a branded header with a logo in the top left.
+       - Create an integrated admin dashboard within the app.
+       - Develop a protected, tab-based layout with these tabs:
+         - **Home:** Display a feed of posts and comments.
+         - **Messages:** Provide interfaces for individual and group chats.
+         - **Friends:** Manage friend requests and display friend lists.
+         - **Notifications:** Show alerts for interactions and updates.
+         - **Map:** Display the user’s current location on a map with real-time updates.
+     - **Profile Management:**
+       - Allow users to upload and edit their profile picture using file upload capabilities (for example, by integrating expo-image-picker and Supabase Storage).
 
----
+3. **SQL Script 2: Dummy Data Population**
+   - This script is intended to run after the first (admin) user has signed up.
+   - Insert three dummy users with distinct roles: one regular user, one moderator, and one editor.
+   - Populate the database with sample data that includes:
+     - Sample friend requests between users.
+     - Sample posts, comments, and reactions by each dummy user.
+     - Simulated chat conversations between each dummy user and the admin.
+     - Geolocation data for each user to simulate real-time tracking.
 
-### **Bash Script (Setup React Native Expo Frontend)**
-This script should:
-1. Execute the necessary terminal commands:
-   ```bash
-   npx create-expo-app ScriptHammer
-   cd ScriptHammer
-   npm run reset-project
-   rm -rf app-example
-   ```
-   - (Allowing flexibility for a different project name)
-2. Set up **authentication** with Supabase Auth (email/password, OAuth options like Google, Apple, etc.).
-3. Implement **state management** using Zustand.
-4. Include **geolocation** (suggested: `expo-location` and `react-native-maps` for tracking & displaying user locations in real-time).
-5. Add a **global theme** using NativeWind, with support for system theme, light/dark mode toggle.
-6. Set up an **admin dashboard** integrated into the app, allowing the first user to register as the admin.
-7. Include a **protected tab-based layout**:
-   - **Home:** Feed displaying real-time posts & comments.
-   - **Messages:** Chat functionality with direct & group messaging.
-   - **Friends:** List of friends & pending requests.
-   - **Notifications:** Updates for interactions.
-   - **Map:** Real-time user location tracking.
+**Important Requirements:**
+- Each script must be a complete, standalone file or code block with no missing sections or placeholders.
+- The code in all scripts must be fully functional and ready for production use.
+- Emphasize industry best practices, modularity, maintainability, and integration with existing systems.
+- The scripts must work together as a cohesive whole and be easy to expand upon in the future.
+- Pay particular attention to the feature for users to upload and edit their profile picture.
+- The output should be provided in one complete response with clear demarcations between the three scripts.
 
----
-
-### **SQL Script 2 (Populate Database with Test Data)**
-This script should:
-- Run **after the first admin signs up**.
-- Create **three dummy users**: a general user, a moderator, and an editor.
-- Generate sample **friend requests**, **posts**, **comments**, and **reactions**.
-- Simulate **chat conversations** between each dummy user and the admin.
-- Populate the geolocation table with random locations for users.
-
----
-
-### **General Requirements**
-- The system should be fully modular and expandable.
-- The frontend should be built for maintainability and ease of extension.
-- Authentication and state management should be robust.
-- The UI should include branding with a logo in the top left corner.
-- The admin should have control over managing users, posts, and reports.
-- **No shortcuts**—the social network should be as feature-complete as possible with best practices.
-
----
+Follow these instructions precisely and generate the three complete scripts accordingly.

@@ -1,5 +1,3 @@
----
-
 **Prompt:**
 
 I need two SQL scripts that sandwich one Bash script to fully set up a robust social network using Supabase for the backend and React Native Expo with Zustand for the frontend. 

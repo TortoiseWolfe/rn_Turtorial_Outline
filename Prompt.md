@@ -8,7 +8,7 @@ The three scripts are:
      - **Users:**
        - Integrate with Supabase Auth for email/password and OAuth authentication.
        - Include user metadata such as full name, email, and a profile picture URL.
-       - Allow users to upload and edit their profile picture.
+       - Allow users to upload and edit their profile picture and displayname.
        - Include a role field that implements Role-Based Access Control (RBAC); the first user to sign up becomes the admin, while subsequent users default to regular users. Additionally, create roles for moderator and editor.
      - **Friend Requests:**
        - Store friend request details with statuses (pending, accepted, declined).
@@ -23,7 +23,7 @@ The three scripts are:
      - **Notifications:**
        - Record notifications for friend requests, chat messages, posts, and other interactions.
      - **Geolocation:**
-       - Store user location data for real-time tracking.
+       - Store user location data for real-time tracking. User must be able to toggle off easily
    - **Security & Real-Time:**
      - Implement robust Row-Level Security (RLS) policies on every table.
      - Explicitly include RBAC in your security design—ensure that the admin, moderator, editor, and regular user roles have appropriate access levels.

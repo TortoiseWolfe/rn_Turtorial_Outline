@@ -1,4 +1,4 @@
-Below is the complete updated Bash script. This version assumes you’re running it from the root of your WordPress project (where the `wp-content/themes` folder exists). It creates your new theme inside `wp-content/themes/` (using your defined slug), then it initializes Git (and pushes to your remote if provided), and finally creates a ZIP file in your project root for distribution. A sample `.env` file is provided as well.
+Below is the complete updated Bash script. This version assumes you’re running it from the root of your WordPress installation (where the `wp-content/themes` folder exists). It creates your new theme inside `wp-content/themes/<theme-slug>`, scaffolds all standard files (including a Markdown `ReadMe.md` and a `readme.txt` for WordPress.org), creates a tailored `.gitignore`, initializes Git (and pushes if a valid remote is provided), and finally packages the theme into a ZIP file that is placed inside the theme’s own directory.
 
 ---
 
@@ -622,16 +622,13 @@ else
     echo "Git is not installed. Skipping Git initialization."
 fi
 
-# Return to project root
-cd "$PROJECT_ROOT"
-
 ##############################
-# Zip the theme folder for distribution (placed at the project root)
+# Package the theme into a ZIP file within the same theme directory
 ##############################
-zip -r "${THEME_SLUG}.zip" "$THEMES_DIR/$THEME_SLUG" >/dev/null
-echo "Created distribution zip: ${THEME_SLUG}.zip"
+zip -r "${THEME_SLUG}.zip" . >/dev/null
+echo "Created distribution zip: ${THEME_DIR}/${THEME_SLUG}.zip"
 
-echo "Theme scaffolding complete! Customize your theme in the '$THEMES_DIR/$THEME_SLUG' folder."
+echo "Theme scaffolding complete! Customize your theme in the '$THEME_DIR' folder."
 ```
 
 ---
@@ -654,6 +651,6 @@ This script will now:
 - Scaffold all standard theme files (including a Markdown `ReadMe.md` and a `readme.txt` for WordPress.org).
 - Create a tailored `.gitignore`.
 - Initialize a Git repository (and push if a valid `REPO_URL` is provided).
-- Package the theme into a ZIP file in your project root.
+- Package the theme into a ZIP file located in the same directory as your theme.
 
 Happy theming, and remember to further customize the generated files as needed!

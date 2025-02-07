@@ -24,7 +24,7 @@ REPO_URL="https://github.com/yourusername/my-awesome-theme.git"
 
 ---
 
-### Bash Script: `create-wp-theme.sh`
+### Complete Bash Script: `create-wp-theme.sh`
 
 ```bash
 #!/bin/bash
@@ -523,20 +523,38 @@ EOF
 echo "Created license.txt"
 
 ##############################
+# Create a .gitignore file tailored for a WordPress theme
+##############################
+cat > .gitignore <<EOF
+# Ignore node modules (if using build tools)
+node_modules/
+
+# Ignore system files
+.DS_Store
+Thumbs.db
+
+# Ignore build/distribution artifacts
+*.zip
+*.tar.gz
+
+# Ignore environment file (if it contains sensitive configuration)
+.env
+
+# Ignore log files
+*.log
+
+# Ignore temporary directories
+tmp/
+EOF
+
+echo "Created .gitignore"
+
+##############################
 # Initialize Git repository (if Git is installed)
 ##############################
 if command -v git >/dev/null 2>&1; then
     echo "Initializing Git repository..."
     git init
-    # Create a .gitignore file
-    cat > .gitignore <<EOF
-# Ignore node_modules
-node_modules/
-# Ignore system files
-.DS_Store
-# Ignore distribution zip file
-${THEME_SLUG}.zip
-EOF
     git add .
     git commit -m "Initial commit: Scaffold new WordPress theme"
     if [ -n "$REPO_URL" ]; then
@@ -576,8 +594,9 @@ echo "Theme scaffolding complete! Customize your theme in the '${THEME_SLUG}' fo
 
 This script will:
 - Create a new theme folder with the specified structure.
-- Generate essential theme files (with starter code for Customizer, asset enqueuing, widget areas, and menu registration).
-- Initialize a Git repository (using the repository URL from the `.env` file) and push the initial commit.
+- Generate essential theme files (with starter code for the Customizer, asset enqueuing, widget areas, and menu registration).
+- Create a tailored `.gitignore` to keep your repository clean.
+- Initialize a new Git repository and push the initial commit to the remote repository (if `REPO_URL` is provided).
 - Package the theme into a ZIP file for distribution.
 
-Happy theming and remember to further customize the scaffolded files as needed!
+Happy theming!

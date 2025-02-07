@@ -10,7 +10,7 @@ THEME_NAME="My Awesome Theme"
 THEME_SLUG="my-awesome-theme"
 
 # Theme author
-THEME_AUTHOR="Your Name"
+THEME_AUTHOR="TurtleWolfe@ScriptHammer.com"
 
 # Initial theme version
 THEME_VERSION="1.0.0"
@@ -19,7 +19,7 @@ THEME_VERSION="1.0.0"
 THEME_DESCRIPTION="A clean, responsive theme built for WordPress."
 
 # Git repository URL (optional; used to initialize and push the Git repository)
-REPO_URL="https://github.com/yourusername/my-awesome-theme.git"
+REPO_URL="https://github.com/TortoiseWolfe/my-awesome-theme"
 ```
 
 ---

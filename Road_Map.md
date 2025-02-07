@@ -1,11 +1,10 @@
 ```markdown
 ## Phase 1: MVP (Minimum Viable Product)
-**Objective:** Validate core functionality, gather early user feedback, and establish a stable foundation.
 
 ### Core User Features
 - **User Authentication & Registration:**
-  - Basic sign-up and login (email/phone, simple password).
-  - Integration with existing authentication modules (e.g., OAuth).
+  - Basic sign-up and login (email/username, password, password confimation and email confirmation).
+  - Integration with existing authentication modules (e.g., OAuth, Apple, Facebook, Google).
   
 - **Profile Management:**
   - Basic profile creation and editing (profile photo, name, bio).
@@ -37,8 +36,6 @@
 - **Data Analytics:**
   - Tracking key metrics: user registrations, posts, and friend connections.
 
-- **API Endpoints:**
-  - Minimal REST/GraphQL endpoints to support mobile features and future integrations.
 
 ### Best Practices for MVP
 - **UI/UX:** Focus on clean and intuitive interfaces.

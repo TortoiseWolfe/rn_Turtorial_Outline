@@ -1,3 +1,7 @@
+Below is the complete updated Bash script. This version assumes you’re running it from the root of your WordPress project (where the `wp-content/themes` folder exists). It creates your new theme inside `wp-content/themes/` (using your defined slug), then it initializes Git (and pushes to your remote if provided), and finally creates a ZIP file in your project root for distribution. A sample `.env` file is provided as well.
+
+---
+
 ### Sample `.env` File
 
 ```dotenv
@@ -36,8 +40,10 @@ if [ ! -f .env ]; then
     exit 1
 fi
 
-# Load environment variables from .env (ignoring comments and blank lines)
-export $(grep -v '^#' .env | xargs)
+# Load environment variables from .env without splitting on spaces.
+set -a
+source .env
+set +a
 
 # Check required variables
 REQUIRED_VARS=("THEME_NAME" "THEME_SLUG" "THEME_AUTHOR" "THEME_VERSION" "THEME_DESCRIPTION")
@@ -48,18 +54,28 @@ for var in "${REQUIRED_VARS[@]}"; do
     fi
 done
 
-echo "Creating theme: $THEME_NAME ($THEME_SLUG)"
+# Save project root (assumed to be the root of your WordPress installation)
+PROJECT_ROOT=$(pwd)
 
-# Create the theme directory (error if it already exists)
-if [ -d "$THEME_SLUG" ]; then
-    echo "Error: Directory '$THEME_SLUG' already exists."
+# Ensure the wp-content/themes directory exists
+THEMES_DIR="wp-content/themes"
+if [ ! -d "$THEMES_DIR" ]; then
+    echo "Error: Directory '$THEMES_DIR' does not exist. Please run the script from the root of your WordPress installation."
     exit 1
 fi
 
-mkdir -p "$THEME_SLUG"
-cd "$THEME_SLUG"
+# Set the new theme directory path
+THEME_DIR="$THEMES_DIR/$THEME_SLUG"
+if [ -d "$THEME_DIR" ]; then
+    echo "Error: Directory '$THEME_DIR' already exists."
+    exit 1
+fi
 
-echo "Scaffolding theme structure..."
+# Create the new theme folder inside wp-content/themes and switch to it
+mkdir -p "$THEME_DIR"
+cd "$THEME_DIR"
+
+echo "Scaffolding theme structure for '$THEME_NAME' in $THEME_DIR..."
 
 ##############################
 # Create style.css with header metadata
@@ -280,7 +296,7 @@ touch screenshot.png
 echo "Created screenshot.png placeholder"
 
 ##############################
-# Create readme.txt
+# Create readme.txt (for WordPress.org repository use)
 ##############################
 cat > readme.txt <<EOF
 === ${THEME_NAME} ===
@@ -308,6 +324,46 @@ A brief description of the theme goes here.
 EOF
 
 echo "Created readme.txt"
+
+##############################
+# Create ReadMe.md (Markdown documentation)
+##############################
+cat > ReadMe.md <<EOF
+# ${THEME_NAME}
+
+**Version:** ${THEME_VERSION}  
+**Author:** ${THEME_AUTHOR}  
+
+## Description
+
+${THEME_DESCRIPTION}
+
+## Installation
+
+1. Upload the entire "\${THEME_SLUG}" folder to the \`/wp-content/themes/\` directory.
+2. Activate the theme via the WordPress Admin (Appearance > Themes).
+
+## Features
+
+- Responsive design
+- Customizer integration
+- Widget areas
+- Navigation menu support
+
+## Usage
+
+Customize the theme via the WordPress Customizer. For further details, refer to the documentation.
+
+## Changelog
+
+- **${THEME_VERSION}**: Initial release.
+
+## License
+
+This theme is licensed under the [GNU General Public License v2 or later](http://www.gnu.org/licenses/gpl-2.0.html).
+EOF
+
+echo "Created ReadMe.md"
 
 ##############################
 # Create license.txt with GPLv2 license text
@@ -566,16 +622,16 @@ else
     echo "Git is not installed. Skipping Git initialization."
 fi
 
-# Return to parent directory
-cd ..
+# Return to project root
+cd "$PROJECT_ROOT"
 
 ##############################
-# Zip the theme folder for distribution
+# Zip the theme folder for distribution (placed at the project root)
 ##############################
-zip -r "${THEME_SLUG}.zip" "${THEME_SLUG}" >/dev/null
+zip -r "${THEME_SLUG}.zip" "$THEMES_DIR/$THEME_SLUG" >/dev/null
 echo "Created distribution zip: ${THEME_SLUG}.zip"
 
-echo "Theme scaffolding complete! Customize your theme in the '${THEME_SLUG}' folder."
+echo "Theme scaffolding complete! Customize your theme in the '$THEMES_DIR/$THEME_SLUG' folder."
 ```
 
 ---
@@ -587,16 +643,17 @@ echo "Theme scaffolding complete! Customize your theme in the '${THEME_SLUG}' fo
    ```bash
    chmod +x create-wp-theme.sh
    ```
-3. **Run the script:**
+3. **Run the script from the root of your WordPress installation:**
    ```bash
    ./create-wp-theme.sh
    ```
 
-This script will:
-- Create a new theme folder with the specified structure.
-- Generate essential theme files (with starter code for the Customizer, asset enqueuing, widget areas, and menu registration).
-- Create a tailored `.gitignore` to keep your repository clean.
-- Initialize a new Git repository and push the initial commit to the remote repository (if `REPO_URL` is provided).
-- Package the theme into a ZIP file for distribution.
+This script will now:
+- Verify that the `wp-content/themes` folder exists.
+- Create your theme in `wp-content/themes/<theme-slug>`.
+- Scaffold all standard theme files (including a Markdown `ReadMe.md` and a `readme.txt` for WordPress.org).
+- Create a tailored `.gitignore`.
+- Initialize a Git repository (and push if a valid `REPO_URL` is provided).
+- Package the theme into a ZIP file in your project root.
 
-Happy theming!
+Happy theming, and remember to further customize the generated files as needed!

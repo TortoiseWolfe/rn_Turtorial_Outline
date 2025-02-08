@@ -3,10 +3,10 @@
 set -e
 
 ##############################################
-        # Expo Setup Script Template
+#            EXPO SETUP SCRIPT TEMPLATE
 ##############################################
 
-#region Metadata and Configuration
+#region METADATA AND CONFIGURATION
 # -----------------------------------------------------------------------------
 # Script Name:        expo-setup.sh
 # Description:        Non-Interactive Expo setup script for initializing an
@@ -21,57 +21,76 @@ set -e
 #   - Ensure that all environment variables are securely defined.
 #   - Use meaningful variable names and consistent formatting.
 #   - Document each section thoroughly for maintainability.
+#   - Validate critical variables before proceeding.
 # -----------------------------------------------------------------------------
 #endregion
 
-#region Environment Variables and Pre-Setup
-# TODO: Set environment variables (e.g., APP_NAME, USE_THEME) and perform any pre-setup actions.
+#region ENVIRONMENT VARIABLES AND PRE-SETUP
+# Load environment variables from .env file if it exists.
+if [ -f .env ]; then
+  # Export variables defined in the .env file
+  set -o allexport
+  source .env
+  set +o allexport
+else
+  echo "Error: .env file not found. Please create one with the necessary environment variables."
+  exit 1
+fi
+
+# Validate that APP_NAME is set.
+if [ -z "$APP_NAME" ]; then
+  echo "Error: APP_NAME is not set in the .env file."
+  exit 1
+fi
 #endregion
 
-#region Create Expo App
-npx create-expo-app ScriptHammer
-#endregion
+#region CREATE EXPO APP
+# Create the Expo app using the project name from APP_NAME.
+npx create-expo-app "$APP_NAME"
 
-#region Enter Project Directory
-cd ScriptHammer
-# TODO: Change directory to the created project directory.
-#endregion
+# Change into the project directory.
+cd "$APP_NAME" || {
+  echo "Error: Failed to enter directory '$APP_NAME'. Exiting."
+  exit 1
+}
 
-#region Create .env.local File
-# TODO: Create a .env.local file with your Supabase credentials.
-#endregion
-
-#region Reset Project and Remove Default Files
+# Run the reset-project command and remove any default folders.
 npm run reset-project
 rm -rf app-example
 #endregion
 
-#region Install Dependencies
+#region INSTALL DEPENDENCIES
 # TODO: Install core packages, Expo packages, NativeWind, Tailwind CSS, etc.
 #endregion
 
-#region Create Directory Structure
+#region CREATE .ENV.LOCAL FILE
+# TODO: Create a .env.local file with your Supabase credentials.
+#endregion
+
+#region CREATE DIRECTORY STRUCTURE
 # TODO: Create the necessary directory structure (e.g., app folders, assets, store, lib, components).
 #endregion
 
-#region Create Project Files
+#region CREATE PROJECT FILES
 # TODO: Create essential project files such as:
 #       - Supabase client (lib/supabase.ts)
 #       - Zustand stores (store/useAuthStore.ts, store/useThemeStore.ts)
 #       - Layouts and screens (app/_layout.tsx, app/(auth)/, app/(protected)/, etc.)
 #endregion
 
-#region Babel Configuration
+#region BABEL CONFIGURATION
 # TODO: Create or update babel.config.js for NativeWind and Expo Router.
 #endregion
 
-#region Optional: Download Fonts
+#region OPTIONAL: DOWNLOAD FONTS
 # TODO: Optionally download steampunk fonts if USE_THEME is enabled.
 #endregion
 
-#region Final Instructions and Launch
+#region FINAL INSTRUCTIONS AND LAUNCH
 # TODO: Print final instructions and launch the Expo app.
+npx expo start --clear
 #endregion
+
 
 ```
 

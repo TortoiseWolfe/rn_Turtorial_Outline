@@ -1,7 +1,3 @@
-Got it! I will generate a system prompt that, when given your GitHub URL, can analyze the repository and produce a Bash script to scaffold the missing parts of your application. This will include refactoring the project structure, setting up dependencies, implementing functional demo screens, configuring Supabase authentication and backend, and adding a fully functional social networking feature.
-
-I'll let you know once it's ready for review.
-
 # System Prompt: Project Scaffolding Script Generator
 
 This system prompt guides an AI to generate a **Bash script** that scaffolds missing parts of an Expo/React Native application based on a provided GitHub repository URL. The script will perform the following tasks:
@@ -108,7 +104,3 @@ This system prompt guides an AI to generate a **Bash script** that scaffolds mis
 - Wherever possible, perform operations idempotently (running the script twice should not double-install packages or duplicate files). For instance, only install a dependency if it's not already in `package.json`.
 - Test for errors after each critical command (e.g., use `|| exit 1` to stop if a command fails) to avoid continuing in a broken state.
 - Maintain the **integrity of the existing system**: the script should integrate new structure and features without breaking what's already there. For example, if the repository already has some components or data, incorporate or reference them rather than overwrite. The goal is to augment the project with missing parts, not to erase or replace existing functionality.
-
----
-
-By following this system prompt, when provided with a GitHub repository URL, the AI will generate a Bash script that executes all the above steps. The resulting script automates the setup of missing dependencies, refactors the project structure, and scaffolds the application features (frontend screens and backend schema) to accelerate development while preserving the project's integrity and following best practices.

@@ -15,10 +15,10 @@
 set -e
 
 ##############################################
-#            EXPO SETUP SCRIPT TEMPLATE
+        # Expo Setup Script Template
 ##############################################
 
-#region METADATA AND CONFIGURATION
+#region Metadata and Configuration
 # -----------------------------------------------------------------------------
 # Script Name:        expo-setup.sh
 # Description:        Non-Interactive Expo setup script for initializing an
@@ -37,7 +37,7 @@ set -e
 # -----------------------------------------------------------------------------
 #endregion
 
-#region ENVIRONMENT VARIABLES AND PRE-SETUP
+#region Environment Variables and Pre-Setup
 # Load environment variables from .env file if it exists.
 if [ -f .env ]; then
   # Export variables defined in the .env file
@@ -56,7 +56,7 @@ if [ -z "$APP_NAME" ]; then
 fi
 #endregion
 
-#region CREATE EXPO APP
+#region Create Expo App
 # Create the Expo app using the project name from APP_NAME.
 npx create-expo-app "$APP_NAME"
 
@@ -71,39 +71,65 @@ npm run reset-project
 rm -rf app-example
 #endregion
 
-#region INSTALL DEPENDENCIES
+#region Install Dependencies
 # TODO: Install core packages, Expo packages, NativeWind, Tailwind CSS, etc.
 #endregion
 
-#region CREATE .ENV.LOCAL FILE
-# TODO: Create a .env.local file with your Supabase credentials.
-#endregion
-
-#region CREATE DIRECTORY STRUCTURE
-# TODO: Create the necessary directory structure (e.g., app folders, assets, store, lib, components).
-#endregion
-
-#region CREATE PROJECT FILES
+# #region CREATE DIRECTORY STRUCTURE
+# my-app/
+# ├── .env.local                    # Environment variables (e.g., API keys, project settings)
+# ├── app.json                      # Expo configuration file
+# ├── babel.config.js               # Babel configuration (e.g., for NativeWind, Expo Router)
+# ├── metro.config.js               # Metro bundler configuration (optional, for advanced setups)
+# ├── package.json                  # Project manifest with dependencies and scripts
+# ├── tsconfig.json                 # TypeScript configuration (if you're using TypeScript)
+# └── src/
+#     └── app/
+#         ├── _layout.tsx           # Root layout for global routing and configuration
+#         ├── error.tsx             # Global error boundary for routes
+#         ├── global.css            # Global styles for the app
+#         ├── loading.tsx           # Global loading component (shown during route transitions)
+#         └── not-found.tsx         # 404 page for unmatched routes
+#         #region (auth) ROUTE GROUP
+#         ├── (auth)/
+#         │   ├── _layout.tsx       # Auth-specific layout (e.g., authentication wrappers)
+#         │   ├── signIn.tsx        # Sign In Screen
+#         │   └── signUp.tsx        # Sign Up Screen
+#         #endregion
+#         #region (tabs) ROUTE GROUP
+#         ├── (tabs)/
+#         │   ├── _layout.tsx       # Tab navigator layout (manages tab navigation)
+#         │   ├── index.tsx         # Home Screen
+#         │   ├── create.tsx        # Create Screen
+#         │   ├── explore.tsx       # Explore Screen
+#         │   ├── groups.tsx        # Groups Screen
+#         │   └── map.tsx           # Map Page for Geolocation
+#         │   ├── messages.tsx      # Messages Screen
+#         │   ├── notifications.tsx # Notifications Screen
+#         │   ├── profile.tsx       # Profile Screen
+#         #endregion
+#         #region (admin) ROUTE GROUP
+#         ├── (admin)/
+#         │   ├── _layout.tsx       # Admin-specific layout (wraps admin routes)
+#         │   └── index.tsx         # Admin Panel
+#         #endregion
 # TODO: Create essential project files such as:
-#       - Supabase client (lib/supabase.ts)
-#       - Zustand stores (store/useAuthStore.ts, store/useThemeStore.ts)
-#       - Layouts and screens (app/_layout.tsx, app/(auth)/, app/(protected)/, etc.)
-#endregion
+#          - Supabase client (lib/supabase.ts)
+#          - Zustand stores (store/useAuthStore.ts, store/useThemeStore.ts)
+# #endregion
 
-#region BABEL CONFIGURATION
+#region Babel Configuration
 # TODO: Create or update babel.config.js for NativeWind and Expo Router.
 #endregion
 
-#region OPTIONAL: DOWNLOAD FONTS
-# TODO: Optionally download steampunk fonts if USE_THEME is enabled.
+#region Optional: Download Fonts
+# TODO: Optionally download steampunk fonts Arburtus Slab & Elite Special from Google Fonts if USE_THEME is enabled.
 #endregion
 
-#region FINAL INSTRUCTIONS AND LAUNCH
+#region Final Instructions and Launch
 # TODO: Print final instructions and launch the Expo app.
 npx expo start --clear
 #endregion
-
-
 ```
 
 ```bash

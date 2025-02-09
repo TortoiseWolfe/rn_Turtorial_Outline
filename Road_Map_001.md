@@ -133,24 +133,40 @@ npx expo start --clear
 ```
 
 ```bash
-my-app/
-└── src/
-    └── app/
-        ├── _layout.tsx               // Root layout for routing
-        ├── (tabs)/
-        │   ├── _layout.tsx           // Tab navigator layout
-        │   ├── index.tsx             // Home Screen
-        │   ├── explore.tsx           // Explore Screen
-        │   ├── create.tsx            // Create Screen
-        │   ├── notifications.tsx     // Notifications Screen
-        │   ├── messages.tsx          // Messages Screen
-        │   ├── groups.tsx            // Groups Screen
-        │   └── profile.tsx           // Profile Screen
-        ├── (auth)/
-        │   ├── signIn.tsx            // Sign In Screen
-        │   └── signUp.tsx            // Sign Up Screen
-        └── (admin)/
-            └── index.tsx             // Admin Panel
+# my-app/
+# ├── .env.local                    # Environment variables (e.g., API keys, project settings)
+# ├── app.json                      # Expo configuration file
+# ├── babel.config.js               # Babel configuration (e.g., for NativeWind, Expo Router)
+# ├── metro.config.js               # Metro bundler configuration (optional, for advanced setups)
+# ├── package.json                  # Project manifest with dependencies and scripts
+# ├── tsconfig.json                 # TypeScript configuration (if you're using TypeScript)
+# └── src/
+#     └── app/
+#         ├── _layout.tsx           # Root layout for global routing and configuration
+#         ├── error.tsx             # Global error boundary for routes
+#         ├── global.css            # Global styles for the app
+#         ├── loading.tsx           # Global loading component (shown during route transitions)
+#         └── not-found.tsx         # 404 page for unmatched routes
+#         ├── (auth)/
+#         │   ├── _layout.tsx       # Auth-specific layout (e.g., authentication wrappers)
+#         │   ├── signIn.tsx        # Sign In Screen
+#         │   └── signUp.tsx        # Sign Up Screen
+#         ├── (tabs)/
+#         │   ├── _layout.tsx       # Tab navigator layout (manages tab navigation)
+#         │   ├── index.tsx         # Home Screen
+#         │   ├── create.tsx        # Create Screen
+#         │   ├── explore.tsx       # Explore Screen
+#         │   ├── groups.tsx        # Groups Screen
+#         │   └── map.tsx           # Map Page for Geolocation
+#         │   ├── messages.tsx      # Messages Screen
+#         │   ├── notifications.tsx # Notifications Screen
+#         │   ├── profile.tsx       # Profile Screen
+#         ├── (admin)/
+#         │   ├── _layout.tsx       # Admin-specific layout (wraps admin routes)
+#         │   └── index.tsx         # Admin Panel
+# TODO: Create essential project files such as:
+#          - Supabase client (lib/supabase.ts)
+#          - Zustand stores (store/useAuthStore.ts, store/useThemeStore.ts)
 ```
 
 ## 1) Set Up Your Expo Project

@@ -1,3 +1,15 @@
+- **Fold (Collapse) Current Region:**  
+  `Ctrl + Shift + [`
+
+- **Unfold (Expand) Current Region:**  
+  `Ctrl + Shift + ]`
+
+- **Fold All Regions:**  
+  `Ctrl + K`, then `Ctrl + 0`
+
+- **Unfold All Regions:**  
+  `Ctrl + K`, then `Ctrl + J`
+
 ```bash
 #!/usr/bin/env bash
 set -e

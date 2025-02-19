@@ -1,4 +1,4 @@
-## 1. Create & Scaffold Your Project
+# 1. Create & Scaffold the Project
 
 1. **Initialize a Vite React+TS Project**  
    ```bash
@@ -6,47 +6,47 @@
    cd steampunk-react-app
    npm install
    ```
+   - This creates `steampunk-react-app` with React + TypeScript.
 
 2. **Test the Dev Server**  
    ```bash
    npm run dev
    ```
-   Open the provided URL (e.g., http://localhost:5173) to confirm it works.
+   - Confirm it runs at http://localhost:5173.
 
 ---
 
-## 2. Install Tailwind (V4) via the Official Vite Plugin
+# 2. Install Tailwind (V4) via the Official Vite Plugin
 
-1. **Install the Vite Plugin**  
+1. **Install** only two packages:  
    ```bash
    npm install -D tailwindcss @tailwindcss/vite
    ```
-   > **No** `postcss.config.js` is required for this approach. If you have one referencing `tailwindcss`, remove or rename it so it’s not used.
+   - **No** PostCSS or autoprefixer needed for this approach.
 
 2. **Configure `vite.config.ts`**  
-   Create or edit `vite.config.ts` in the **root** of your project:
+   Create or open `/vite.config.ts` in the **root** of your project. Replace contents with:
    ```ts
    import { defineConfig } from 'vite';
    import react from '@vitejs/plugin-react';
    import tailwind from '@tailwindcss/vite';
 
    export default defineConfig({
-     // If deploying to a project site (e.g. TortoiseWolfe/steampunk-react-app):
+     // For GitHub project site: TortoiseWolfe/steampunk-react-app
      base: '/steampunk-react-app/',
      plugins: [
        react(),
-       // The official Tailwind plugin for Vite (Approach A):
-       tailwind(),
+       tailwind(), // Official plugin that processes Tailwind
      ],
    });
    ```
+   - If you deploy to a user/organization site (e.g. TortoiseWolfe.github.io), set `base: '/'` instead.
 
-3. **Create a Tailwind Config (Optional, but needed for custom theme)**  
+3. **Create a Tailwind config** (for custom theme):
    ```bash
    touch tailwind.config.js
    ```
-   Then add your steampunk theme:
-
+   Then `/tailwind.config.js`:
    ```js
    /** @type {import('tailwindcss').Config} */
    export default {
@@ -75,83 +75,111 @@
 
 ---
 
-## 3. Set Up Tailwind in Your CSS
+# 3. Set Up Tailwind in Your CSS
 
-1. **Import Tailwind** in your main stylesheet (e.g. `src/index.css`):
+1. **Create/Update `/src/index.css`**  
+   ```bash
+   touch src/index.css
+   ```
+   Then `/src/index.css`:
    ```css
-   /* Option A: Use Tailwind's single import */
+   /* Load Tailwind (no postcss.config needed) */
    @import "tailwindcss";
 
-   /* Option B: Use the classic @tailwind directives
-      @tailwind base;
-      @tailwind components;
-      @tailwind utilities;
+   /* Or, equivalently:
+   @tailwind base;
+   @tailwind components;
+   @tailwind utilities;
    */
 
-   /* Then your custom CSS can follow. If you have existing styles, place them after. */
+   /* Below this line, you can add your custom CSS if you want. */
    ```
 
-2. **(Optional) Load Fonts & Add Custom Styles**  
-   - In `index.html`, inside `<head>`:
-     ```html
-     <link
-       href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Arbutus+Slab&family=Cinzel&display=swap"
-       rel="stylesheet"
-     />
-     ```
-   - If you have existing custom styles (like a dark theme, resets, etc.), just keep them in `index.css` **below** the Tailwind import so Tailwind’s base resets load first.
+2. **Load Google Fonts**  
+   In `/index.html` (the project root), inside `<head>`:
+   ```html
+   <!doctype html>
+   <html lang="en">
+     <head>
+       <meta charset="UTF-8" />
+       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+       <!-- Load three fonts: Special Elite, Arbutus Slab, and Cinzel -->
+       <link
+         href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Arbutus+Slab&family=Cinzel&display=swap"
+         rel="stylesheet"
+       />
+       <!-- Link your main CSS -->
+       <link rel="stylesheet" href="/src/index.css" />
+       <title>Steampunk React App</title>
+     </head>
+     <body>
+       <div id="root"></div>
+       <script type="module" src="/src/main.tsx"></script>
+     </body>
+   </html>
+   ```
 
 3. **Test**  
-   In `src/App.tsx`, try your custom classes:
+   In `/src/App.tsx`, try your classes:
    ```tsx
    export default function App() {
      return (
        <div className="bg-copper p-6 min-h-screen">
-         <h1 className="text-4xl font-special text-ivory">Steampunk Vite App</h1>
-         <p className="mt-4 text-gold">Using Arbutus Slab → <span className="font-arbutus">Hello</span></p>
-         <p className="mt-4 text-bronze">Using Cinzel → <span className="font-cinzel">Classical vibes</span></p>
+         <h1 className="text-4xl font-special text-ivory">
+           Steampunk Vite App
+         </h1>
+         <p className="mt-4 text-gold">
+           Using Arbutus Slab → <span className="font-arbutus">Hello</span>
+         </p>
+         <p className="mt-4 text-bronze">
+           Using Cinzel → <span className="font-cinzel">Classical vibes</span>
+         </p>
        </div>
      );
    }
    ```
-   Run `npm run dev`—Tailwind’s classes and your custom theme should work without PostCSS plugin errors.
+   ```bash
+   npm run dev
+   ```
+   Check http://localhost:5173. You should see copper background and custom fonts.  
 
 ---
 
-## 4. Set Up Storybook (with Vite Builder)
+# 4. Set Up Storybook (Vite Builder)
 
 1. **Initialize Storybook**  
    ```bash
    npx storybook@latest init --builder=vite
    ```
-   This creates a `.storybook` folder with config and sample stories.
+   - Creates `.storybook` folder, sample stories, and updates `package.json` scripts.
 
-2. **Configure Storybook to Use Tailwind**  
-   - In `.storybook/preview.js` (or `.storybook/preview.ts`):
-     ```js
-     import '../src/index.css';
+2. **Configure**  
+   In `/.storybook/preview.js` (or `preview.ts`):
+   ```js
+   import '../src/index.css'; // Import your Tailwind CSS
 
-     export const parameters = {
-       actions: { argTypesRegex: "^on[A-Z].*" },
-       controls: {
-         matchers: {
-           color: /(background|color)$/i,
-           date: /Date$/,
-         },
+   export const parameters = {
+     actions: { argTypesRegex: "^on[A-Z].*" },
+     controls: {
+       matchers: {
+         color: /(background|color)$/i,
+         date: /Date$/,
        },
-     };
-     ```
+     },
+   };
+   ```
+
 3. **Run Storybook**  
    ```bash
    npm run storybook
    ```
-   Visit http://localhost:6006—your components should have Tailwind styles.
+   Visit http://localhost:6006. The sample components now have Tailwind styling.
 
 ---
 
-## 5. Prettier Setup
+# 5. Prettier Setup
 
-1. **Create Prettier Config**  
+1. **Create `.prettierrc` and `.prettierignore`**  
    ```bash
    touch .prettierrc .prettierignore
    ```
@@ -177,16 +205,16 @@
      "format": "prettier --write ."
    }
    ```
-   Then run:
+   Then:
    ```bash
    npm run format
    ```
 
 ---
 
-## 6. GitHub Pages Deployment
+# 6. GitHub Pages Deployment
 
-1. **Initialize Git**  
+1. **Initialize Git & Push**  
    ```bash
    git init
    git add .
@@ -207,32 +235,42 @@
      "deploy": "gh-pages -d dist"
    }
    ```
-3. **Set `base` in Vite Config**  
-   If you’re deploying to `TortoiseWolfe/steampunk-react-app`, your `vite.config.ts` base is:
-   ```ts
-   base: '/steampunk-react-app/'
-   ```
-   (Use `'/'` if it’s a user/organization site, e.g. TortoiseWolfe.github.io.)
+   (You’ll need `gh-pages` installed, but we did that in Step 2 with the other dev dependencies if you want to deploy.)
+
+3. **Ensure `base` is set**  
+   `vite.config.ts` has `base: '/steampunk-react-app/'` for a project site. If it was a user site (TortoiseWolfe.github.io), use `'/'`.
 
 4. **Deploy**  
    ```bash
    npm run deploy
    ```
-   Then in your GitHub repo’s **Settings → Pages**, select the `gh-pages` branch as the source. Your site will be at:
+   Then in your GitHub repo’s **Settings → Pages**, select the `gh-pages` branch. Your site is at:
    ```
    https://TortoiseWolfe.github.io/steampunk-react-app/
    ```
 
 ---
 
-## Final Recap
+# Final, Complete Setup
 
-**Approach A** with **`@tailwindcss/vite`** means:
+1. **No** `postcss.config.js` referencing `tailwindcss`. The plugin `@tailwindcss/vite` handles it.  
+2. The entire code structure is:
+   ```
+   steampunk-react-app/
+   ├─ .storybook/
+   ├─ src/
+   │   ├─ App.tsx
+   │   ├─ main.tsx
+   │   └─ index.css   (Tailwind import at top)
+   ├─ index.html      (Google Fonts link in <head>)
+   ├─ tailwind.config.js  (custom theme)
+   ├─ vite.config.ts      (import tailwind() from @tailwindcss/vite)
+   ├─ .prettierrc
+   ├─ .prettierignore
+   ├─ package.json
+   └─ ...
+   ```
+3. Everything is **self-contained**—no patches, no extra PostCSS.  
+4. **Result**: A fully functional steampunk-themed React+TS app with custom fonts, Storybook, Prettier, and GH Pages deployment, with **no** “tailwindcss as a PostCSS plugin” errors.
 
-- **No** `postcss.config.js` referencing `tailwindcss`.
-- `vite.config.ts` uses `tailwind()` from **`@tailwindcss/vite`**.
-- You can still create a `tailwind.config.js` for custom colors, fonts, etc.
-- In your CSS, simply `@import "tailwindcss";` or use `@tailwind base; @tailwind components; @tailwind utilities;`.
-- This resolves the “using tailwindcss as a PostCSS plugin” error in Tailwind v4.
-
-Following these steps, you’ll have a fully functional **Vite + React + TypeScript** project with a **steampunk** Tailwind theme, **Storybook** (Vite builder), **Prettier**, and **GitHub Pages** deployment, all **without** postcss errors. Enjoy your updated setup!
+Follow these steps exactly, and you’ll have a complete, working tutorial with no broken bits. Enjoy your steampunk styling!

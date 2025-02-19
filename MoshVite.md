@@ -1,23 +1,5 @@
-## File Structure Overview
-
-```
-steampunk-react-app/
-├─ .storybook/
-│   └─ preview.js
-├─ node_modules/
-├─ public/            // (if any)
-├─ src/
-│   ├─ App.tsx
-│   ├─ main.tsx
-│   └─ index.css
-├─ index.html
-├─ tailwind.config.js
-├─ vite.config.ts
-├─ package.json
-├─ .prettierrc
-├─ .prettierignore
-└─ ... 
-```
+> **Important:**  
+> We preserve your global light/dark styles in the custom CSS. To ensure Tailwind’s utility classes (for fonts) override the global defaults, we place the global `:root` block at the very top of `src/index.css`. We also enable dark mode in Tailwind and define dark variants for your custom steampunk colors.
 
 ---
 
@@ -31,33 +13,38 @@ cd steampunk-react-app
 npm install
 ```
 
-Test the development server:
+Test the dev server:
 
 ```bash
 npm run dev
 ```
 
-Visit [http://localhost:5173](http://localhost:5173) to verify the default React app runs.
+Visit [http://localhost:5173](http://localhost:5173) to see the default React app.
 
 ---
 
-## 2. Install Tailwind CSS via the Official Vite Plugin
+## 2. Install Tailwind CSS (Using the Official Vite Plugin)
 
-Install the necessary packages:
+Install Tailwind and its Vite plugin:
 
 ```bash
 npm install -D tailwindcss @tailwindcss/vite
 ```
 
-*(Do not install a PostCSS config for Tailwind with this approach. Remove any postcss.config.js that references tailwindcss if present.)*
+*Note: With this approach you don’t need a separate PostCSS config for Tailwind.*
 
 ---
 
 ## 3. Configure Vite and Tailwind
 
-### 3a. Create/Edit Vite Config
+### 3a. Vite Configuration  
+Create (or edit) **`/vite.config.ts`** in the project root:
 
-Create (or open) the file **`/vite.config.ts`** in the root and set it up as follows:
+```bash
+touch vite.config.ts
+```
+
+Then add the following:
 
 ```ts
 // vite.config.ts
@@ -66,15 +53,14 @@ import react from '@vitejs/plugin-react';
 import tailwind from '@tailwindcss/vite';
 
 export default defineConfig({
-  // Since this is a project site, set base to '/steampunk-react-app/'
+  // Set base for a GitHub project site
   base: '/steampunk-react-app/',
   plugins: [react(), tailwind()],
 });
 ```
 
-### 3b. Create Tailwind Configuration
-
-In the root, create **`tailwind.config.js`**:
+### 3b. Tailwind Configuration  
+Create **`/tailwind.config.js`** in the project root:
 
 ```bash
 touch tailwind.config.js
@@ -86,6 +72,7 @@ Then add:
 // tailwind.config.js
 /** @type {import('tailwindcss').Config} */
 export default {
+  darkMode: 'class', // Enable dark mode using a class (add "dark" to <body> for dark mode)
   content: [
     './index.html',
     './src/**/*.{js,ts,jsx,tsx}',
@@ -93,15 +80,27 @@ export default {
   theme: {
     extend: {
       colors: {
-        copper: '#B87333',
-        bronze: '#CD7F32',
-        gold:   '#D4AF37',
-        ivory:  '#FFFFF0',
+        copper: {
+          DEFAULT: '#B87333',
+          dark: '#8D5A22'
+        },
+        bronze: {
+          DEFAULT: '#CD7F32',
+          dark: '#A85C28'
+        },
+        gold: {
+          DEFAULT: '#D4AF37',
+          dark: '#A67C27'
+        },
+        ivory: {
+          DEFAULT: '#FFFFF0',
+          dark: '#ECECEC'
+        },
       },
       fontFamily: {
-        special: ['"Special Elite"', 'cursive'],   // Typewriter-style
-        arbutus: ['"Arbutus Slab"', 'serif'],        // Bold slab serif
-        cinzel:  ['Cinzel', 'serif'],                // Classical style
+        special: ['"Special Elite"', 'cursive'],
+        arbutus: ['"Arbutus Slab"', 'serif'],
+        cinzel:  ['Cinzel', 'serif'],
       },
     },
   },
@@ -111,32 +110,22 @@ export default {
 
 ---
 
-## 4. Set Up Tailwind in Your CSS
+## 4. Set Up Tailwind and Custom CSS
 
-### 4a. Create/Update CSS File
+### 4a. Create/Update **`/src/index.css`**
 
-In **`/src/index.css`**, create or update the file:
+Create the file if it doesn’t exist:
 
 ```bash
 touch src/index.css
 ```
 
-Then set its contents to load Tailwind and (optionally) your custom CSS. **Important:** If you want your Tailwind font classes to work, do not override the font-family on the root element. Either remove or adjust the :root rule.
-
-Here’s an example that puts Tailwind directives at the top and then your custom styles without overriding font settings:
+Then paste the following content:
 
 ```css
 /* src/index.css */
 
-/* Load Tailwind base, components, and utilities */
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-/* Custom CSS below. Remove or comment out the font-family from :root
-   so that Tailwind's font classes (like font-special) take effect. */
-
-/*
+/* Global custom styles are defined first so that Tailwind utilities override them when used. */
 :root {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
@@ -149,8 +138,13 @@ Here’s an example that puts Tailwind directives at the top and then your custo
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
-*/
 
+/* Load Tailwind base, components, and utilities */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom styles */
 a {
   font-weight: 500;
   color: #646cff;
@@ -193,66 +187,94 @@ button:focus-visible {
 }
 
 @media (prefers-color-scheme: light) {
-  /* If you need dark/light adjustments, add here */
+  /* Light mode adjustments, if any */
 }
 ```
 
-### 4b. Load Google Fonts in HTML
+### 4b. Create/Update **`/index.html`**
 
-In **`/index.html`** in the root, ensure you load the Google Fonts in the `<head>`:
+Create the file if needed:
+
+```bash
+touch index.html
+```
+
+Then paste:
 
 ```html
-<!-- index.html -->
 <!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- Load Google Fonts: Special Elite, Arbutus Slab, Cinzel -->
+    <!-- Load Google Fonts: Special Elite, Arbutus Slab, and Cinzel -->
     <link
       href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Arbutus+Slab&family=Cinzel&display=swap"
       rel="stylesheet"
     />
-    <!-- Link to main CSS -->
+    <!-- Link to the main CSS -->
     <link rel="stylesheet" href="/src/index.css" />
     <title>Steampunk React App</title>
   </head>
-  <body>
+  <!-- For demonstration, the dark mode is activated by adding the "dark" class to the body -->
+  <body class="dark">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
 ```
 
+*Tip: Remove the `class="dark"` from `<body>` if you want to start in light mode and toggle dark mode dynamically.*
+
 ---
 
-## 5. Test Your App
+## 5. Update Your App Component
 
-Edit **`/src/App.tsx`** to use your custom Tailwind classes:
+Edit **`/src/App.tsx`**:
 
 ```tsx
 // src/App.tsx
-import { useState } from 'react';
+import { useState } from "react";
+import reactLogo from "./assets/react.svg";
+import viteLogo from "/vite.svg";
+import "./App.css"; // If you have additional styles
 
 function App() {
   const [count, setCount] = useState(0);
 
   return (
     <>
-      <div className="bg-copper p-6 min-h-screen">
-        <h1 className="text-4xl font-special text-ivory">Steampunk Vite App</h1>
-        <p className="mt-4 text-gold">
+      {/* The container uses Tailwind classes.
+          Dark variants are applied using the "dark:" prefix. */}
+      <div className="bg-copper dark:bg-[theme('colors.copper.dark')] p-6 min-h-screen">
+        <h1 className="text-4xl font-special text-ivory dark:text-[theme('colors.ivory.dark')]">
+          Steampunk Vite App
+        </h1>
+        <p className="mt-4 text-gold dark:text-[theme('colors.gold.dark')]">
           Using Arbutus Slab → <span className="font-arbutus">Hello</span>
         </p>
-        <p className="mt-4 text-bronze">
+        <p className="mt-4 text-bronze dark:text-[theme('colors.bronze.dark')]">
           Using Cinzel → <span className="font-cinzel">Classical vibes</span>
         </p>
+        <a href="https://vite.dev" target="_blank">
+          <img src={viteLogo} className="logo" alt="Vite logo" />
+        </a>
+        <a href="https://react.dev" target="_blank">
+          <img src={reactLogo} className="logo react" alt="React logo" />
+        </a>
       </div>
       <h1>Vite + React</h1>
-      <div>
-        <button onClick={() => setCount((c) => c + 1)}>count is {count}</button>
-        <p>Edit <code>src/App.tsx</code> and save to test HMR</p>
+      <div className="card">
+        <button onClick={() => setCount((c) => c + 1)}>
+          count is {count}
+        </button>
+        <p>
+          Edit <code>src/App.tsx</code> and save to test HMR
+        </p>
       </div>
+      <p className="read-the-docs">
+        Click on the Vite and React logos to learn more
+      </p>
     </>
   );
 }
@@ -260,13 +282,29 @@ function App() {
 export default App;
 ```
 
-Then run:
+Also, ensure **`/src/main.tsx`** looks like:
+
+```tsx
+// src/main.tsx
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App';
+import './index.css';
+
+ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
+```
+
+Run the dev server:
 
 ```bash
 npm run dev
 ```
 
-Visit [http://localhost:5173](http://localhost:5173) and verify you see the copper background and—critically—the headings and spans display in your custom fonts. (If you still see the default font, double-check that you removed the :root font-family override.)
+Visit [http://localhost:5173](http://localhost:5173) and confirm your app displays with a copper background, and the headings and spans use the custom fonts (overriding the global :root settings when using Tailwind utility classes).
 
 ---
 
@@ -274,15 +312,17 @@ Visit [http://localhost:5173](http://localhost:5173) and verify you see the copp
 
 ### 6a. Initialize Storybook
 
+Run:
+
 ```bash
 npx storybook@latest init --builder=vite
 ```
 
-This creates a **`.storybook/`** folder with sample configuration and stories.
+This creates a **`.storybook/`** folder with sample stories and configuration.
 
 ### 6b. Configure Storybook
 
-In **`.storybook/preview.js`**:
+In **`.storybook/preview.js`**, add:
 
 ```js
 // .storybook/preview.js
@@ -302,19 +342,21 @@ export const parameters = {
 npm run storybook
 ```
 
-Open [http://localhost:6006](http://localhost:6006) and verify that the sample stories display with your Tailwind styling (including your custom fonts).
+Visit [http://localhost:6006](http://localhost:6006) to confirm the sample stories display with your Tailwind styles and custom fonts.
 
 ---
 
 ## 7. Set Up Prettier
 
-### 7a. Create Prettier Config Files in the Root
+### 7a. Create Prettier Config Files
+
+In the project root, run:
 
 ```bash
 touch .prettierrc .prettierignore
 ```
 
-**`.prettierrc`**:
+**`.prettierrc`:**
 
 ```json
 {
@@ -325,24 +367,22 @@ touch .prettierrc .prettierignore
 }
 ```
 
-**`.prettierignore`**:
+**`.prettierignore`:**
 
 ```
 node_modules
 dist
 ```
 
-### 7b. Add Format Script to `package.json`
+### 7b. Add a Format Script
 
-In your **`package.json`**, add:
+In **`package.json`**, under "scripts", add:
 
 ```json
-"scripts": {
-  "format": "prettier --write ."
-}
+"format": "prettier --write ."
 ```
 
-Run Prettier with:
+Then run:
 
 ```bash
 npm run format
@@ -352,9 +392,9 @@ npm run format
 
 ## 8. GitHub Pages Deployment
 
-### 8a. Prepare Git Repository
+### 8a. Prepare Your Repository
 
-In the project root, run:
+Initialize Git and push to GitHub:
 
 ```bash
 git init
@@ -365,12 +405,12 @@ git remote add origin https://github.com/TortoiseWolfe/steampunk-react-app.git
 git push -u origin main
 ```
 
-### 8b. Add Deployment Scripts to `package.json`
+### 8b. Add Deployment Scripts
 
-Add these scripts (if not already present):
+In **`package.json`**, add/update under "scripts":
 
 ```json
-"scripts": {
+{
   "dev": "vite",
   "build": "vite build",
   "preview": "vite preview",
@@ -387,7 +427,7 @@ Run:
 npm run deploy
 ```
 
-Then, in your GitHub repository’s **Settings → Pages**, set the source to the `gh-pages` branch. Your site will be available at:
+Then, in your GitHub repository’s **Settings → Pages**, select the `gh-pages` branch as the source. Your site will be available at:
 
 ```
 https://TortoiseWolfe.github.io/steampunk-react-app/
@@ -398,12 +438,13 @@ https://TortoiseWolfe.github.io/steampunk-react-app/
 ## Final Recap
 
 - **Project Root Files:**  
-  - `/index.html` loads Google Fonts and `/src/index.css`.  
-  - `/tailwind.config.js` defines custom colors and fonts.  
-  - `/vite.config.ts` sets the base URL and includes the Tailwind Vite plugin.
-- **/src/ Folder:**  
-  - `index.css` starts with `@import "tailwindcss";` then your custom CSS (ensure no overriding :root font-family).  
-  - `App.tsx` uses classes like `font-special`, `font-arbutus`, and `font-cinzel`.
-- **Storybook, Prettier, and GitHub Pages** are all set up via the provided scripts.
+  - `index.html` loads Google Fonts and `src/index.css`.  
+  - `tailwind.config.js` defines your steampunk colors (with dark variants) and custom fonts.  
+  - `vite.config.ts` configures Vite with the official Tailwind plugin and sets the base URL.
+  - `.prettierrc` and `.prettierignore` are in the root.
+- **/src Folder:**  
+  - `index.css` starts with global styles (including a light/dark theme) and then loads Tailwind utilities so that Tailwind font classes (like font-special, font-arbutus, font-cinzel) override the global default when applied.
+  - `App.tsx` uses Tailwind classes to apply your custom fonts and colors.
+- **Storybook, Prettier, and GitHub Pages** are fully configured.
 
-Follow these steps exactly and remove any overriding global font rules if needed. This yields a complete, functional steampunk-themed project with custom fonts, Storybook, Prettier, and deployment. Enjoy your project!
+Follow these steps exactly to get a complete, functional steampunk-themed Vite + React project with a light/dark mode and custom fonts. Enjoy your project!

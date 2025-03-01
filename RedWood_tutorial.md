@@ -1,109 +1,110 @@
-# RedwoodJS Blog Tutorial Guide (v8.4)
+# RedwoodJS v8.4 Blog Tutorial (TypeScript)
 
-Welcome to the RedwoodJS Blog Tutorial! This guide will walk you through building a complete, full-stack blog application using RedwoodJS. By the end, you'll have a solid understanding of how Redwood works and the tools it provides.
+## Chapter 1: First Steps
 
-## Table of Contents
-
-1. [Foreword](#foreword)
-2. [Chapter 0: What is Redwood?](#chapter-0-what-is-redwood)
-3. [Chapter 1: Getting Started](#chapter-1-getting-started)
-4. [Chapter 2: Getting Dynamic](#chapter-2-getting-dynamic)
-5. [Chapter 3: Saving Data](#chapter-3-saving-data)
-6. [Chapter 4: Authentication](#chapter-4-authentication)
-7. [Intermission](#intermission)
-8. [Chapter 5: Frontend Magic](#chapter-5-frontend-magic)
-9. [Chapter 6: Building Components](#chapter-6-building-components)
-10. [Chapter 7: Role-Based Access Control](#chapter-7-role-based-access-control)
-11. [Afterword](#afterword)
-
-## Foreword
-
-RedwoodJS is a full-stack JavaScript framework designed to make web development more productive and enjoyable. It combines the best parts of React, GraphQL, and Prisma to provide a seamless development experience. In this tutorial, we'll build a blog application from scratch, learning the key concepts and features of RedwoodJS along the way.
-
-## Chapter 0: What is Redwood?
-
-RedwoodJS offers an integrated, full-stack framework that brings together several key technologies:
-
-- **React** for the frontend UI
-- **GraphQL** for data fetching
-- **Prisma** for database access
-- **Jest** for testing
-- **Storybook** for component development
-
-Key features that make Redwood special:
-
-1. **Cell-based data fetching**: Automatic handling of loading, error, and empty states
-2. **File-based routing**: Routes are defined by your file structure
-3. **Services layer**: Clean separation of data access from UI components
-4. **Generators**: Create pages, components, cells, and more with CLI commands
-5. **Authentication**: Built-in support for various auth providers
-
-Let's start building!
-
-## Chapter 1: Getting Started
-
-### Prerequisites
-
-Make sure you have the following installed:
+### Installation
 
 ```bash
-node --version     # Should be >=20.x
-yarn --version     # Make sure Yarn is installed
-git --version      # Make sure Git is installed
-```
-
-### Installation & Starting Development
-
-Create a new Redwood app:
-
-```bash
-yarn create redwood-app redwoodblog
+yarn create redwood-app --ts ./redwoodblog
 cd redwoodblog
 yarn install
 yarn redwood dev
 ```
 
-Your browser should open to `http://localhost:8910` with the Redwood welcome page.
-
-### Redwood File Structure
-
-Let's explore the key directories in a Redwood app:
-
-- **/api**: Backend code (GraphQL, database access)
-  - `/db`: Database schema and migrations
-  - `/src/services`: Business logic and data access
-  - `/src/functions`: API endpoints (including GraphQL)
-  
-- **/web**: Frontend code (React)
-  - `/src/pages`: Page components
-  - `/src/components`: Reusable UI components
-  - `/src/layouts`: Layout components that wrap pages
-  
-- **/scripts**: Utility scripts for tasks like seeding the database
-
-### Our First Page
-
-Let's update the homepage. First, let's generate a new Home page:
+### First Page
 
 ```bash
-yarn rw generate page Home /
+yarn redwood generate page home /
 ```
 
-This creates a new file at `web/src/pages/HomePage/HomePage.tsx`. Let's update it:
+Update CSS styling:
 
-```jsx
-import { Metadata } from '@redwoodjs/web'
+```css title="web/src/index.css"
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica,
+    Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
+}
+ul {
+  list-style-type: none;
+  margin: 1rem 0;
+  padding: 0;
+}
+li {
+  display: inline-block;
+  margin: 0 1rem 0 0;
+}
+h1 > a {
+  text-decoration: none;
+  color: black;
+}
+button,
+input,
+label,
+textarea {
+  display: block;
+  outline: none;
+}
+label {
+  margin-top: 1rem;
+}
+.error {
+  color: red;
+}
+input.error,
+textarea.error {
+  border: 1px solid red;
+}
+.form-error {
+  color: red;
+  background-color: lavenderblush;
+  padding: 1rem;
+  display: inline-block;
+}
+.form-error ul {
+  list-style-type: disc;
+  margin: 1rem;
+  padding: 1rem;
+}
+.form-error li {
+  display: list-item;
+}
+.flex-between {
+  display: flex;
+  justify-content: space-between;
+}
+.flex-between button {
+  display: inline;
+}
+```
+
+### Second Page
+
+```bash
+yarn redwood generate page about
+```
+
+Update the HomePage:
+
+```tsx title="web/src/pages/HomePage/HomePage.tsx"
 import { Link, routes } from '@redwoodjs/router'
+import { Metadata } from '@redwoodjs/web'
 
 const HomePage = () => {
   return (
     <>
       <Metadata title="Home" description="Home page" />
-      <main>
-        <h1>Welcome to RedwoodJS Blog</h1>
-        <p>Find out more about RedwoodJS and what it can do for you!</p>
-        <Link to={routes.about()}>Learn more about us</Link>
-      </main>
+
+      <header>
+        <h1>Redwood Blog</h1>
+        <nav>
+          <ul>
+            <li>
+              <Link to={routes.about()}>About</Link>
+            </li>
+          </ul>
+        </nav>
+      </header>
+      <main>Home</main>
     </>
   )
 }
@@ -111,28 +112,34 @@ const HomePage = () => {
 export default HomePage
 ```
 
-### A Second Page and a Link
+Update the AboutPage:
 
-Now let's create an About page:
-
-```bash
-yarn rw generate page About /about
-```
-
-This creates a new file at `web/src/pages/AboutPage/AboutPage.tsx`. Let's update it:
-
-```jsx
+```tsx title="web/src/pages/AboutPage/AboutPage.tsx"
+import { Link, routes } from '@redwoodjs/router'
 import { Metadata } from '@redwoodjs/web'
 
 const AboutPage = () => {
   return (
     <>
       <Metadata title="About" description="About page" />
-      <h1>About</h1>
-      <p>
-        This site was created to demonstrate my mastery of Redwood: Look on my
-        works, ye mighty, and despair!
-      </p>
+
+      <header>
+        <h1>Redwood Blog</h1>
+        <nav>
+          <ul>
+            <li>
+              <Link to={routes.about()}>About</Link>
+            </li>
+          </ul>
+        </nav>
+      </header>
+      <main>
+        <p>
+          This site was created to demonstrate my mastery of Redwood: Look on my
+          works, ye mighty, and despair!
+        </p>
+        <Link to={routes.home()}>Return home</Link>
+      </main>
     </>
   )
 }
@@ -140,38 +147,13 @@ const AboutPage = () => {
 export default AboutPage
 ```
 
-The routes in `web/src/Routes.tsx` should already be set up correctly:
-
-```jsx
-import { Router, Route, Set } from '@redwoodjs/router'
-import BlogLayout from 'src/layouts/BlogLayout/BlogLayout'
-
-const Routes = () => {
-  return (
-    <Router>
-      <Set wrap={BlogLayout}>
-        <Route path="/about" page={AboutPage} name="about" />
-        <Route path="/" page={HomePage} name="home" />
-      </Set>
-      <Route notfound page={NotFoundPage} />
-    </Router>
-  )
-}
-
-export default Routes
-```
-
 ### Layouts
 
-Now let's create a layout for our blog:
-
 ```bash
-yarn rw generate layout Blog
+yarn rw g layout blog
 ```
 
-This should already be created in your project as `web/src/layouts/BlogLayout/BlogLayout.tsx`. Let's make sure it has the navigation we need:
-
-```jsx
+```tsx title="web/src/layouts/BlogLayout/BlogLayout.tsx"
 import { Link, routes } from '@redwoodjs/router'
 
 type BlogLayoutProps = {
@@ -204,148 +186,76 @@ const BlogLayout = ({ children }: BlogLayoutProps) => {
 export default BlogLayout
 ```
 
-## Chapter 2: Getting Dynamic
+Update Routes:
 
-### Cells
+```tsx title="web/src/Routes.tsx"
+import { Router, Route, Set } from '@redwoodjs/router'
+import BlogLayout from 'src/layouts/BlogLayout'
 
-Cells are a key concept in RedwoodJS. They handle the lifecycle of data fetching, including loading, error, and empty states.
-
-Let's create a cell for fetching and displaying blog posts:
-
-```bash
-yarn rw generate cell Posts
-```
-
-This creates a new file at `web/src/components/PostsCell/PostsCell.tsx`. Let's update it:
-
-```jsx
-import type { PostsQuery } from 'types/graphql'
-import type { CellSuccessProps, CellFailureProps } from '@redwoodjs/web'
-
-export const QUERY = gql`
-  query PostsQuery {
-    posts {
-      id
-      title
-      body
-      createdAt
-    }
-  }
-`
-
-export const Loading = () => <div>Loading posts...</div>
-
-export const Empty = () => <div>No posts yet. Create one!</div>
-
-export const Failure = ({ error }: CellFailureProps) => (
-  <div style={{ color: 'red' }}>Error: {error?.message}</div>
-)
-
-export const Success = ({ posts }: CellSuccessProps<PostsQuery>) => {
+const Routes = () => {
   return (
-    <ul>
-      {posts.map((post) => (
-        <li key={post.id}>
-          <h2>{post.title}</h2>
-          <p>{post.body}</p>
-          <div>Posted at: {new Date(post.createdAt).toLocaleString()}</div>
-        </li>
-      ))}
-    </ul>
+    <Router>
+      <Set wrap={BlogLayout}>
+        <Route path="/about" page={AboutPage} name="about" />
+        <Route path="/" page={HomePage} name="home" />
+      </Set>
+      <Route notfound page={NotFoundPage} />
+    </Router>
   )
 }
+
+export default Routes
 ```
 
-### Side Quest: How Redwood Works with Data
+Update HomePage:
 
-Let's understand how data flows in a Redwood app:
-
-1. **Prisma Schema**: Defines your database models in `api/db/schema.prisma`
-2. **GraphQL SDL**: Defines the GraphQL schema in `api/src/graphql`
-3. **Services**: Contains the business logic in `api/src/services`
-4. **Cells**: Fetch data on the frontend using GraphQL
-
-### Routing Params
-
-Now let's create a page for viewing a single post:
-
-```bash
-yarn rw generate page Post "{id:Int}"
-```
-
-This creates a new file at `web/src/pages/PostPage/PostPage.tsx`. Let's update it:
-
-```jsx
+```tsx title="web/src/pages/HomePage/HomePage.tsx"
 import { Metadata } from '@redwoodjs/web'
-import PostCell from 'src/components/PostCell'
 
-type PostPageProps = {
-  id: number
-}
-
-const PostPage = ({ id }: PostPageProps) => {
+const HomePage = () => {
   return (
     <>
-      <Metadata title="Post" description="Individual post page" />
-      <PostCell id={id} />
+      <Metadata title="Home" description="Home page" />
+      Home
     </>
   )
 }
 
-export default PostPage
+export default HomePage
 ```
 
-Then let's create a cell for fetching a single post:
+Update AboutPage:
 
-```bash
-yarn rw generate cell Post
-```
+```tsx title="web/src/pages/AboutPage/AboutPage.tsx"
+import { Metadata } from '@redwoodjs/web'
 
-And update it at `web/src/components/PostCell/PostCell.tsx`:
-
-```jsx
-import type { FindPostQuery, FindPostQueryVariables } from 'types/graphql'
-import type { CellSuccessProps, CellFailureProps } from '@redwoodjs/web'
-
-export const QUERY = gql`
-  query FindPostQuery($id: Int!) {
-    post: post(id: $id) {
-      id
-      title
-      body
-      createdAt
-    }
-  }
-`
-
-export const Loading = () => <div>Loading...</div>
-
-export const Empty = () => <div>Post not found</div>
-
-export const Failure = ({ error }: CellFailureProps) => (
-  <div style={{ color: 'red' }}>Error: {error?.message}</div>
-)
-
-export const Success = ({ post }: CellSuccessProps<FindPostQuery, FindPostQueryVariables>) => {
+const AboutPage = () => {
   return (
-    <article>
-      <header>
-        <h2>{post.title}</h2>
-      </header>
-      <div>{post.body}</div>
-      <div>Posted at: {new Date(post.createdAt).toLocaleString()}</div>
-    </article>
+    <>
+      <Metadata title="About" description="About page" />
+
+      <p>
+        This site was created to demonstrate my mastery of Redwood: Look on my
+        works, ye mighty, and despair!
+      </p>
+    </>
   )
 }
+
+export default AboutPage
 ```
 
-## Chapter 3: Saving Data
+## Chapter 2: Getting Dynamic
 
-### Setting Up the Database
+### Creating the Database Schema
 
-First, let's update our Prisma schema to define a Post model. Edit `api/db/schema.prisma`:
+```bash
+yarn rw prisma migrate dev
+```
 
-```prisma
+Update schema.prisma:
+
+```prisma title="api/db/schema.prisma"
 datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL")
@@ -364,151 +274,84 @@ model Post {
 }
 ```
 
-Now run a migration to create the database tables:
+Name the migration "create post"
+
+### Creating a Post Editor
 
 ```bash
-yarn rw prisma migrate dev --name create_posts
+yarn rw g scaffold post
 ```
 
-### Building GraphQL and Services
-
-Let's generate the SDL (Schema Definition Language) and service for our Post model:
+### Your First Cell
 
 ```bash
-yarn rw generate sdl Post
+yarn rw g cell Articles
 ```
 
-This creates:
-- `api/src/graphql/posts.sdl.ts`: GraphQL schema
-- `api/src/services/posts/posts.ts`: Database access functions
+Update the cell:
 
-### Building a Form
+```tsx title="web/src/components/ArticlesCell/ArticlesCell.tsx"
+import type { ArticlesQuery, ArticlesQueryVariables } from 'types/graphql'
 
-Let's create a form for creating new posts:
+import type {
+  CellFailureProps,
+  CellSuccessProps,
+  TypedDocumentNode,
+} from '@redwoodjs/web'
 
-```bash
-yarn rw generate page NewPost /posts/new
-```
+export const QUERY: TypedDocumentNode<ArticlesQuery, ArticlesQueryVariables> =
+  gql`
+    query ArticlesQuery {
+      articles: posts {
+        id
+        title
+        body
+        createdAt
+      }
+    }
+  `
 
-This creates `web/src/pages/NewPostPage/NewPostPage.tsx`. Let's update it:
+export const Loading = () => <div>Loading...</div>
 
-```jsx
-import { Metadata } from '@redwoodjs/web'
-import NewPost from 'src/components/NewPost/NewPost'
-import { Link, routes } from '@redwoodjs/router'
+export const Empty = () => <div>Empty</div>
 
-const NewPostPage = () => {
+export const Failure = ({
+  error,
+}: CellFailureProps<ArticlesQueryVariables>) => (
+  <div style={{ color: 'red' }}>Error: {error.message}</div>
+)
+
+export const Success = ({
+  articles,
+}: CellSuccessProps<ArticlesQuery, ArticlesQueryVariables>) => {
   return (
     <>
-      <Metadata title="New Post" description="Create a new blog post" />
-      <h1>New Post</h1>
-      <NewPost />
-      <p>
-        <Link to={routes.home()}>Return home</Link>
-      </p>
+      {articles.map((article) => (
+        <article key={article.id}>
+          <header>
+            <h2>{article.title}</h2>
+          </header>
+          <p>{article.body}</p>
+          <div>Posted at: {article.createdAt}</div>
+        </article>
+      ))}
     </>
   )
 }
-
-export default NewPostPage
 ```
 
-Now let's create a component for the new post form:
+Update the HomePage:
 
-```bash
-yarn rw generate component NewPost
-```
-
-Update `web/src/components/NewPost/NewPost.tsx`:
-
-```jsx
-import { useState } from 'react'
-import { useMutation } from '@redwoodjs/web'
-import { toast } from '@redwoodjs/web/toast'
-import { navigate, routes } from '@redwoodjs/router'
-import {
-  Form,
-  FormError,
-  FieldError,
-  Label,
-  TextField,
-  TextAreaField,
-  Submit,
-} from '@redwoodjs/forms'
-
-const CREATE_POST_MUTATION = gql`
-  mutation CreatePostMutation($input: CreatePostInput!) {
-    createPost(input: $input) {
-      id
-    }
-  }
-`
-
-const NewPost = () => {
-  const [createPost, { loading, error }] = useMutation(CREATE_POST_MUTATION, {
-    onCompleted: () => {
-      toast.success('Post created successfully')
-      navigate(routes.home())
-    },
-    onError: (error) => {
-      toast.error(error.message)
-    },
-  })
-
-  const onSubmit = (data) => {
-    createPost({ variables: { input: data } })
-  }
-
-  return (
-    <div>
-      <Form onSubmit={onSubmit} error={error}>
-        <FormError error={error} />
-
-        <Label name="title" errorClassName="error">
-          Title
-        </Label>
-        <TextField
-          name="title"
-          validation={{ required: true }}
-          errorClassName="error"
-        />
-        <FieldError name="title" className="error" />
-
-        <Label name="body" errorClassName="error">
-          Body
-        </Label>
-        <TextAreaField
-          name="body"
-          validation={{ required: true }}
-          errorClassName="error"
-        />
-        <FieldError name="body" className="error" />
-
-        <Submit disabled={loading}>Save</Submit>
-      </Form>
-    </div>
-  )
-}
-
-export default NewPost
-```
-
-Let's update our homepage to show the posts and a link to create new posts:
-
-```jsx
+```tsx title="web/src/pages/HomePage/HomePage.tsx"
 import { Metadata } from '@redwoodjs/web'
-import { Link, routes } from '@redwoodjs/router'
-import PostsCell from 'src/components/PostsCell'
+
+import ArticlesCell from 'src/components/ArticlesCell'
 
 const HomePage = () => {
   return (
     <>
       <Metadata title="Home" description="Home page" />
-      <h1>RedwoodJS Blog</h1>
-      <p>
-        <Link to={routes.newPost()}>Create a new post</Link>
-      </p>
-      <PostsCell />
+      <ArticlesCell />
     </>
   )
 }
@@ -516,53 +359,201 @@ const HomePage = () => {
 export default HomePage
 ```
 
-## Chapter 4: Authentication
-
-RedwoodJS supports various authentication providers. For this tutorial, we'll use dbAuth which is Redwood's built-in, database-backed authentication system.
+### Routing Parameters
 
 ```bash
-yarn rw setup auth dbAuth
+yarn rw g page Article
 ```
 
-This will:
-1. Install the required packages
-2. Create a User model in your Prisma schema
-3. Add authentication routes
-4. Set up the necessary components
+Update Routes:
 
-Let's update our Prisma schema to include the User model:
+```tsx title="web/src/Routes.tsx"
+import { Router, Route, Set } from '@redwoodjs/router'
+import ScaffoldLayout from 'src/layouts/ScaffoldLayout'
+import BlogLayout from 'src/layouts/BlogLayout'
 
-```prisma
-model User {
-  id                  Int       @id @default(autoincrement())
-  name                String?
-  email               String    @unique
-  hashedPassword      String
-  salt                String
-  resetToken          String?
-  resetTokenExpiresAt DateTime?
+const Routes = () => {
+  return (
+    <Router>
+      <Set wrap={ScaffoldLayout} title="Posts" titleTo="posts" buttonLabel="New Post" buttonTo="newPost">
+        <Route path="/posts/new" page={PostNewPostPage} name="newPost" />
+        <Route path="/posts/{id:Int}/edit" page={PostEditPostPage} name="editPost" />
+        <Route path="/posts/{id:Int}" page={PostPostPage} name="post" />
+        <Route path="/posts" page={PostPostsPage} name="posts" />
+      </Set>
+      <Set wrap={BlogLayout}>
+        <Route path="/article/{id:Int}" page={ArticlePage} name="article" />
+        <Route path="/about" page={AboutPage} name="about" />
+        <Route path="/" page={HomePage} name="home" />
+      </Set>
+      <Route notfound page={NotFoundPage} />
+    </Router>
+  )
 }
 
-model Post {
-  id        Int      @id @default(autoincrement())
-  title     String
-  body      String
+export default Routes
+```
+
+Update ArticlesCell:
+
+```tsx title="web/src/components/ArticlesCell/ArticlesCell.tsx"
+import { Link, routes } from '@redwoodjs/router'
+import type { ArticlesQuery, ArticlesQueryVariables } from 'types/graphql'
+
+import type {
+  CellFailureProps,
+  CellSuccessProps,
+  TypedDocumentNode,
+} from '@redwoodjs/web'
+
+export const QUERY: TypedDocumentNode<ArticlesQuery, ArticlesQueryVariables> =
+  gql`
+    query ArticlesQuery {
+      articles: posts {
+        id
+        title
+        body
+        createdAt
+      }
+    }
+  `
+
+export const Loading = () => <div>Loading...</div>
+
+export const Empty = () => <div>Empty</div>
+
+export const Failure = ({
+  error,
+}: CellFailureProps<ArticlesQueryVariables>) => (
+  <div style={{ color: 'red' }}>Error: {error.message}</div>
+)
+
+export const Success = ({
+  articles,
+}: CellSuccessProps<ArticlesQuery, ArticlesQueryVariables>) => {
+  return (
+    <>
+      {articles.map((article) => (
+        <article key={article.id}>
+          <header>
+            <h2>
+              <Link to={routes.article({ id: article.id })}>{article.title}</Link>
+            </h2>
+          </header>
+          <p>{article.body}</p>
+          <div>Posted at: {article.createdAt}</div>
+        </article>
+      ))}
+    </>
+  )
+}
+```
+
+```bash
+yarn rw g cell Article
+```
+
+Update ArticleCell:
+
+```tsx title="web/src/components/ArticleCell/ArticleCell.tsx"
+import type { FindArticleQuery, FindArticleQueryVariables } from 'types/graphql'
+
+import type {
+  CellFailureProps,
+  CellSuccessProps,
+  TypedDocumentNode,
+} from '@redwoodjs/web'
+
+export const QUERY: TypedDocumentNode<
+  FindArticleQuery,
+  FindArticleQueryVariables
+> = gql`
+  query FindArticleQuery($id: Int!) {
+    article: post(id: $id) {
+      id
+      title
+      body
+      createdAt
+    }
+  }
+`
+
+export const Loading = () => <div>Loading...</div>
+
+export const Empty = () => <div>Empty</div>
+
+export const Failure = ({
+  error,
+}: CellFailureProps<FindArticleQueryVariables>) => (
+  <div style={{ color: 'red' }}>Error: {error.message}</div>
+)
+
+export const Success = ({
+  article,
+}: CellSuccessProps<FindArticleQuery, FindArticleQueryVariables>) => {
+  return (
+    <article>
+      <header>
+        <h2>{article.title}</h2>
+      </header>
+      <div>{article.body}</div>
+      <div>Posted at: {article.createdAt}</div>
+    </article>
+  )
+}
+```
+
+Update ArticlePage:
+
+```tsx title="web/src/pages/ArticlePage/ArticlePage.tsx"
+import { Metadata } from '@redwoodjs/web'
+import ArticleCell from 'src/components/ArticleCell'
+
+interface Props {
+  id: number
+}
+
+const ArticlePage = ({ id }: Props) => {
+  return (
+    <>
+      <Metadata title="Article" description="Article page" />
+
+      <ArticleCell id={id} />
+    </>
+  )
+}
+
+export default ArticlePage
+```
+
+## Chapter 3: Saving Data
+
+### Adding a Contact Form
+
+```bash
+yarn rw g sdl Contact --no-crud
+yarn rw g page contact
+```
+
+Update contact schema:
+
+```prisma title="api/db/schema.prisma"
+model Contact {
+  id        Int @id @default(autoincrement())
+  name      String
+  email     String
+  message   String
   createdAt DateTime @default(now())
-  userId    Int?
-  user      User?    @relation(fields: [userId], references: [id])
 }
 ```
 
-Run a migration to update the database:
-
 ```bash
-yarn rw prisma migrate dev --name add_user_model
+yarn rw prisma migrate dev
 ```
 
-Update the Blog layout to include login/logout functionality:
+Update BlogLayout:
 
-```jsx
-import { useAuth } from '@redwoodjs/auth'
+```tsx title="web/src/layouts/BlogLayout/BlogLayout.tsx"
 import { Link, routes } from '@redwoodjs/router'
 
 type BlogLayoutProps = {
@@ -570,8 +561,6 @@ type BlogLayoutProps = {
 }
 
 const BlogLayout = ({ children }: BlogLayoutProps) => {
-  const { isAuthenticated, currentUser, logOut } = useAuth()
-
   return (
     <>
       <header>
@@ -587,20 +576,10 @@ const BlogLayout = ({ children }: BlogLayoutProps) => {
               <Link to={routes.about()}>About</Link>
             </li>
             <li>
-              <Link to={routes.newPost()}>New Post</Link>
+              <Link to={routes.contact()}>Contact</Link>
             </li>
-            {isAuthenticated ? (
-              <li>
-                <button onClick={logOut}>Logout</button>
-              </li>
-            ) : (
-              <li>
-                <Link to={routes.login()}>Login</Link>
-              </li>
-            )}
           </ul>
         </nav>
-        {isAuthenticated && <div>Logged in as {currentUser.email}</div>}
       </header>
       <main>{children}</main>
     </>
@@ -610,157 +589,599 @@ const BlogLayout = ({ children }: BlogLayoutProps) => {
 export default BlogLayout
 ```
 
-## Intermission
+Update ContactPage:
 
-Let's take a moment to review what we've built so far:
+```tsx title="web/src/pages/ContactPage/ContactPage.tsx"
+import { Metadata } from '@redwoodjs/web'
+import {
+  FieldError,
+  Form,
+  FormError,
+  Label,
+  TextField,
+  TextAreaField,
+  Submit,
+  SubmitHandler,
+  useForm,
+} from '@redwoodjs/forms'
+import { useMutation } from '@redwoodjs/web'
+import { toast, Toaster } from '@redwoodjs/web/toast'
 
-1. A basic blog with a home page and about page
-2. A posts listing that fetches data from the database
-3. A form for creating new posts
-4. User authentication
+import {
+  CreateContactMutation,
+  CreateContactMutationVariables,
+} from 'types/graphql'
 
-Next, we'll dive into more advanced features like Storybook for component development, testing, and role-based access control.
-
-## Chapter 5: Frontend Magic
-
-### Introduction to Storybook
-
-Storybook is a tool for developing UI components in isolation. It makes it easy to develop and test components without needing to run the entire application.
-
-Start Storybook with:
-
-```bash
-yarn rw storybook
-```
-
-This will launch Storybook at `http://localhost:7910`.
-
-### Our First Story
-
-Let's create a simple component and its story:
-
-```bash
-yarn rw generate component Article
-```
-
-Update `web/src/components/Article/Article.tsx`:
-
-```jsx
-import { Link, routes } from '@redwoodjs/router'
-
-interface ArticleProps {
-  article: {
-    id: number
-    title: string
-    body: string
-    createdAt: string
+const CREATE_CONTACT = gql`
+  mutation CreateContactMutation($input: CreateContactInput!) {
+    createContact(input: $input) {
+      id
+    }
   }
-  summary?: boolean
+`
+
+interface FormValues {
+  name: string
+  email: string
+  message: string
 }
 
-const Article = ({ article, summary = false }: ArticleProps) => {
+const ContactPage = () => {
+  const formMethods = useForm()
+
+  const [create, { loading, error }] = useMutation<
+    CreateContactMutation,
+    CreateContactMutationVariables
+  >(CREATE_CONTACT, {
+    onCompleted: () => {
+      toast.success('Thank you for your submission!')
+      formMethods.reset()
+    },
+  })
+
+  const onSubmit: SubmitHandler<FormValues> = (data) => {
+    create({ variables: { input: data } })
+  }
+
   return (
-    <article>
-      <header>
-        <h2>
-          <Link to={routes.post({ id: article.id })}>{article.title}</Link>
-        </h2>
-      </header>
-      <div>
-        {summary ? article.body.substring(0, 100) + '...' : article.body}
-      </div>
-      <div>Posted at: {new Date(article.createdAt).toLocaleString()}</div>
-    </article>
+    <>
+      <Metadata title="Contact" description="Contact page" />
+
+      <Toaster />
+      <Form
+        onSubmit={onSubmit}
+        config={{ mode: 'onBlur' }}
+        error={error}
+        formMethods={formMethods}
+      >
+        <FormError
+          error={error}
+          wrapperClassName="form-error"
+        />
+
+        <Label name="name" className="block text-sm text-gray-600 uppercase">
+          Name
+        </Label>
+        <TextField
+          name="name"
+          validation={{ required: true }}
+          className="block w-full p-1 border rounded text-sm"
+          errorClassName="block w-full p-1 border rounded text-sm error"
+        />
+        <FieldError name="name" className="error" />
+
+        <Label
+          name="email"
+          className="block mt-4 text-sm text-gray-600 uppercase"
+        >
+          Email
+        </Label>
+        <TextField
+          name="email"
+          validation={{
+            required: true,
+            pattern: {
+              value: /^[^@]+@[^.]+\..+$/,
+              message: 'Please enter a valid email address',
+            },
+          }}
+          className="block w-full p-1 border rounded text-sm"
+          errorClassName="block w-full p-1 border rounded text-sm error"
+        />
+        <FieldError name="email" className="error" />
+
+        <Label
+          name="message"
+          className="block mt-4 text-sm text-gray-600 uppercase"
+        >
+          Message
+        </Label>
+        <TextAreaField
+          name="message"
+          validation={{ required: true }}
+          className="block w-full p-1 border rounded h-24 text-sm"
+          errorClassName="block w-full p-1 border rounded h-24 text-sm error"
+        />
+        <FieldError name="message" className="error" />
+
+        <Submit
+          disabled={loading}
+          className="block mt-4 bg-blue-500 text-white text-xs font-semibold uppercase tracking-wide rounded px-3 py-2 disabled:opacity-50"
+        >
+          Save
+        </Submit>
+      </Form>
+    </>
   )
 }
 
-export default Article
+export default ContactPage
 ```
 
-Update its story `web/src/components/Article/Article.stories.tsx`:
+Update contacts service:
 
-```jsx
-import Article from './Article'
+```tsx title="api/src/services/contacts/contacts.ts"
+import type { QueryResolvers, MutationResolvers } from 'types/graphql'
 
-export default {
-  component: Article,
-  title: 'Components/Article',
+import { validate } from '@redwoodjs/api'
+
+import { db } from 'src/lib/db'
+
+export const contacts: QueryResolvers['contacts'] = () => {
+  return db.contact.findMany()
 }
 
-const Template = (args) => <Article {...args} />
-
-export const Full = Template.bind({})
-Full.args = {
-  article: {
-    id: 1,
-    title: 'First Post',
-    body: 'This is the body of the first post. It is a long body with lots of text.',
-    createdAt: '2020-01-01T12:34:56Z',
-  },
-  summary: false,
+export const contact: QueryResolvers['contact'] = ({ id }) => {
+  return db.contact.findUnique({
+    where: { id },
+  })
 }
 
-export const Summary = Template.bind({})
-Summary.args = {
-  article: {
-    id: 1,
-    title: 'First Post',
-    body: 'This is the body of the first post. It is a long body with lots of text.',
-    createdAt: '2020-01-01T12:34:56Z',
-  },
-  summary: true,
+export const createContact: MutationResolvers['createContact'] = ({ input }) => {
+  validate(input.email, 'email', { email: true })
+  return db.contact.create({
+    data: input,
+  })
 }
 ```
 
-### Testing with Jest
+Update contacts SDL:
 
-RedwoodJS comes with Jest configured for testing. Let's write a test for our Article component:
-
-```jsx
-import { render, screen } from '@redwoodjs/testing/web'
-import Article from './Article'
-
-describe('Article', () => {
-  const article = {
-    id: 1,
-    title: 'Test Article',
-    body: 'Test article body',
-    createdAt: '2020-01-01T12:34:56Z',
+```tsx title="api/src/graphql/contacts.sdl.ts"
+export const schema = gql`
+  type Contact {
+    id: Int!
+    name: String!
+    email: String!
+    message: String!
+    createdAt: DateTime!
   }
 
-  it('renders a full article', () => {
-    render(<Article article={article} />)
-    
-    expect(screen.getByText(article.title)).toBeInTheDocument()
-    expect(screen.getByText(article.body)).toBeInTheDocument()
+  type Query {
+    contacts: [Contact!]! @requireAuth
+    contact(id: Int!): Contact @requireAuth
+  }
+
+  input CreateContactInput {
+    name: String!
+    email: String!
+    message: String!
+  }
+
+  input UpdateContactInput {
+    name: String
+    email: String
+    message: String
+  }
+
+  type Mutation {
+    createContact(input: CreateContactInput!): Contact! @skipAuth
+  }
+`
+```
+
+## Chapter 4: Authentication & Deployment
+
+### Authentication
+
+```bash
+yarn rw setup auth dbAuth
+```
+
+Update User model:
+
+```prisma title="api/db/schema.prisma"
+model User {
+  id                  Int       @id @default(autoincrement())
+  name                String?
+  email               String    @unique
+  hashedPassword      String
+  salt                String
+  resetToken          String?
+  resetTokenExpiresAt DateTime?
+  roles               String    @default("moderator")
+}
+```
+
+```bash
+yarn rw prisma migrate dev
+```
+
+Update Routes:
+
+```tsx title="web/src/Routes.tsx"
+import { PrivateSet, Router, Route, Set } from '@redwoodjs/router'
+import ScaffoldLayout from 'src/layouts/ScaffoldLayout'
+import BlogLayout from 'src/layouts/BlogLayout'
+
+import { useAuth } from './auth'
+
+const Routes = () => {
+  return (
+    <Router useAuth={useAuth}>
+      <PrivateSet unauthenticated="home" roles="admin">
+        <Set wrap={ScaffoldLayout} title="Posts" titleTo="posts" buttonLabel="New Post" buttonTo="newPost">
+          <Route path="/admin/posts/new" page={PostNewPostPage} name="newPost" />
+          <Route path="/admin/posts/{id:Int}/edit" page={PostEditPostPage} name="editPost" />
+          <Route path="/admin/posts/{id:Int}" page={PostPostPage} name="post" />
+          <Route path="/admin/posts" page={PostPostsPage} name="posts" />
+        </Set>
+      </PrivateSet>
+      <Set wrap={BlogLayout}>
+        <Route path="/article/{id:Int}" page={ArticlePage} name="article" />
+        <Route path="/contact" page={ContactPage} name="contact" />
+        <Route path="/about" page={AboutPage} name="about" />
+        <Route path="/" page={HomePage} name="home" />
+      </Set>
+      <Route notfound page={NotFoundPage} />
+    </Router>
+  )
+}
+
+export default Routes
+```
+
+Update BlogLayout:
+
+```tsx title="web/src/layouts/BlogLayout/BlogLayout.tsx"
+import { Link, routes } from '@redwoodjs/router'
+import { Toaster } from '@redwoodjs/web/toast'
+
+import { useAuth } from 'src/auth'
+
+type BlogLayoutProps = {
+  children?: React.ReactNode
+}
+
+const BlogLayout = ({ children }: BlogLayoutProps) => {
+  const { isAuthenticated, currentUser, logOut } = useAuth()
+
+  return (
+    <>
+      <Toaster />
+      <header className="relative flex justify-between items-center py-4 px-8 bg-blue-700 text-white">
+        <h1 className="text-5xl font-semibold tracking-tight">
+          <Link
+            className="text-blue-400 hover:text-blue-100 transition duration-100"
+            to={routes.home()}
+          >
+            Redwood Blog
+          </Link>
+        </h1>
+        <nav>
+          <ul className="relative flex items-center font-light">
+            <li>
+              <Link
+                className="py-2 px-4 hover:bg-blue-600 transition duration-100 rounded"
+                to={routes.about()}
+              >
+                About
+              </Link>
+            </li>
+            <li>
+              <Link
+                className="py-2 px-4 hover:bg-blue-600 transition duration-100 rounded"
+                to={routes.contact()}
+              >
+                Contact
+              </Link>
+            </li>
+            <li>
+              {isAuthenticated ? (
+                <div>
+                  <button type="button" onClick={logOut} className="py-2 px-4">
+                    Logout
+                  </button>
+                </div>
+              ) : (
+                <Link to={routes.login()} className="py-2 px-4">
+                  Login
+                </Link>
+              )}
+            </li>
+          </ul>
+          {isAuthenticated && (
+            <div className="absolute bottom-1 right-0 mr-12 text-xs text-blue-300">
+              {currentUser.email}
+            </div>
+          )}
+        </nav>
+      </header>
+      <main className="max-w-4xl mx-auto p-12 bg-white shadow rounded-b">
+        {children}
+      </main>
+    </>
+  )
+}
+
+export default BlogLayout
+```
+
+Update auth.ts:
+
+```tsx title="api/src/lib/auth.ts"
+import { db } from './db'
+
+export const getCurrentUser = async (session) => {
+  return await db.user.findUnique({
+    where: { id: session.id },
+    select: { id: true, email: true, roles: true },
+  })
+}
+```
+
+### Netlify Deployment Setup
+
+```bash
+yarn rw setup deploy netlify
+```
+
+Create a .env file with your DATABASE_URL and set SESSION_SECRET:
+
+```bash
+yarn rw g secret
+```
+
+## Chapter 5: Component Testing & Storybook
+
+### Create a Comment Component
+
+```bash
+yarn rw g component Comment
+```
+
+Update Comment component:
+
+```tsx title="web/src/components/Comment/Comment.tsx"
+import { useAuth } from 'src/auth'
+
+const formattedDate = (datetime: ConstructorParameters<typeof Date>[0]) => {
+  const parsedDate = new Date(datetime)
+  const month = parsedDate.toLocaleString('default', { month: 'long' })
+  return `${parsedDate.getDate()} ${month} ${parsedDate.getFullYear()}`
+}
+
+interface Props {
+  comment: {
+    name: string
+    createdAt: string
+    body: string
+  }
+}
+
+const Comment = ({ comment }: Props) => {
+  const { hasRole } = useAuth()
+  const moderate = () => {
+    if (confirm('Are you sure?')) {
+      // Delete functionality will be added later
+    }
+  }
+
+  return (
+    <div className="bg-gray-200 p-8 rounded-lg relative">
+      <header className="flex justify-between">
+        <h2 className="font-semibold text-gray-700">{comment.name}</h2>
+        <time className="text-xs text-gray-500" dateTime={comment.createdAt}>
+          {formattedDate(comment.createdAt)}
+        </time>
+      </header>
+      <p className="text-sm mt-2">{comment.body}</p>
+      {hasRole('moderator') && (
+        <button
+          type="button"
+          onClick={moderate}
+          className="absolute bottom-2 right-2 bg-red-500 text-xs rounded text-white px-2 py-1"
+        >
+          Delete
+        </button>
+      )}
+    </div>
+  )
+}
+
+export default Comment
+```
+
+Update Comment.stories.tsx:
+
+```tsx title="web/src/components/Comment/Comment.stories.tsx"
+import Comment from './Comment'
+
+export const defaultView = () => {
+  return (
+    <Comment
+      comment={{
+        id: 1,
+        name: 'Rob Cameron',
+        body: 'This is the first comment!',
+        createdAt: '2020-01-01T12:34:56Z',
+        postId: 1,
+      }}
+    />
+  )
+}
+
+export const moderatorView = () => {
+  mockCurrentUser({
+    id: 1,
+    email: 'moderator@moderator.com',
+    roles: 'moderator',
   })
 
-  it('renders a summary of an article', () => {
-    render(<Article article={article} summary={true} />)
-    
-    expect(screen.getByText(article.title)).toBeInTheDocument()
-    expect(screen.getByText(article.body + '...')).toBeInTheDocument()
+  return (
+    <Comment
+      comment={{
+        id: 1,
+        name: 'Rob Cameron',
+        body: 'This is the first comment!',
+        createdAt: '2020-01-01T12:34:56Z',
+        postId: 1,
+      }}
+    />
+  )
+}
+
+export default { title: 'Components/Comment' }
+```
+
+Update Comment.test.tsx:
+
+```tsx title="web/src/components/Comment/Comment.test.tsx"
+import { render, screen, waitFor } from '@redwoodjs/testing'
+
+import Comment from './Comment'
+
+const COMMENT = {
+  id: 1,
+  name: 'John Doe',
+  body: 'This is my comment',
+  createdAt: '2020-01-02T12:34:56Z',
+  postId: 1,
+}
+
+describe('Comment', () => {
+  it('renders successfully', () => {
+    render(<Comment comment={COMMENT} />)
+
+    expect(screen.getByText(COMMENT.name)).toBeInTheDocument()
+    expect(screen.getByText(COMMENT.body)).toBeInTheDocument()
+    const dateExpect = screen.getByText('2 January 2020')
+    expect(dateExpect).toBeInTheDocument()
+    expect(dateExpect.nodeName).toEqual('TIME')
+    expect(dateExpect).toHaveAttribute('datetime', COMMENT.createdAt)
+  })
+
+  it('does not render a delete button if user is logged out', async () => {
+    render(<Comment comment={COMMENT} />)
+
+    await waitFor(() =>
+      expect(screen.queryByText('Delete')).not.toBeInTheDocument()
+    )
+  })
+
+  it('renders a delete button if the user is a moderator', async () => {
+    mockCurrentUser({
+      id: 1,
+      email: 'moderator@moderator.com',
+      roles: 'moderator',
+    })
+
+    render(<Comment comment={COMMENT} />)
+
+    await waitFor(() => expect(screen.getByText('Delete')).toBeInTheDocument())
   })
 })
 ```
 
-Run the tests with:
+### Create a CommentsCell
 
 ```bash
-yarn rw test
+yarn rw g cell Comments
 ```
 
-## Chapter 6: Building Components
+Update CommentsCell:
 
-Let's add comments to our blog posts. First, update the Prisma schema:
+```tsx title="web/src/components/CommentsCell/CommentsCell.tsx"
+import type { CommentsQuery, CommentsQueryVariables } from 'types/graphql'
 
-```prisma
+import type {
+  CellFailureProps,
+  CellSuccessProps,
+  TypedDocumentNode,
+} from '@redwoodjs/web'
+
+import Comment from 'src/components/Comment'
+
+export const QUERY: TypedDocumentNode<CommentsQuery, CommentsQueryVariables> =
+  gql`
+    query CommentsQuery($postId: Int!) {
+      comments(postId: $postId) {
+        id
+        name
+        body
+        postId
+        createdAt
+      }
+    }
+  `
+
+export const Loading = () => <div>Loading...</div>
+
+export const Empty = () => <div className="text-center text-gray-500">No comments yet</div>
+
+export const Failure = ({
+  error,
+}: CellFailureProps<CommentsQueryVariables>) => (
+  <div style={{ color: 'red' }}>Error: {error.message}</div>
+)
+
+export const Success = ({
+  comments,
+}: CellSuccessProps<CommentsQuery, CommentsQueryVariables>) => {
+  return (
+    <div className="space-y-8">
+      {comments.map((comment) => (
+        <Comment key={comment.id} comment={comment} />
+      ))}
+    </div>
+  )
+}
+```
+
+Update CommentsCell.mock.ts:
+
+```ts title="web/src/components/CommentsCell/CommentsCell.mock.ts"
+export const standard = () => ({
+  comments: [
+    {
+      id: 1,
+      name: 'Rob Cameron',
+      body: 'First comment',
+      postId: 1,
+      createdAt: '2020-01-02T12:34:56Z',
+    },
+    {
+      id: 2,
+      name: 'David Price',
+      body: 'Second comment',
+      postId: 2,
+      createdAt: '2020-02-03T23:00:00Z',
+    },
+  ],
+})
+```
+
+## Chapter 6: Comments Feature
+
+### Create the Comment Model
+
+```prisma title="api/db/schema.prisma"
 model Comment {
   id        Int      @id @default(autoincrement())
   name      String
   body      String
-  postId    Int
   post      Post     @relation(fields: [postId], references: [id])
+  postId    Int
   createdAt DateTime @default(now())
 }
 
@@ -770,321 +1191,70 @@ model Post {
   body      String
   comments  Comment[]
   createdAt DateTime  @default(now())
-  userId    Int?
-  user      User?     @relation(fields: [userId], references: [id])
 }
 ```
 
-Run a migration:
-
 ```bash
-yarn rw prisma migrate dev --name add_comments
+yarn rw prisma migrate dev
 ```
 
-Generate the SDL and service for comments:
-
 ```bash
-yarn rw generate sdl Comment
+yarn rw g sdl Comment
 ```
 
-Now, let's create a comment form component:
+Update comments SDL:
 
-```bash
-yarn rw generate component CommentForm
-```
+```tsx title="api/src/graphql/comments.sdl.ts"
+export const schema = gql`
+  type Comment {
+    id: Int!
+    name: String!
+    body: String!
+    post: Post!
+    postId: Int!
+    createdAt: DateTime!
+  }
 
-Update `web/src/components/CommentForm/CommentForm.tsx`:
+  type Query {
+    comments(postId: Int!): [Comment!]! @skipAuth
+  }
 
-```jsx
-import { useState } from 'react'
-import { useMutation } from '@redwoodjs/web'
-import { toast } from '@redwoodjs/web/toast'
-import {
-  Form,
-  FormError,
-  Label,
-  TextField,
-  TextAreaField,
-  Submit,
-  FieldError,
-} from '@redwoodjs/forms'
+  input CreateCommentInput {
+    name: String!
+    body: String!
+    postId: Int!
+  }
 
-const CREATE_COMMENT_MUTATION = gql`
-  mutation CreateCommentMutation($input: CreateCommentInput!) {
-    createComment(input: $input) {
-      id
-      name
-      body
-      createdAt
-    }
+  input UpdateCommentInput {
+    name: String
+    body: String
+    postId: Int
+  }
+
+  type Mutation {
+    createComment(input: CreateCommentInput!): Comment! @skipAuth
+    deleteComment(id: Int!): Comment! @requireAuth(roles: "moderator")
   }
 `
-
-const CommentForm = ({ postId }) => {
-  const [createComment, { loading, error }] = useMutation(CREATE_COMMENT_MUTATION, {
-    onCompleted: () => {
-      toast.success('Comment added successfully')
-      setHasSubmitted(true)
-    },
-    onError: (error) => {
-      toast.error(error.message)
-    },
-  })
-
-  const [hasSubmitted, setHasSubmitted] = useState(false)
-
-  const onSubmit = (data) => {
-    createComment({ variables: { input: { ...data, postId } } })
-  }
-
-  return (
-    <div className="comment-form">
-      <h3>Leave a Comment</h3>
-      {hasSubmitted ? (
-        <div>Thank you for your comment!</div>
-      ) : (
-        <Form onSubmit={onSubmit} error={error}>
-          <FormError error={error} />
-
-          <Label name="name" errorClassName="error">
-            Name
-          </Label>
-          <TextField
-            name="name"
-            validation={{ required: true }}
-            errorClassName="error"
-          />
-          <FieldError name="name" className="error" />
-
-          <Label name="body" errorClassName="error">
-            Comment
-          </Label>
-          <TextAreaField
-            name="body"
-            validation={{ required: true }}
-            errorClassName="error"
-          />
-          <FieldError name="body" className="error" />
-
-          <Submit disabled={loading}>Submit</Submit>
-        </Form>
-      )}
-    </div>
-  )
-}
-
-export default CommentForm
 ```
 
-Now, let's create a component to display comments:
+Update comments service:
 
-```bash
-yarn rw generate component Comments
-```
+```tsx title="api/src/services/comments/comments.ts"
+import { ForbiddenError } from '@redwoodjs/graphql-server'
 
-Update `web/src/components/Comments/Comments.tsx`:
-
-```jsx
-import { useMutation } from '@redwoodjs/web'
-import { useState } from 'react'
-import CommentForm from '../CommentForm/CommentForm'
-
-const DELETE_COMMENT_MUTATION = gql`
-  mutation DeleteCommentMutation($id: Int!) {
-    deleteComment(id: $id) {
-      id
-    }
-  }
-`
-
-const Comments = ({ comments, postId }) => {
-  const [deleteComment] = useMutation(DELETE_COMMENT_MUTATION)
-
-  const handleDelete = (id) => {
-    if (confirm('Are you sure you want to delete this comment?')) {
-      deleteComment({ 
-        variables: { id },
-        refetchQueries: ['FindPostQuery'] 
-      })
-    }
-  }
-
-  return (
-    <div className="comments">
-      <h2>Comments</h2>
-      {comments.map((comment) => (
-        <div key={comment.id} className="comment">
-          <h3>{comment.name} commented:</h3>
-          <p>{comment.body}</p>
-          <time dateTime={comment.createdAt}>
-            {new Date(comment.createdAt).toLocaleString()}
-          </time>
-          <button onClick={() => handleDelete(comment.id)}>Delete</button>
-        </div>
-      ))}
-      <CommentForm postId={postId} />
-    </div>
-  )
-}
-
-export default Comments
-```
-
-Finally, update our PostCell to include comments:
-
-```jsx
-export const QUERY = gql`
-  query FindPostQuery($id: Int!) {
-    post: post(id: $id) {
-      id
-      title
-      body
-      createdAt
-      comments {
-        id
-        name
-        body
-        createdAt
-      }
-    }
-  }
-`
-
-export const Success = ({ post }) => {
-  return (
-    <>
-      <article>
-        <header>
-          <h2>{post.title}</h2>
-        </header>
-        <div>{post.body}</div>
-        <div>Posted at: {new Date(post.createdAt).toLocaleString()}</div>
-      </article>
-      <Comments comments={post.comments} postId={post.id} />
-    </>
-  )
-}
-```
-
-## Chapter 7: Role-Based Access Control
-
-### Securing the App
-
-Let's implement role-based access control to secure our application. First, let's update our User model to include roles:
-
-```prisma
-model User {
-  id                  Int       @id @default(autoincrement())
-  name                String?
-  email               String    @unique
-  hashedPassword      String
-  salt                String
-  resetToken          String?
-  resetTokenExpiresAt DateTime?
-  roles               String    @default("user")
-  posts               Post[]
-}
-```
-
-Run a migration:
-
-```bash
-yarn rw prisma migrate dev --name add_user_roles
-```
-
-Next, let's update our auth configuration to support roles. In `api/src/lib/auth.ts`:
-
-```typescript
-import { AuthenticationError, ForbiddenError } from '@redwoodjs/graphql-server'
-
-/**
- * Checks if the current user is authenticated
- */
-export const isAuthenticated = () => {
-  return context.currentUser !== undefined
-}
-
-/**
- * Checks if the current user has one of the specified roles
- */
-export const hasRole = ({ roles }) => {
-  if (!isAuthenticated()) {
-    return false
-  }
-  
-  const currentUserRoles = context.currentUser?.roles.split(',') || []
-  
-  return currentUserRoles.some((role) => roles.includes(role))
-}
-
-/**
- * Requires that the current user is authenticated and has the specified roles
- */
-export const requireAuth = ({ roles } = {}) => {
-  if (!isAuthenticated()) {
-    throw new AuthenticationError("You don't have permission to do that.")
-  }
-
-  if (roles && !hasRole({ roles })) {
-    throw new ForbiddenError("You don't have access to do that.")
-  }
-
-  return context.currentUser
-}
-```
-
-Now, let's secure our Post service in `api/src/services/posts/posts.ts`:
-
-```typescript
 import { db } from 'src/lib/db'
-import { requireAuth } from 'src/lib/auth'
 
-export const posts = () => {
-  return db.post.findMany()
+const verifyOwnership = async ({ id }) => {
+  if (await adminPost({ id })) {
+    return true
+  } else {
+    throw new ForbiddenError("You don't have access to this post")
+  }
 }
-
-export const post = ({ id }) => {
-  return db.post.findUnique({
-    where: { id },
-  })
-}
-
-export const createPost = ({ input }) => {
-  requireAuth({ roles: ['admin', 'editor'] })
-  return db.post.create({
-    data: {
-      ...input,
-      userId: context.currentUser.id,
-    },
-  })
-}
-
-export const updatePost = ({ id, input }) => {
-  requireAuth({ roles: ['admin', 'editor'] })
-  return db.post.update({
-    data: input,
-    where: { id },
-  })
-}
-
-export const deletePost = ({ id }) => {
-  requireAuth({ roles: ['admin'] })
-  return db.post.delete({
-    where: { id },
-  })
-}
-```
-
-Let's also secure our Comment service:
-
-```typescript
-import { db } from 'src/lib/db'
-import { requireAuth } from 'src/lib/auth'
 
 export const comments = ({ postId }) => {
-  return db.comment.findMany({
-    where: { postId },
-  })
+  return db.comment.findMany({ where: { postId } })
 }
 
 export const comment = ({ id }) => {
@@ -1099,54 +1269,587 @@ export const createComment = ({ input }) => {
   })
 }
 
-export const deleteComment = ({ id }) => {
-  requireAuth({ roles: ['admin', 'moderator'] })
+export const deleteComment = async ({ id }) => {
+  requireAuth({ roles: 'moderator' })
   return db.comment.delete({
+    where: { id },
+  })
+}
+
+export const Comment = {
+  post: (_obj, { root }) => {
+    return db.comment.findFirst({ where: { id: root?.id } }).post()
+  },
+}
+```
+
+### Create CommentForm Component
+
+```bash
+yarn rw g component CommentForm
+```
+
+Update CommentForm:
+
+```tsx title="web/src/components/CommentForm/CommentForm.tsx"
+import type {
+  CreateCommentMutation,
+  CreateCommentMutationVariables,
+} from 'types/graphql'
+
+import {
+  Form,
+  FormError,
+  Label,
+  TextField,
+  TextAreaField,
+  Submit,
+  SubmitHandler,
+} from '@redwoodjs/forms'
+import type { TypedDocumentNode } from '@redwoodjs/web'
+import { useMutation } from '@redwoodjs/web'
+import { toast } from '@redwoodjs/web/toast'
+
+import { QUERY as CommentsQuery } from 'src/components/CommentsCell'
+
+const CREATE: TypedDocumentNode<
+  CreateCommentMutation,
+  CreateCommentMutationVariables
+> = gql`
+  mutation CreateCommentMutation($input: CreateCommentInput!) {
+    createComment(input: $input) {
+      id
+      name
+      body
+      createdAt
+    }
+  }
+`
+
+interface FormValues {
+  name: string
+  body: string
+}
+
+interface Props {
+  postId: number
+}
+
+const CommentForm = ({ postId }: Props) => {
+  const [hasPosted, setHasPosted] = useState(false)
+  const [createComment, { loading, error }] = useMutation(CREATE, {
+    onCompleted: () => {
+      setHasPosted(true)
+      toast.success('Thank you for your comment!')
+    },
+    refetchQueries: [{ query: CommentsQuery, variables: { postId } }],
+  })
+
+  const onSubmit: SubmitHandler<FormValues> = (input) => {
+    createComment({ variables: { input: { postId, ...input } } })
+  }
+
+  return (
+    <div className={hasPosted ? 'hidden' : ''}>
+      <h3 className="font-light text-lg text-gray-600">Leave a Comment</h3>
+      <Form className="mt-4 w-full" onSubmit={onSubmit}>
+        <FormError
+          error={error}
+          titleClassName="font-semibold"
+          wrapperClassName="bg-red-100 text-red-900 text-sm p-3 rounded"
+        />
+        <Label
+          name="name"
+          className="block text-xs font-semibold text-gray-500 uppercase"
+        >
+          Name
+        </Label>
+        <TextField
+          name="name"
+          validation={{ required: true }}
+          className="block w-full p-1 border rounded text-sm "
+          errorClassName="block w-full p-1 border rounded text-sm error"
+        />
+        <FieldError name="name" className="error" />
+
+        <Label
+          name="body"
+          className="block mt-4 text-xs font-semibold text-gray-500 uppercase"
+        >
+          Comment
+        </Label>
+        <TextAreaField
+          name="body"
+          validation={{ required: true }}
+          className="block w-full p-1 border rounded h-24 text-sm"
+          errorClassName="block w-full p-1 border rounded h-24 text-sm error"
+        />
+        <FieldError name="body" className="error" />
+
+        <Submit
+          disabled={loading}
+          className="block mt-4 bg-blue-500 text-white text-xs font-semibold uppercase tracking-wide rounded px-3 py-2 disabled:opacity-50"
+        >
+          Submit
+        </Submit>
+      </Form>
+    </div>
+  )
+}
+
+export default CommentForm
+```
+
+Update CommentForm.stories.tsx:
+
+```tsx title="web/src/components/CommentForm/CommentForm.stories.tsx"
+import CommentForm from './CommentForm'
+
+import type {
+  CreateCommentMutation,
+  CreateCommentMutationVariables,
+} from 'types/graphql'
+
+export const generated = () => {
+  mockGraphQLMutation<CreateCommentMutation, CreateCommentMutationVariables>(
+    'CreateCommentMutation',
+    (variables, { ctx }) => {
+      const id = Math.floor(Math.random() * 1000)
+      ctx.delay(1000)
+
+      return {
+        createComment: {
+          id,
+          name: variables.input.name,
+          body: variables.input.body,
+          createdAt: new Date().toISOString(),
+        },
+      }
+    }
+  )
+
+  return <CommentForm postId={1} />
+}
+
+export default { title: 'Components/CommentForm' }
+```
+
+### Update Article Component
+
+Create a reusable Article component:
+
+```bash
+yarn rw g component Article
+```
+
+Update Article component:
+
+```tsx title="web/src/components/Article/Article.tsx"
+import { Link, routes } from '@redwoodjs/router'
+
+import CommentForm from 'src/components/CommentForm'
+import CommentsCell from 'src/components/CommentsCell'
+
+import type { Post } from 'types/graphql'
+
+const truncate = (text: string, length: number) => {
+  return text.substring(0, length) + '...'
+}
+
+const Article = ({ article, summary = false }) => {
+  return (
+    <article>
+      <header>
+        <h2 className="text-xl text-blue-700 font-semibold">
+          <Link to={routes.article({ id: article.id })}>{article.title}</Link>
+        </h2>
+      </header>
+      <div className="mt-2 text-gray-900 font-light">
+        {summary ? truncate(article.body, 100) : article.body}
+      </div>
+      {!summary && (
+        <div className="mt-12">
+          <CommentForm postId={article.id} />
+          <div className="mt-12">
+            <CommentsCell postId={article.id} />
+          </div>
+        </div>
+      )}
+    </article>
+  )
+}
+
+export default Article
+```
+
+Update ArticlesCell to use the Article component:
+
+```tsx title="web/src/components/ArticlesCell/ArticlesCell.tsx"
+import type { ArticlesQuery, ArticlesQueryVariables } from 'types/graphql'
+
+import type {
+  CellFailureProps,
+  CellSuccessProps,
+  TypedDocumentNode,
+} from '@redwoodjs/web'
+
+import Article from 'src/components/Article'
+
+export const QUERY: TypedDocumentNode<ArticlesQuery, ArticlesQueryVariables> =
+  gql`
+    query ArticlesQuery {
+      articles: posts {
+        id
+        title
+        body
+        createdAt
+        user {
+          name
+        }
+      }
+    }
+  `
+
+export const Loading = () => <div>Loading...</div>
+
+export const Empty = () => <div>Empty</div>
+
+export const Failure = ({
+  error,
+}: CellFailureProps<ArticlesQueryVariables>) => (
+  <div style={{ color: 'red' }}>Error: {error.message}</div>
+)
+
+export const Success = ({
+  articles,
+}: CellSuccessProps<ArticlesQuery, ArticlesQueryVariables>) => {
+  return (
+    <>
+      {articles.map((article) => (
+        <Article key={article.id} article={article} summary={true} />
+      ))}
+    </>
+  )
+}
+```
+
+Update ArticleCell to use the Article component:
+
+```tsx title="web/src/components/ArticleCell/ArticleCell.tsx"
+import type { FindArticleQuery, FindArticleQueryVariables } from 'types/graphql'
+
+import type {
+  CellFailureProps,
+  CellSuccessProps,
+  TypedDocumentNode,
+} from '@redwoodjs/web'
+
+import Article from 'src/components/Article'
+
+export const QUERY: TypedDocumentNode<
+  FindArticleQuery,
+  FindArticleQueryVariables
+> = gql`
+  query FindArticleQuery($id: Int!) {
+    article: post(id: $id) {
+      id
+      title
+      body
+      createdAt
+      user {
+        name
+      }
+    }
+  }
+`
+
+export const Loading = () => <div>Loading...</div>
+
+export const Empty = () => <div>Empty</div>
+
+export const Failure = ({
+  error,
+}: CellFailureProps<FindArticleQueryVariables>) => (
+  <div style={{ color: 'red' }}>Error: {error.message}</div>
+)
+
+export const Success = ({
+  article,
+}: CellSuccessProps<FindArticleQuery, FindArticleQueryVariables>) => {
+  return <Article article={article} />
+}
+```
+
+## Chapter 7: RBAC & currentUser
+
+### Adding Roles to User
+
+Update the Post schema:
+
+```prisma title="api/db/schema.prisma"
+model Post {
+  id        Int      @id @default(autoincrement())
+  title     String
+  body      String
+  comments  Comment[]
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int
+  createdAt DateTime @default(now())
+}
+
+model User {
+  id                  Int @id @default(autoincrement())
+  name                String?
+  email               String @unique
+  hashedPassword      String
+  salt                String
+  resetToken          String?
+  resetTokenExpiresAt DateTime?
+  roles               String @default("moderator")
+  posts               Post[]
+}
+```
+
+```bash
+yarn rw prisma migrate dev
+```
+
+### Update Posts Service
+
+Create AdminPosts SDL:
+
+```tsx title="api/src/graphql/adminPosts.sdl.ts"
+export const schema = gql`
+  type Query {
+    adminPosts: [Post!]! @requireAuth(roles: ["admin"])
+    adminPost(id: Int!): Post @requireAuth(roles: ["admin"])
+  }
+
+  input CreatePostInput {
+    title: String!
+    body: String!
+  }
+
+  input UpdatePostInput {
+    title: String
+    body: String
+  }
+
+  type Mutation {
+    createPost(input: CreatePostInput!): Post! @requireAuth(roles: ["admin"])
+    updatePost(id: Int!, input: UpdatePostInput!): Post!
+      @requireAuth(roles: ["admin"])
+    deletePost(id: Int!): Post! @requireAuth(roles: ["admin"])
+  }
+`
+```
+
+Update Posts SDL:
+
+```tsx title="api/src/graphql/posts.sdl.ts"
+export const schema = gql`
+  type Post {
+    id: Int!
+    title: String!
+    body: String!
+    createdAt: DateTime!
+    user: User!
+  }
+
+  type Query {
+    posts: [Post!]! @skipAuth
+    post(id: Int!): Post @skipAuth
+  }
+`
+```
+
+Create AdminPosts Service:
+
+```tsx title="api/src/services/adminPosts/adminPosts.ts"
+import { ForbiddenError } from '@redwoodjs/graphql-server'
+
+import { db } from 'src/lib/db'
+
+const verifyOwnership = async ({ id }) => {
+  if (await adminPost({ id })) {
+    return true
+  } else {
+    throw new ForbiddenError("You don't have access to this post")
+  }
+}
+
+export const adminPosts = () => {
+  return db.post.findMany({ where: { userId: context.currentUser.id } })
+}
+
+export const adminPost = ({ id }) => {
+  return db.post.findFirst({
+    where: { id, userId: context.currentUser.id },
+  })
+}
+
+export const createPost = ({ input }) => {
+  return db.post.create({
+    data: { ...input, userId: context.currentUser.id },
+  })
+}
+
+export const updatePost = async ({ id, input }) => {
+  await verifyOwnership({ id })
+
+  return db.post.update({
+    data: input,
+    where: { id },
+  })
+}
+
+export const deletePost = async ({ id }) => {
+  await verifyOwnership({ id })
+
+  return db.post.delete({
     where: { id },
   })
 }
 ```
 
-Finally, let's update our UI to show or hide features based on user roles:
+Update Posts Service:
 
-```jsx
-import { useAuth } from '@redwoodjs/auth'
+```tsx title="api/src/services/posts/posts.ts"
+import { db } from 'src/lib/db'
 
-// In your component
-const { currentUser, hasRole } = useAuth()
+export const posts = () => {
+  return db.post.findMany()
+}
 
-// Then in your JSX
-{hasRole(['admin', 'editor']) && (
-  <Link to={routes.newPost()}>New Post</Link>
-)}
+export const post = ({ id }) => {
+  return db.post.findUnique({ where: { id } })
+}
 
-{hasRole(['admin', 'moderator']) && (
-  <button onClick={() => handleDelete(comment.id)}>Delete</button>
-)}
+export const Post = {
+  user: (_obj, { root }) =>
+    db.post.findFirst({ where: { id: root.id } }).user(),
+}
 ```
 
-## Afterword
+Update the scaffold components:
 
-Congratulations! You've built a complete blog application with RedwoodJS, featuring:
+```tsx title="web/src/components/Post/EditPostCell/EditPostCell.tsx"
+export const QUERY = gql`
+  query EditPostById($id: Int!) {
+    post: adminPost(id: $id) {
+      id
+      title
+      body
+      createdAt
+    }
+  }
+`
+```
 
-- Multiple pages and layouts
-- Dynamic data fetching with Cells
-- Database integration with Prisma
-- Forms and data submission
-- Authentication and authorization
-- Component testing with Jest
-- Component development with Storybook
-- Role-based access control
+```tsx title="web/src/components/Post/PostCell/PostCell.tsx"
+export const QUERY = gql`
+  query FindPostById($id: Int!) {
+    post: adminPost(id: $id) {
+      id
+      title
+      body
+      createdAt
+    }
+  }
+`
+```
 
-This is just the beginning of what you can build with RedwoodJS. Some next steps you might want to explore:
+```tsx title="web/src/components/Post/PostsCell/PostsCell.tsx"
+export const QUERY = gql`
+  query POSTS {
+    posts: adminPosts {
+      id
+      title
+      body
+      createdAt
+    }
+  }
+`
+```
 
-1. **Deployment**: Deploy your app to Netlify, Vercel, or another hosting provider
-2. **File uploads**: Add the ability to upload images for blog posts
-3. **Markdown support**: Add markdown rendering for blog content
-4. **Search functionality**: Implement search for posts and comments
-5. **Pagination**: Add pagination for posts and comments
-6. **Admin panel**: Build a dedicated admin area for managing content
+### Update Comment Delete Functionality
 
-RedwoodJS continues to evolve with new features and improvements. Check out the [official documentation](https://redwoodjs.com/docs) to stay up to date with the latest developments.
+```tsx title="web/src/components/Comment/Comment.tsx"
+import type {
+  Comment as IComment,
+  DeleteCommentMutation,
+  DeleteCommentMutationVariables,
+} from 'types/graphql'
 
-Happy coding!
+import type { TypedDocumentNode } from '@redwoodjs/web'
+import { useMutation } from '@redwoodjs/web'
+
+import { QUERY as CommentsQuery } from 'src/components/CommentsCell'
+import { useAuth } from 'src/auth'
+
+const DELETE: TypedDocumentNode<
+  DeleteCommentMutation,
+  DeleteCommentMutationVariables
+> = gql`
+  mutation DeleteCommentMutation($id: Int!) {
+    deleteComment(id: $id) {
+      postId
+    }
+  }
+`
+
+const formattedDate = (datetime: ConstructorParameters<typeof Date>[0]) => {
+  const parsedDate = new Date(datetime)
+  const month = parsedDate.toLocaleString('default', { month: 'long' })
+  return `${parsedDate.getDate()} ${month} ${parsedDate.getFullYear()}`
+}
+
+interface Props {
+  comment: Pick<IComment, 'postId' | 'id' | 'name' | 'createdAt' | 'body'>
+}
+
+const Comment = ({ comment }: Props) => {
+  const { hasRole } = useAuth()
+  const [deleteComment] = useMutation(DELETE, {
+    refetchQueries: [
+      {
+        query: CommentsQuery,
+        variables: { postId: comment.postId },
+      },
+    ],
+  })
+
+  const moderate = () => {
+    if (confirm('Are you sure?')) {
+      deleteComment({
+        variables: { id: comment.id },
+      })
+    }
+  }
+
+  return (
+    <div className="bg-gray-200 p-8 rounded-lg relative">
+      <header className="flex justify-between">
+        <h2 className="font-semibold text-gray-700">{comment.name}</h2>
+        <time className="text-xs text-gray-500" dateTime={comment.createdAt}>
+          {formattedDate(comment.createdAt)}
+        </time>
+      </header>
+      <p className="text-sm mt-2">{comment.body}</p>
+      {hasRole('moderator') && (
+        <button
+          type="button"
+          onClick={moderate}
+          className="absolute bottom-2 right-2 bg-red-500 text-xs rounded text-white px-2 py-1"
+        >
+          Delete
+        </button>
+      )}
+    </div>
+  )
+}
+
+export default Comment
+```
+
+```
